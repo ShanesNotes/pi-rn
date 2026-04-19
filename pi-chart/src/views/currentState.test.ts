@@ -1,0 +1,125 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  makeEmptyPatient,
+  appendRawEvent,
+  appendRawVital,
+} from "../test-helpers/fixture.js";
+import { currentState } from "./currentState.js";
+
+function ev(
+  id: string,
+  type: string,
+  subtype: string | undefined,
+  status: string,
+  at: string,
+  extras: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    type,
+    ...(subtype ? { subtype } : {}),
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "x", role: "rn" },
+    source: { kind: "k" },
+    certainty: "observed",
+    status,
+    data: { summary: "placeholder" },
+    links: { supports: [] },
+    ...extras,
+  };
+}
+
+test("constraints axis: active not superseded are returned; superseded are hidden", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("cs_a", "constraint_set", undefined, "active", "2026-04-18T06:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("cs_b", "constraint_set", undefined, "active", "2026-04-18T07:00:00-05:00", {
+    links: { supports: [], supersedes: ["cs_a"] },
+  }));
+  const s = await currentState({ scope, axis: "constraints" });
+  assert.equal(s.axis, "constraints");
+  if (s.axis !== "constraints") throw new Error();
+  assert.deepEqual(s.items.map((x) => x.id), ["cs_b"]);
+});
+
+test("problems axis: only assessment/problem with status active, no superseded", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_obs_01", "observation", "vital_sign", "final", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_p1", "assessment", "problem", "active", "2026-04-18T08:30:00-05:00", {
+    data: { summary: "hypoxia" },
+    links: { supports: ["evt_obs_01"] },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_p2", "assessment", "problem", "final", "2026-04-18T08:40:00-05:00", {
+    data: { summary: "resolved" },
+    links: { supports: ["evt_obs_01"] },
+  }));
+  const s = await currentState({ scope, axis: "problems" });
+  if (s.axis !== "problems") throw new Error();
+  assert.deepEqual(s.items.map((x) => x.id), ["evt_p1"]);
+});
+
+test("vitals axis returns latest per metric regardless of supersession semantics", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 95,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:30:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 88,
+  });
+  const s = await currentState({ scope, axis: "vitals" });
+  if (s.axis !== "vitals") throw new Error();
+  assert.equal(s.items.spo2.value, 88);
+});
+
+test("constraints axis surfaces the constraint_set from constraints.md", async () => {
+  // Regression: active context must load structural markdown, not just
+  // NDJSON. The seed chart's constraint_set lives in constraints.md.
+  const scope = await makeEmptyPatient();
+  const pdir = (await import("../test-helpers/fixture.js")).patientDir(scope);
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  await fs.promises.writeFile(
+    path.join(pdir, "constraints.md"),
+    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_001\nstatus: active\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: rn_shane, role: rn}\nsource: {kind: admission_intake}\nconstraints:\n  code_status: full_code\n---\n\n# Constraints\nFull code.\n",
+  );
+  const s = await currentState({
+    scope,
+    axis: "constraints",
+    asOf: "2026-04-18T09:00:00-05:00",
+  });
+  if (s.axis !== "constraints") throw new Error();
+  assert.equal(s.items.length, 1);
+  assert.equal(s.items[0].id, "cst_001");
+});
+
+test("all axis composes each panel", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("cs_a", "constraint_set", undefined, "active", "2026-04-18T06:00:00-05:00"));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 94,
+  });
+  const s = await currentState({ scope, axis: "all" });
+  if (s.axis !== "all") throw new Error();
+  assert.equal(s.constraints.length, 1);
+  assert.equal(s.vitals.spo2.value, 94);
+  assert.deepEqual(s.intents, []);
+  assert.deepEqual(s.problems, []);
+});

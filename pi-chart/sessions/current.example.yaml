@@ -1,0 +1,7 @@
+# Template for sessions/current.yaml (gitignored).
+# Copy to sessions/current.yaml and fill in operator identity.
+author:
+  id: rn_shane
+  role: rn
+current_patient: patient_001
+# current_encounter: enc_001

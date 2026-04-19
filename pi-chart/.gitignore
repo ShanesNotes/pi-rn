@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# pi-chart specific
+# _derived/ is disposable: regenerate locally via `npm run rebuild`. Tracking
+# only the README to document the directory's purpose.
+_derived/*.md
+!_derived/README.md
+patients/*/_derived/*.md
+!patients/*/_derived/README.md
+
+# Transient session state (DESIGN §2.4). sessions/current.example.yaml is
+# committed as a template; sessions/current.yaml is per-workspace.
+sessions/current.yaml

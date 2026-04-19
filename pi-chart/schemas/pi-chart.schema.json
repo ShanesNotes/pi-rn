@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-rn.local/schemas/pi-chart.schema.json",
+  "title": "pi-chart system registry",
+  "description": "Repo-level pi-chart.yaml. Indexes the patients that live under patients/. The registry is maintained by library code on create/import; the canonical list is still `ls patients/` on disk.",
+  "type": "object",
+  "required": ["system_version", "schema_version", "patients"],
+  "properties": {
+    "system_version": {
+      "type": "string",
+      "description": "Version of the pi-chart system (e.g. '0.2.0')."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Version of the event/note/vitals schemas the substrate speaks."
+    },
+    "default_timezone": {
+      "type": "string",
+      "description": "IANA tz name applied when a per-patient chart.yaml omits timezone."
+    },
+    "patients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "directory"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Patient id, also the subdir name under patients/."
+          },
+          "directory": {
+            "type": "string",
+            "description": "Relative path from chartRoot, e.g. 'patients/patient_001'."
+          },
+          "display_name": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "source": {
+            "type": "string",
+            "enum": ["synthetic", "mimic_iv_import", "manual"]
+          }
+        }
+      }
+    }
+  }
+}

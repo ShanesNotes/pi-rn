@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-rn.local/schemas/session.schema.json",
+  "title": "pi-chart session state",
+  "description": "Transient workspace state at sessions/current.yaml. Gitignored. Carries operator identity and current-patient context so CLI wrappers and human writes don't have to repeat author fields. Library functions only use the author field for autofill when no author is supplied.",
+  "type": "object",
+  "properties": {
+    "author": {
+      "type": "object",
+      "required": ["id", "role"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string" }
+      }
+    },
+    "current_patient": {
+      "type": "string",
+      "description": "Default patientId for CLI scopes. Library functions ignore this."
+    },
+    "current_encounter": {
+      "type": "string",
+      "description": "Default encounter_id for CLI scopes. Library functions ignore this."
+    }
+  }
+}

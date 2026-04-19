@@ -1,0 +1,9 @@
+chart_id: chart_patient_001
+chart_version: 0.2.0
+schema_version: 0.2.0
+subject: patient_001
+mode: simulation
+clock: sim_time
+sim_start: 2026-04-18T11:00:00.000Z
+created_at: 2026-04-18T11:00:00.000Z
+timezone: America/Chicago
