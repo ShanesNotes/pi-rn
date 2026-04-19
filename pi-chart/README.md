@@ -1,17 +1,19 @@
 # pi-chart
 
-The durable clinical memory surface for `pi-agent`, running against `pi-sim`.
+Durable clinical memory substrate for `pi-agent`, running against `pi-sim`.
 
-Not an EHR clone. A minimal, append-oriented, provenance-rich clinical memory
-substrate for an AI agent operating under partial observability.
+Not an EHR clone. A minimal, append-oriented, provenance-rich substrate
+for an AI agent operating under partial observability.
+
+See `DESIGN.md` for the current spec (v0.2); this file is the primer.
 
 ## Core thesis
 
 > The chart is canonical. Current state is a query. Derived summaries are disposable.
 
-There is no separate "memory" system. The chart *is* the agent's long-term memory
-for a patient. Short-term memory is whatever's in the agent's current context
-window. Long-term memory is whatever has been durably written here.
+There is no separate "memory" system. The chart *is* the agent's long-term
+memory for a patient. Short-term memory is whatever's in the agent's current
+context window. Long-term memory is whatever has been durably written here.
 
 ## The primitive
 
@@ -29,100 +31,140 @@ immutable once written. Storage format is chosen for the payload:
 | Images, PDFs, waveforms              | Native artifact + manifest  |
 | Current state / summaries / indices  | Generated (disposable)      |
 
-The envelope schema (`schemas/event.schema.json`) is the ontology. Markdown and
-NDJSON are carriers.
+The envelope schema (`schemas/event.schema.json`) is the ontology. Markdown
+and NDJSON are carriers.
 
-## Directory layout
+## Directory layout (v0.2)
 
 ```
 pi-chart/
 ├── README.md                 # this file
+├── DESIGN.md                 # the spec — committed decisions + open items
 ├── CLAIM-TYPES.md            # event types, subtypes, data shapes
-├── chart.yaml                # chart-level metadata (subject, clock, mode)
-├── patient.md                # baseline
-├── constraints.md            # allergies, code status, preferences (structured + narrative)
-├── timeline/
-│   └── YYYY-MM-DD/
-│       ├── encounter_NNN.md  # encounter header (one per encounter)
-│       ├── events.ndjson     # atomic structured events, one per line
-│       ├── vitals.jsonl      # monitor stream, one sample per line
-│       └── notes/
-│           └── HHMM_<slug>.md
-├── artifacts/                # native files referenced from events
-├── _derived/                 # disposable views — DO NOT hand-edit
-├── schemas/                  # JSON Schemas for validation
-├── scripts/                  # TS CLIs (validate, rebuild)
-└── src/                      # TS API surface (read/write/derived/validate)
+├── pi-chart.yaml             # system registry (patient ids, defaults)
+├── sessions/
+│   ├── current.yaml          # GITIGNORED — operator identity + current patient
+│   └── current.example.yaml  # COMMITTED — template
+├── patients/
+│   └── patient_001/          # one patient's complete chart
+│       ├── chart.yaml        # per-patient metadata (subject, tz, clock)
+│       ├── patient.md        # baseline
+│       ├── constraints.md    # allergies, code status, preferences
+│       ├── timeline/
+│       │   └── YYYY-MM-DD/
+│       │       ├── encounter_NNN.md
+│       │       ├── events.ndjson
+│       │       ├── vitals.jsonl
+│       │       └── notes/HHMM_<slug>.md
+│       ├── artifacts/
+│       └── _derived/         # cached render — disposable, grep-friendly
+├── schemas/
+├── scripts/                  # tsx CLIs (migrate, validate, rebuild)
+└── src/                      # API surface (read/write/views/validate)
 ```
 
-## The five invariants
-
-These are non-negotiable. The validator enforces the machine-checkable subset
-of these invariants; the rest depend on author discipline and Git review.
-
-1. **pi-sim truth is never written directly.** Only observed monitor outputs,
-   patient reports, agent assessments, and documented actions enter the chart.
-   Every event carries `source.kind` identifying the provenance chain.
-
-2. **pi-chart is append-oriented.** Corrections create new events with
-   `links.supersedes` or `links.corrects`. No mutation of prior claims.
-   `writeNote` rejects overwrites.
-
-3. **Derived files are not authoritative.** Anything under `_derived/` can be
-   deleted and rebuilt from canonical sources.
-
-4. **Every claim has `source`, `effective_at`, `recorded_at`, `author`, and
-   `status`.** Clinical types also require `encounter_id`, `certainty`, `data`,
-   and `links`. `appendEvent` raises if any are missing.
-
-5. **Assessments link to supporting observations or vitals evidence.**
-   Validator enforces: an `assessment` event's `links.supports[]` must include
-   at least one `observation` event, `vitals://` URI, or `artifact_ref` event.
+Every patient directory is a complete, self-contained chart. Copy one
+elsewhere and it still works.
 
 ## The write boundary
 
-Even though the backing store is a filesystem, the agent writes through `src/`
-— not arbitrary file edits. The API is intentionally tiny:
+The agent goes through `src/`, never raw file edits. Every entry point
+takes a `PatientScope` so writes are confined to one patient directory
+(DESIGN §2.6). CLI wrappers may default `chartRoot` to cwd and pick up
+`author` / `patientId` from `sessions/current.yaml`; agents and tests
+always pass scope + author explicitly.
 
 ```ts
 import {
   // reads
   readPatientContext,
-  readActiveConstraints,    // returns { structured, body }
-  readRecentEvents,         // sim-time aware
+  readActiveConstraints,
+  readRecentEvents,
   readRecentNotes,
   readLatestVitals,
   latestEffectiveAt,
 
+  // view primitives (DESIGN §4) — pure, JSON-serializable, axis-aware
+  timeline,
+  currentState,
+  trend,
+  evidenceChain,
+  openLoops,
+  narrative,
+
   // writes (raise on contract violation)
-  appendEvent,              // validates finalized payload + subject + explicit id
-  writeNote,                // refuses overwrite; validates before persistence
-  writeCommunicationNote,   // rollback-safe single-writer note + matching comm event
+  appendEvent,
+  writeNote,
+  writeCommunicationNote,
   writeArtifactRef,
   nextEventId,
   nextNoteId,
 
   // derived + validate
-  rebuildDerived,           // inline; no subprocess
-  validateChart,            // returns { ok, errors, warnings }
+  rebuildDerived,
+  validateChart,
+
+  // session + registry helpers
+  tryLoadSessionAuthor,
+  tryLoadSessionChartRoot,
+  listPatientIds,
 } from "./src/index.js";
+
+// All public calls take a PatientScope:
+await appendEvent(event, { chartRoot, patientId: "patient_001" });
+await currentState({ scope, axis: "all" });
 ```
+
+## View primitives
+
+The read surface is six functions (DESIGN §4). UI panels, agent context
+pulls, and derived renders are all compositions of these:
+
+| View          | UI rendering                                                |
+|---------------|-------------------------------------------------------------|
+| `timeline`    | chronological list / flowsheet row                          |
+| `currentState`| sidebar panels (problems, constraints, open intents, vitals)|
+| `trend`       | line chart                                                  |
+| `evidenceChain`| collapsible tree / breadcrumb from any claim               |
+| `openLoops`   | task list / shift summary                                   |
+| `narrative`   | notes pane                                                  |
+
+Return shapes are JSON-serializable (ISO strings, no `Date`s or
+streams) so the same contract works for agents, tests, and any future
+HTTP surface.
+
+## Invariants
+
+Machine-checked by `validateChart`. Full list with error messages in
+DESIGN §8; ten in v0.2:
+
+1. Every claim carries `source`, `effective_at`, `recorded_at`, `author`, `status`.
+2. Append-only — corrections create new events with `links.supersedes` / `links.corrects`.
+3. `_derived/` is never authoritative.
+4. No orphan claims — every `links.*` target exists within the same patient.
+5. Assessments include at least one observation / vitals ref / artifact_ref in `links.supports`.
+6. **Patient isolation** — writes match `patients/<id>/chart.yaml.subject` **and** the directory name; cross-patient links rejected.
+7. **Session transparency** — author captured at write time; agents pass explicit author; session never retroactively rewrites.
+8. **Supersession monotonicity** — no circular chains, at most one supersessor per event.
+9. **MIMIC provenance** (Phase 3) — structured `source` fields for imported events.
+10. **Fulfillment typing** — `links.fulfills` targets must be `intent`; `links.addresses` targets must be problem-subtype assessment or intent.
 
 ## Clock source
 
-`chart.yaml` declares the chart's clock via `clock: sim_time | wall_time`
-plus an optional `sim_start`. `readRecentEvents` defaults its `asOf` to the
-latest `effective_at` in the chart, so simulation events remain "recent"
-relative to themselves regardless of how much wall-clock time has elapsed
-since authoring. Pass an explicit `asOf` to override.
+Per-patient `chart.yaml` declares `clock: sim_time | wall_time` plus an
+optional `sim_start` and `timezone`. View primitives default `asOf` to
+chart-clock "now" (sim charts use latest authored timestamp; wall charts
+use real time) so replayed simulations stay internally coherent.
 
-Write-time generation is separate from read clock selection:
-- generated write timestamps, generated IDs, and generated day directories use
-  `chart.yaml.timezone` when present;
-- if `timezone` is absent, generated write timestamps fall back to UTC;
-- caller-supplied timestamps are preserved verbatim;
-- `readRecentEvents` returns only events within the inclusive window
-  `cutoff <= effective_at <= asOf`, and skips invalid timestamps.
+## Getting started
+
+```bash
+npm install
+npm run check       # rebuild _derived/ + validate every patient
+npm test            # unit suites
+npm run migrate .   # v0.1 → v0.2 layout (idempotent)
+npm run validate -- --patient patient_001   # scope to one patient
+```
 
 ## Commit discipline
 
@@ -141,30 +183,25 @@ cycle: escalation trigger met; SpO2 89% sustained, SBAR to provider
 
 ## Growth path
 
-- **v0 (now):** filesystem + NDJSON + markdown + ajv validator. No database.
-- **When reads get slow:** add SQLite as a generated, disposable index over
-  `events.ndjson`. Never a source of truth.
-- **When retrieval gets fuzzy:** add a vector index as a generated retrieval
-  layer over notes and assessments.
-- **When interop is needed:** FHIR as a boundary adapter, not an internal model.
-
-## Getting started
-
-```bash
-npm install
-npm run check     # rebuild derived + validate
-npm test          # run unit suites
-```
+- **v0.2 (now):** multi-patient layout, view primitives, explicit
+  fulfillment links, MIMIC provenance structure.
+- **Phase 3:** MIMIC-IV ingestion (`src/importers/mimic-iv/`). Deferred
+  pending CSV staging; see DESIGN §5 and §10.
+- **Phase 4:** UI. Separate design doc when ready; will compose view
+  primitives.
+- **Later:** SQLite index over `events.ndjson` when grep gets slow;
+  vector index over notes for fuzzy retrieval; FHIR as boundary adapter
+  (never internal model).
 
 ## The pi-sim boundary
 
-`pi-sim` is the hidden simulator. The agent does not have access to it. An
-extension observes monitor output from `pi-sim` (the public `vitals/current.json`
-surface only — never internals like `timeline.json`) and appends vitals events
-into this chart with `source.kind: "monitor_extension"`. Patient-reported symptoms
-arrive via `source.kind: "patient_statement"`. Agent-derived conclusions carry
-`source.kind: "agent_inference"` or `"agent_reasoning"`.
+`pi-sim` is the hidden simulator. The agent does not have access to it.
+An extension observes monitor output from `pi-sim` (the public
+`vitals/current.json` surface only) and appends vitals events into the
+chart with `source.kind: "monitor_extension"`. Patient-reported symptoms
+arrive via `source.kind: "patient_statement"`. Agent-derived conclusions
+carry `source.kind: "agent_inference"` or `"agent_reasoning"`.
 
-This asymmetry is the point. The agent only knows what has been observed,
-reported, inferred, or documented — never ground truth. That's how clinical
-work actually operates.
+This asymmetry is the point. The agent only knows what has been
+observed, reported, inferred, or documented — never ground truth.
+That's how clinical work actually operates.
