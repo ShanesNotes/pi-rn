@@ -87,6 +87,51 @@ These disciplines do not change the §0 primitives. They remove
 ambiguity so the type/link/view grammar carries more semantic load
 without growing.
 
+### 1.1 `source.kind` registry
+
+Canonical, closed taxonomy (ADR 006). The validator loads the
+allowed values from this table (v0.2 = warn on unknown, v0.3 =
+error). Adding a new kind requires an ADR amendment updating this
+registry; no schema change needed.
+
+| Group                | `source.kind`              | Meaning                                                                 |
+|----------------------|----------------------------|-------------------------------------------------------------------------|
+| **Patient-origin**   | `patient_statement`        | Patient or surrogate self-report at bedside or via portal.              |
+| **Clinician-origin** | `admission_intake`         | Structured admission H&P data; written by intake clinician.             |
+|                      | `nurse_charted`            | Nurse-authored at the chart (observations, assessments, notes).         |
+|                      | `clinician_chart_action`   | Provider/APP clinical chart interaction (order entry, result review, note). `author.role` differentiates the clinician type. |
+|                      | `protocol_standing_order`  | Clinician action under a standing protocol (RN titration, RT weaning, pharmacy dosing). |
+|                      | `manual_lab_entry`         | Result transcribed manually at the chart (outside-hospital result, faxed, phoned-in). |
+| **Device-origin**    | `monitor_extension`        | pi-sim or equivalent live monitor ingest extension.                     |
+|                      | `poc_device`               | Bedside point-of-care device (iSTAT, Accu-Chek, ACT, POCUS probe).      |
+|                      | `lab_analyzer`             | Direct lab instrument interface (rare in routine flow).                 |
+| **Interface-origin** | `lab_interface_hl7`        | LIS → chart via HL7 ORU (standard lab result path).                     |
+|                      | `pacs_interface`           | PACS/RIS → chart interface (imaging metadata + pointers).               |
+|                      | `dictation_system`         | Dictation/transcription system feed (radiology, pathology, clinic notes). |
+|                      | `pathology_lis`            | Pathology LIS (anatomic and clinical pathology reports).                |
+|                      | `cardiology_reporting`     | Cardiology reporting system (echo, cath, EP).                           |
+|                      | `endoscopy_reporting`      | Endoscopy reporting system.                                             |
+| **Agent-origin**     | `agent_inference`          | Agent-authored conclusion drawn from observed chart data.               |
+|                      | `agent_reasoning`          | Deprecated synonym for `agent_inference`; validator warns and suggests migration (ADR 006). |
+|                      | `agent_review`             | Agent-authored `action.result_review` (may require human confirmation). |
+| **Import-origin**    | `synthea_import`           | Synthea-generated historical corpus (primary per ADR 001).              |
+|                      | `mimic_iv_import`          | MIMIC-IV historical corpus (optional-later per ADR 001).                |
+|                      | `manual_scenario`          | Hand-authored scenario fixture (teaching cases, Phase A fixtures).      |
+
+Per-kind structured `source.*` field conventions (e.g.,
+`lab_interface_hl7` carries `system` / `verified_by` / `raw_ref?`;
+`synthea_import` carries `generator_version` / `seed` / original-ids)
+are documented in CLAIM-TYPES.md. Import-origin kinds are required to
+carry structured provenance per invariant 9.
+
+**Separation of concerns.** `source.kind` describes the
+origin-channel (where the event entered the chart); `author.role`
+describes the actor type (`provider`, `rn`, `rt`, `pharmd`,
+`rn_agent`, etc.). They are orthogonal: a POC K+ drawn under an
+order and one drawn ad-hoc both carry `source.kind: poc_device`; the
+differentiator is `data.origin` (see ADR 003 on fulfillment
+exceptions).
+
 ---
 
 ## 2. Multi-patient architecture
@@ -943,7 +988,7 @@ message naming its number.
 9. **Import provenance**: imported events (e.g. `source.kind: synthea_import`, `source.kind: mimic_iv_import`) carry origin ids + timestamps (corpus-specific: e.g. `subject_id`, `hadm_id`, `row_id`, `original_time`, `rebase_delta_ms`) structurally on `source` — not only in `source.ref`.
 10. **Fulfillment typing** (ADR 003): `links.fulfills` **sources** must be `action` events; **targets** must be `intent` events. Observations and assessments do not carry `fulfills` — they relate to an intent indirectly via an intermediate acquisition `action` (`specimen_collection`, `imaging_acquired`, `procedure_performed`, `measurement`). `links.addresses` targets must be problem-subtype assessments or intents (§6.4).
 11. **Temporal shape** (ADR 005): exactly one of `effective_at` / `effective_period` per event. `effective_period` is allow-listed per `(type, subtype)` (CLAIM-TYPES). `recorded_at ≥ effective_at` except for future-dated `intent` events carrying `data.due_by` or `effective_period.start`.
-12. **`source.kind` taxonomy** (ADR 006): closed canonical list enumerated in §1. Validator warns on unknown kind in v0.2; errors in v0.3. `agent_reasoning` accepted with deprecation notice, migrates to `agent_inference`.
+12. **`source.kind` taxonomy** (ADR 006): closed canonical list enumerated in §1.1. Validator warns on unknown kind in v0.2; errors in v0.3. `agent_reasoning` accepted with deprecation notice, migrates to `agent_inference`.
 
 ---
 

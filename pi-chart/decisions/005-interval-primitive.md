@@ -6,6 +6,18 @@
 - **Touches:** DESIGN §1 (envelope), §5.2 (ICU stay granularity open seam), schemas/event.schema.json, validator, views
 - **Source convergence:** foundation hole-poke B1; autoresearch P4; ROADMAP Seam 5 (ICU stay granularity); A5 (LDAs) anticipated pressure
 
+## Revisions
+
+- **2026-04-21 (operator review pass 1):** Stop-event chain (legacy
+  pattern 2) removed. Supersession is the only permitted closure
+  path. Rationale: the view-layer rules below assume the
+  authoritative end timestamp lives on the event currently holding
+  authority (i.e., the supersessor). A sibling stop event strands the
+  `end` on a separate record that `currentState` and `openLoops` would
+  have to special-case, defeating the uniform "active at T" query
+  shape. V-INTERVAL-04 updated to reject point events that attempt
+  to close an interval.
+
 ## Context
 
 Every clinical event in pi-chart anchors on a single `effective_at`
@@ -76,19 +88,20 @@ later event with `links.supersedes` provides an `end` or a new
 
 ### Closing an open interval
 
-Two patterns accepted, equivalent in semantics:
+Open intervals close by **supersession only**. Write a new event
+with the same payload (or updated payload) and a populated
+`effective_period.end`, carrying `links.supersedes:
+[<open-interval-event-id>]`. The prior open interval is superseded;
+current state reflects the new closed interval.
 
-1. **Supersede**: write a new event with the same payload (or updated
-   payload) and a populated `effective_period.end`, carrying
-   `links.supersedes: [<open-interval-event-id>]`. The prior open
-   interval is now superseded; current state reflects the new closed
-   interval.
-2. **Stop-event chain**: write a new event of the same subtype with a
-   `data.event: "stop"` marker and `effective_at` at the stop time,
-   carrying `links.corrects` or `links.supersedes` to the original.
-   This is the legacy pattern; permitted but not preferred.
-
-Pattern (1) is canonical; views assume it.
+Stop-event chains (a separate point event carrying a `data.event:
+"stop"` marker or equivalent that claims to end a referenced
+interval) are **not permitted**. The view-layer rules below assume
+the authoritative end timestamp lives on the event currently holding
+authority (i.e., the supersessor). Allowing a sibling stop event
+would strand `effective_period.end` on a separate record and force
+`currentState` and `openLoops` to special-case the stranded-end case
+for every subtype. Validator rejects this pattern (V-INTERVAL-04).
 
 ### Applicable event types
 
@@ -118,10 +131,13 @@ per-subtype allow-list (V-INTERVAL-02 below).
   CLAIM-TYPES). Error outside the list.
 - **V-INTERVAL-03.** `effective_period.start` ≤ `effective_period.end`
   when `end` is present. Error otherwise.
-- **V-INTERVAL-04.** Open intervals are closed only via supersession
-  (§closing above). A direct in-place write setting `end` on an existing
-  event is already forbidden by append-only (invariant 2); this rule is
-  implicit.
+- **V-INTERVAL-04.** Open intervals close only via supersession
+  (§Closing an open interval). A point event that attempts to end a
+  referenced interval — e.g., `data.event: "stop"`, `data.closes:
+  <interval-event-id>`, or any equivalent shape claiming to close
+  another event's `effective_period` — is rejected. Direct in-place
+  mutation of `effective_period.end` on an existing event is already
+  forbidden by append-only (invariant 2).
 
 ### View updates (documented, implemented in follow-up ADR)
 

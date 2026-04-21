@@ -6,6 +6,16 @@
 - **Touches:** DESIGN §6.1, §6.4, §8 (invariant 10), CLAIM-TYPES, validator
 - **Source convergence:** A1 Q1 (lab order → lab result closure); A2 Q2 (council converged); foundation hole-poke B3; autoresearch P1
 
+## Revisions
+
+- **2026-04-21 (operator review pass 1):** V-FULFILL-02 exception
+  re-keyed to `data.origin` instead of `source.kind`. `source.kind`
+  describes the origin-channel (e.g., `poc_device`) and is
+  orthogonal to whether the event is order-driven; an order-driven
+  POC result must still carry `links.fulfills`. The ad-hoc /
+  standing-protocol exception hangs on `data.origin` with
+  `data.rationale_text` populated.
+
 ## Context
 
 Invariant 10 requires `links.fulfills` targets to be `intent` events.
@@ -93,9 +103,12 @@ Wording update in DESIGN §8 invariant 10:
 - **V-FULFILL-02.** `action.subtype ∈ {specimen_collection,
   imaging_acquired, procedure_performed, measurement}` must carry
   `links.fulfills` with at least one target of type `intent` whose
-  subtype is `order` or `monitoring_plan`. (Exception: `source.kind`
-  indicating ad hoc POC or standing-protocol execution — recorded as
-  `data.origin: ad_hoc | standing_protocol` with `rationale_text`.)
+  subtype is `order` or `monitoring_plan`.
+  **Exception:** `data.origin ∈ {ad_hoc, standing_protocol}` with
+  `data.rationale_text` populated. `source.kind` alone (e.g.,
+  `poc_device`, `lab_interface_hl7`) does **not** grant the
+  exception — origin-channel is orthogonal to order-derivedness, so
+  an order-driven POC or lab result still requires `links.fulfills`.
 - **V-FULFILL-03.** `observation.subtype ∈ {lab_result,
   diagnostic_result}` must carry `links.supports` with at least one
   target of type `action` whose subtype is in the acquisition list

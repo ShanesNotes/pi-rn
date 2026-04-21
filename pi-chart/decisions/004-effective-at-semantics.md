@@ -6,6 +6,15 @@
 - **Touches:** DESIGN §1 (envelope), CLAIM-TYPES, validator
 - **Source convergence:** A1 Q2; A2 Q3; foundation hole-poke C3
 
+## Revisions
+
+- **2026-04-21 (operator review pass 1):** V-TIME-02 rewritten.
+  Previous wording required `data.effective_period.start` for
+  future-dated intents, but `effective_period` is an envelope field
+  and (per ADR 005's XOR rule) cannot coexist with `effective_at` on
+  the same event. New wording separates the point-shape and
+  interval-shape intent cases cleanly.
+
 ## Context
 
 The envelope documents `effective_at` as "when it was true/happened."
@@ -83,10 +92,19 @@ by validator.**
 ### Validator changes
 
 - **V-TIME-01.** `recorded_at ≥ effective_at` for all types except
-  `intent`. Error.
-- **V-TIME-02.** `intent` with `effective_at > recorded_at` requires
-  `data.due_by` or `data.effective_period.start` to be present.
-  Warning if missing.
+  `intent`. Error. (Intent exemption handled explicitly in V-TIME-02.)
+- **V-TIME-02.** A future-dated `intent` takes one of two shapes,
+  depending on whether it carries `effective_at` or
+  `effective_period` (mutually exclusive per ADR 005 / invariant 11):
+  - **Point-shape intent** with `effective_at > recorded_at` must
+    carry `data.due_by`. `data.due_by ≥ effective_at`. Error if
+    `data.due_by` is missing or earlier than `effective_at`.
+  - **Interval-shape intent** with `effective_period.start >
+    recorded_at` is permitted as written — the `start` is itself the
+    scheduled-for time and no additional field is required. (`end`
+    may be absent; open intervals close via supersession per ADR 005.)
+  Non-`intent` events with `effective_at > recorded_at` are rejected
+  by V-TIME-01.
 - **V-TIME-03.** `observation` events with `data.resulted_at` or
   `data.verified_at` present must have `effective_at ≤ data.resulted_at ≤
   data.verified_at`. Warn on ordering violations.
