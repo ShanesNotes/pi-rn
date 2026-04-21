@@ -99,7 +99,7 @@ registry; no schema change needed.
 | **Patient-origin**   | `patient_statement`        | Patient or surrogate self-report at bedside or via portal.              |
 | **Clinician-origin** | `admission_intake`         | Structured admission H&P data; written by intake clinician.             |
 |                      | `nurse_charted`            | Nurse-authored at the chart (observations, assessments, notes).         |
-|                      | `clinician_chart_action`   | Provider/APP clinical chart interaction (order entry, result review, note). `author.role` differentiates the clinician type. |
+|                      | `clinician_chart_action`   | Clinical chart interaction (order entry, result review, note). Role-agnostic by design — `author.role` differentiates provider / APP / RN / RT / PharmD. |
 |                      | `protocol_standing_order`  | Clinician action under a standing protocol (RN titration, RT weaning, pharmacy dosing). |
 |                      | `manual_lab_entry`         | Result transcribed manually at the chart (outside-hospital result, faxed, phoned-in). |
 | **Device-origin**    | `monitor_extension`        | pi-sim or equivalent live monitor ingest extension.                     |

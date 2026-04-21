@@ -6,6 +6,20 @@
 - **Touches:** DESIGN §1 (envelope), §8 (invariants), CLAIM-TYPES, validator
 - **Source convergence:** A1 Q3; foundation hole-poke B2; autoresearch P1 (workflow obligations); `src/views/openLoops.ts` `failed` seam
 
+## Revisions
+
+- **2026-04-21 (operator review pass 2):** Three clarifications.
+  (1) `communication.status_detail` gains `timeout` for the "sent,
+  SLA elapsed, no acknowledgment" state that openLoops detects on
+  critical-value callbacks (A1). (2) Mid-infusion semantics for
+  `action.administration`: interval-shaped administrations (ADR 005)
+  express in-progress via an open `effective_period` and omit
+  `status_detail`; terminal `status_detail` values apply only at
+  close-out. No new enum value added. (3) `data.recommendation_status`
+  rationale sentence added — it is a property of the review payload's
+  content decision, not the action's lifecycle, and the two may move
+  independently.
+
 ## Context
 
 The envelope carries a single `status` field with five values:
@@ -75,12 +89,35 @@ Canonical values by consumer:
 | `action`      | `administration`              | `performed \| held \| refused \| failed \| deferred`                                                 |
 | `action`      | `result_review`               | `acknowledged \| deferred`                                                                           |
 | `observation` | `lab_result` / `diagnostic_result` | `preliminary \| final \| corrected \| amended \| addendum \| cancelled`                        |
-| `communication` | (any)                       | `sent \| acknowledged \| failed`                                                                     |
+| `communication` | (any)                       | `sent \| acknowledged \| timeout \| failed`                                                          |
 | `assessment`  | `problem`                     | `active \| resolved \| inactive \| ruled_out`                                                        |
 
-A2 recommendation workflow uses `data.recommendation_status` (separate
-from `status_detail`) because it is a property of the review payload,
-not the action's lifecycle. Keep these distinct.
+`timeout` on `communication` captures the "sent, no acknowledgment
+within the defined SLA" state. It is distinct from `failed`
+(delivery itself did not succeed) and is the state openLoops
+watches for unresolved critical-value callbacks (A1 §11) and
+similar workflow obligations.
+
+**Interval-shaped administrations.** When an
+`action.administration` carries `effective_period` (infusion,
+titration window — allow-listed per ADR 005), in-progress state is
+expressed by an open `effective_period` (no `end`), not by a
+`status_detail` value. The envelope `status` stays `active`;
+`status_detail` is omitted. Terminal `status_detail` values
+(`performed` | `held` | `refused` | `failed` | `deferred`) apply at
+close-out, when the interval closes via supersession.
+Point-in-time administrations (IV push, single tablet) carry
+`effective_at` and may carry a terminal `status_detail` at write
+time.
+
+**`data.recommendation_status` stays distinct from `status_detail`.**
+`status_detail` describes the action's lifecycle (did the review
+happen, was it deferred, etc.). `data.recommendation_status`
+describes the content decision (was the recommendation accepted,
+declined, deferred). The two are orthogonal — a review action may
+be `status_detail: acknowledged` while its
+`data.recommendation_status: declined`. A2 uses this split; do not
+collapse it.
 
 ### Layer rules
 

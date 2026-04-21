@@ -15,6 +15,22 @@
   POC result must still carry `links.fulfills`. The ad-hoc /
   standing-protocol exception hangs on `data.origin` with
   `data.rationale_text` populated.
+- **2026-04-21 (operator review pass 2):** Four clarifications,
+  no rule changes. (1) `measurement` scope bounded: vital
+  observations not tied to `intent.monitoring_plan` or
+  `intent.order` stand alone — continuous monitor ticks and ad-hoc
+  spot vitals do not require an acquisition action. (2) Panel
+  semantics: a single acquisition action may support N result
+  observations (one per analyte); each result carries
+  `links.supports` → the one acquisition action. (3)
+  Cancelled-specimen path: an acquisition action may produce no
+  result observation (hemolyzed, insufficient sample). Canonical
+  path — the upstream `intent.order` transitions to
+  `status_detail: failed` via supersession (ADR 002), and no
+  `observation.lab_result` is written. (4) `patient_001` seed
+  migration count: zero. The current seed has no lab/imaging/
+  procedure result chain; the acquisition-action pattern applies
+  going forward to Phase A Batch 1+ fixtures.
 
 ## Context
 
@@ -84,6 +100,31 @@ captured under an order from a continuous monitor reading. For
 continuous streams that are not order-driven (baseline monitor ticks),
 no acquisition action is required — observation stands alone.
 
+**Scope of `measurement`.** The acquisition requirement for
+`measurement` applies only when the vital is tied to an
+`intent.order` (spot vital under a specific order) or an
+`intent.monitoring_plan` (cadenced vital under a monitoring plan
+and counting toward its fulfillment). Vital observations not tied
+to either — baseline monitor ticks, ad-hoc nurse spot checks
+entered without a linked order — stand alone. The `source.kind`
+(`monitor_extension`, `nurse_charted`) provides origin provenance;
+no acquisition action is required.
+
+**Panels.** A single acquisition action may support many result
+observations. A BMP draw is one `action.specimen_collection`; it
+produces seven `observation.lab_result` events (one per analyte),
+each carrying `links.supports` → the one acquisition action.
+Invariant 10 stays intact: observations do not carry `fulfills`;
+one acquisition action closes the order.
+
+**Cancelled specimens.** An acquisition action may produce no
+result observation — hemolyzed specimen, insufficient sample,
+patient refused mid-draw. Canonical path: the upstream
+`intent.order` transitions to `status_detail: failed` via
+supersession (ADR 002), and no `observation.lab_result` is written
+for the missing analyte. The acquisition action itself records
+what happened (`status_detail: failed` with `data.rationale_text`).
+
 ### Tightened invariant 10
 
 Wording update in DESIGN §8 invariant 10:
@@ -146,10 +187,12 @@ which specimen id groups the panel.
   `measurement`, each with a payload example tying to the fulfilled
   intent.
 - **src/validate.ts** — V-FULFILL-01/02/03 as above.
-- **Seed `patient_001`** — audit: any `observation` that conceptually
-  closes an `intent` needs a preceding acquisition `action`. Typically
-  one new event per order-observation pair. Implementation ADR
-  follow-up.
+- **Seed `patient_001`** — audit: zero retrofits required. The
+  current seed (respiratory decompensation teaching case) contains
+  no lab/imaging/procedure result chain, so no existing observation
+  needs a preceding acquisition action. The pattern applies going
+  forward to Phase A Batch 1+ fixtures as they author
+  lab/imaging/procedure flows.
 - **Fixture authoring for Phase A** — A1/A2 drafts already anticipate
   this shape. A3 (vitals), A4 (MAR), A5 (LDAs) should adopt it from
   the start.

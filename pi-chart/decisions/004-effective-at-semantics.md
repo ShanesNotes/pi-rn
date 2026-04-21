@@ -14,6 +14,11 @@
   and (per ADR 005's XOR rule) cannot coexist with `effective_at` on
   the same event. New wording separates the point-shape and
   interval-shape intent cases cleanly.
+- **2026-04-21 (operator review pass 2):** Imports clarification
+  added. Rebased historical events (`source.kind: synthea_import` /
+  `mimic_iv_import`) carry the same per-type `effective_at`
+  semantics as live events; the rebase preserves physiologic
+  truth-time relative to the corpus's original timeline.
 
 ## Context
 
@@ -88,6 +93,14 @@ by validator.**
   time the correction was issued. (The time the correction was issued
   is `recorded_at`.) Rationale: trends and asOf queries should reflect
   the corrected truth at the truth-time, not at the correction-time.
+- **Imports.** Rebased historical events (`source.kind:
+  synthea_import`, `mimic_iv_import`) obey the same per-type
+  `effective_at` table. The rebase operation preserves physiologic
+  truth-time relative to the corpus's original timeline — an
+  imported lab carries the collected-at time rebased into the
+  current encounter's clock, not the ingestion timestamp. `recorded_at`
+  for imported events is the time of ingestion; the
+  `recorded_at ≥ effective_at` rule (V-TIME-01) holds.
 
 ### Validator changes
 

@@ -17,6 +17,17 @@
   have to special-case, defeating the uniform "active at T" query
   shape. V-INTERVAL-04 updated to reject point events that attempt
   to close an interval.
+- **2026-04-21 (operator review pass 2):** Two tightenings.
+  (1) `observation.context_segment` is net-new subtype introduced
+  by this ADR; §Consequences now lists the CLAIM-TYPES addition
+  explicitly. (2) Per-subtype open-interval policy locked in:
+  `effective_period` with no `end` is permitted on
+  `observation.context_segment`, `observation.device_reading`,
+  `intent.monitoring_plan`, `intent.care_plan`, and
+  `action.administration`; rejected on
+  `observation.vital_sign` and `observation.lab_result`. The
+  allow-list moves from lean-guidance to validator rule under
+  V-INTERVAL-02.
 
 ## Context
 
@@ -127,8 +138,15 @@ per-subtype allow-list (V-INTERVAL-02 below).
 - **V-INTERVAL-01.** Exactly one of `effective_at` / `effective_period`
   is present. Error otherwise.
 - **V-INTERVAL-02.** `effective_period` permitted only on a closed
-  allow-list of `(type, subtype)` combinations (listed in
-  CLAIM-TYPES). Error outside the list.
+  allow-list of `(type, subtype)` combinations. Error outside the
+  list. Open intervals (`effective_period` without `end`) are
+  further restricted: permitted on `observation.context_segment`,
+  `observation.device_reading`, `intent.monitoring_plan`,
+  `intent.care_plan`, and `action.administration`; rejected on
+  `observation.vital_sign` and `observation.lab_result` (point-in-
+  time domains; an open interval is always a write error). The
+  full allow-list and per-subtype open/closed policy live in
+  CLAIM-TYPES.
 - **V-INTERVAL-03.** `effective_period.start` ≤ `effective_period.end`
   when `end` is present. Error otherwise.
 - **V-INTERVAL-04.** Open intervals close only via supersession
@@ -182,7 +200,12 @@ first-class. (b) exists today in piecewise form and is the root cause.
 - **schemas/event.schema.json** — add `effective_period` with `oneOf`
   against `effective_at`.
 - **CLAIM-TYPES.md** — envelope recap shows both shapes; per-type
-  table notes which subtypes may use `effective_period`.
+  table notes which subtypes may use `effective_period`. §1
+  observation subtype list adds `context_segment` (net-new subtype
+  introduced by this ADR) for care-location, NPO, isolation
+  precautions, restraint intervals, and other time-spanning
+  non-numeric state. The open/closed allow-list for `effective_period`
+  is enumerated here as the canonical source.
 - **src/validate.ts** — V-INTERVAL-01/02/03 as above.
 - **src/views/** — `timeline`, `currentState`, `trend`, `openLoops`
   gain interval awareness (follow-up ADR execution).

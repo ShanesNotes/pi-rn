@@ -6,6 +6,21 @@
 - **Touches:** DESIGN §1 (envelope), §5.7 (import provenance), CLAIM-TYPES, validator
 - **Source convergence:** foundation hole-poke C1; autoresearch P6 (semantic profile registry precursor); A1 §10 + A2 §10 each propose new values
 
+## Revisions
+
+- **2026-04-21 (operator review pass 2):** Three tightenings.
+  (1) v0.3 error-promotion trigger concretized — the warn→error
+  promotion fires after all Phase A Batch 2 fixtures land and pass
+  validation under the warn-only rule, not on a calendar date.
+  (2) `clinician_chart_action` is role-agnostic by design;
+  provider / APP / RN / RT / PharmD differentiation lives on
+  `author.role`, not on `source.kind`. (3) `agent_review` seed
+  audit added to §Consequences — A1/A2 drafts may have used
+  `agent_inference` for review actions; audit and migrate during
+  ADR implementation. The canonical registry table now lives in
+  DESIGN §1.1 (added in pass 1 of review via DESIGN.md edit); this
+  ADR remains the rationale document.
+
 ## Context
 
 `source.kind` is a free-form string today. Values currently in circulation across docs and drafts:
@@ -29,10 +44,14 @@ Problems:
 
 ## Decision
 
-**Closed taxonomy in DESIGN §1; validator warn-on-unknown in v0.2,
-promote to error after one iteration cycle.** Schema remains
+**Closed taxonomy in DESIGN §1.1; validator warn-on-unknown in
+v0.2, promote to error after Phase A Batch 2 fixtures land and
+pass validation under the warn-only rule.** Schema remains
 permissive (string) so importers can register new kinds via doc
-amendment without a schema bump.
+amendment without a schema bump. The promotion trigger is
+fixture-driven (not calendar-driven): warn stays warn until there
+is durable evidence that every authored fixture uses a canonical
+kind, at which point the warn→error flip is safe.
 
 ### Canonical taxonomy (v0.2 + A1/A2 anticipations)
 
@@ -43,7 +62,7 @@ Grouped by origin family.
 | **Patient-origin** | `patient_statement`        | Patient or surrogate self-report at bedside or via portal.              |
 | **Clinician-origin** | `admission_intake`       | Structured admission H&P data; written by intake clinician.             |
 |                    | `nurse_charted`            | Nurse-authored at the chart (observations, assessments, notes).         |
-|                    | `clinician_chart_action`   | Provider/APP clinical chart interaction (order entry, result review, note). |
+|                    | `clinician_chart_action`   | Clinical chart interaction (order entry, result review, note). Role-agnostic by design — `author.role` differentiates provider / APP / RN / RT / PharmD. |
 |                    | `protocol_standing_order`  | Clinician action under a standing protocol (RN titration, RT weaning, pharmacy dosing). |
 | **Device-origin**  | `monitor_extension`        | pi-sim or equivalent live monitor ingest extension.                     |
 |                    | `poc_device`               | Bedside point-of-care device (iSTAT, Accu-Chek, ACT, POCUS probe).      |
@@ -72,9 +91,11 @@ already required by invariant 9 to carry structured provenance fields.
 
 ### Validator changes
 
-- **V-SRC-01 (v0.2 = warn; v0.3 = error).** `source.kind` must match
-  an entry in the DESIGN §1 taxonomy. Warn on unknown in v0.2. Next
-  minor version promotes to error.
+- **V-SRC-01 (v0.2 = warn; promotes to error).** `source.kind`
+  must match an entry in the DESIGN §1.1 taxonomy. Warn on unknown
+  in v0.2. Promotion to error fires after Phase A Batch 2 fixtures
+  land and pass validation under the warn-only rule (fixture-
+  driven, not calendar-driven).
 - **V-SRC-02.** `source.kind: agent_reasoning` is accepted but emits
   a migration notice pointing to `agent_inference`. Remove in v0.3.
 - **V-SRC-03.** Import-origin kinds (`synthea_import`, `mimic_iv_import`)
@@ -117,6 +138,11 @@ keeping everyday registration cheap.
   data table (not hardcoded) so the ADR-amendment pattern works.
 - **Seed `patient_001`** — audit for any events using `agent_reasoning`
   or undocumented kinds. Migrate during implementation ADR follow-up.
+- **A1/A2 draft fixtures** — audit for `agent_review` vs
+  `agent_inference` usage on `action.result_review` events. A1/A2
+  drafts predate this ADR's split between the two; any review
+  action tagged `agent_inference` should migrate to `agent_review`
+  during ADR implementation. Tracked alongside the seed audit.
 
 ## Not decided here
 
