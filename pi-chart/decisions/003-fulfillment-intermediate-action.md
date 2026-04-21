@@ -1,7 +1,7 @@
 # ADR 003 — Fulfillment graph: intermediate-action model
 
-- **Status:** proposed (awaiting owner approval)
-- **Date:** 2026-04-20
+- **Status:** accepted (2026-04-21)
+- **Date:** 2026-04-20 (drafted; accepted after operator review passes 1 + 2)
 - **Deciders:** Shane (operator)
 - **Touches:** DESIGN §6.1, §6.4, §8 (invariant 10), CLAIM-TYPES, validator
 - **Source convergence:** A1 Q1 (lab order → lab result closure); A2 Q2 (council converged); foundation hole-poke B3; autoresearch P1

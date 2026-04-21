@@ -69,16 +69,17 @@ pi-agent ↔ pi-chart ↔ pi-sim loop.
 ## Foundation ADRs — 2026-04-20 tightening pass
 
 Five primitive-touching ADRs authored together to remove ambiguity
-before Phase A Batch 2. Implementation is deferred to a follow-up
-execution plan; decisions themselves are committed.
+before Phase A Batch 2. All accepted on 2026-04-21 after two
+operator review passes. Implementation is deferred to a follow-up
+execution ADR.
 
-| ADR  | Topic                                   | Status         | Implementation touches                                   |
-|------|-----------------------------------------|----------------|----------------------------------------------------------|
-| 002  | Status lifecycle two-layer              | proposed       | CLAIM-TYPES table (done); schema unchanged; validate.ts V-STATUS-01/02/03 |
-| 003  | Fulfillment via intermediate action     | proposed       | CLAIM-TYPES new action subtypes (done); validate.ts V-FULFILL-01/02/03; seed audit |
-| 004  | `effective_at` semantics per type       | proposed       | CLAIM-TYPES per-type table (done); validate.ts V-TIME-01/02/03; seed audit |
-| 005  | Interval primitive `effective_period`   | proposed       | event.schema.json `oneOf`; validate.ts V-INTERVAL-01/02/03; view interval-awareness; seed audit |
-| 006  | Closed `source.kind` taxonomy           | proposed       | DESIGN §1 registry table; validate.ts V-SRC-01/02/03; seed audit |
+| ADR  | Topic                                   | Status          | Implementation touches                                   |
+|------|-----------------------------------------|-----------------|----------------------------------------------------------|
+| 002  | Status lifecycle two-layer              | accepted 2026-04-21 | CLAIM-TYPES table (done); schema unchanged; validate.ts V-STATUS-01/02/03 |
+| 003  | Fulfillment via intermediate action     | accepted 2026-04-21 | CLAIM-TYPES new action subtypes (done); validate.ts V-FULFILL-01/02/03; seed audit |
+| 004  | `effective_at` semantics per type       | accepted 2026-04-21 | CLAIM-TYPES per-type table (done); validate.ts V-TIME-01/02/03; seed audit |
+| 005  | Interval primitive `effective_period`   | accepted 2026-04-21 | event.schema.json `oneOf`; validate.ts V-INTERVAL-01/02/03; view interval-awareness; seed audit |
+| 006  | Closed `source.kind` taxonomy           | accepted 2026-04-21 | DESIGN §1.1 registry table (done); validate.ts V-SRC-01/02/03; seed audit |
 
 ## Deferred primitives (named now, decided later)
 

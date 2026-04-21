@@ -1,7 +1,7 @@
 # ADR 004 — `effective_at` semantics per event type
 
-- **Status:** proposed (awaiting owner approval)
-- **Date:** 2026-04-20
+- **Status:** accepted (2026-04-21)
+- **Date:** 2026-04-20 (drafted; accepted after operator review passes 1 + 2)
 - **Deciders:** Shane (operator)
 - **Touches:** DESIGN §1 (envelope), CLAIM-TYPES, validator
 - **Source convergence:** A1 Q2; A2 Q3; foundation hole-poke C3

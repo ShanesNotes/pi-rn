@@ -1,7 +1,7 @@
 # ADR 006 — Closed `source.kind` taxonomy
 
-- **Status:** proposed (awaiting owner approval)
-- **Date:** 2026-04-20
+- **Status:** accepted (2026-04-21)
+- **Date:** 2026-04-20 (drafted; accepted after operator review pass 2)
 - **Deciders:** Shane (operator)
 - **Touches:** DESIGN §1 (envelope), §5.7 (import provenance), CLAIM-TYPES, validator
 - **Source convergence:** foundation hole-poke C1; autoresearch P6 (semantic profile registry precursor); A1 §10 + A2 §10 each propose new values

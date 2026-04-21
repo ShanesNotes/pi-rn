@@ -1,7 +1,7 @@
 # ADR 005 — Interval primitive: optional `effective_period`
 
-- **Status:** proposed (awaiting owner approval)
-- **Date:** 2026-04-20
+- **Status:** accepted (2026-04-21)
+- **Date:** 2026-04-20 (drafted; accepted after operator review passes 1 + 2)
 - **Deciders:** Shane (operator)
 - **Touches:** DESIGN §1 (envelope), §5.2 (ICU stay granularity open seam), schemas/event.schema.json, validator, views
 - **Source convergence:** foundation hole-poke B1; autoresearch P4; ROADMAP Seam 5 (ICU stay granularity); A5 (LDAs) anticipated pressure

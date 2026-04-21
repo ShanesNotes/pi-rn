@@ -1,7 +1,7 @@
 # ADR 002 — Status lifecycle: envelope `status` vs. `data.status_detail`
 
-- **Status:** proposed (awaiting owner approval)
-- **Date:** 2026-04-20
+- **Status:** accepted (2026-04-21)
+- **Date:** 2026-04-20 (drafted; accepted after operator review passes 1 + 2)
 - **Deciders:** Shane (operator)
 - **Touches:** DESIGN §1 (envelope), §8 (invariants), CLAIM-TYPES, validator
 - **Source convergence:** A1 Q3; foundation hole-poke B2; autoresearch P1 (workflow obligations); `src/views/openLoops.ts` `failed` seam

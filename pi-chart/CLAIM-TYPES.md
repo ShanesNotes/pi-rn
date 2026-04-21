@@ -49,7 +49,7 @@ This file documents the payload conventions for the six clinical types. See
   "recorded_at":  "2026-04-18T08:15:03-05:00",        // ≥ effective_at except for future-dated intents
 
   "author": { "id": "pi-agent", "role": "rn_agent", "run_id": "run_..." },
-  "source": { "kind": "patient_statement", "ref": "bedside" },   // kind drawn from closed taxonomy in DESIGN §1 (ADR 006)
+  "source": { "kind": "patient_statement", "ref": "bedside" },   // kind drawn from closed taxonomy in DESIGN §1.1 (ADR 006)
 
   "certainty": "observed | reported | inferred | planned | performed",
   "status":    "draft | active | final | superseded | entered_in_error",  // graph lifecycle only (ADR 002)
@@ -436,8 +436,8 @@ enforced via invariant 2 append-only).
 
 ## `source.kind` — closed taxonomy
 
-The canonical enumeration lives in DESIGN §1 (post ADR 006). Validator
+The canonical enumeration lives in DESIGN §1.1 (post ADR 006). Validator
 warns on unknown kind in v0.2 and errors in v0.3. New kinds are added
-by ADR amendment referencing DESIGN §1 plus a kind-specific payload
+by ADR amendment referencing DESIGN §1.1 plus a kind-specific payload
 convention entry here in CLAIM-TYPES. `agent_reasoning` is accepted
 with a deprecation notice and migrates to `agent_inference`.
