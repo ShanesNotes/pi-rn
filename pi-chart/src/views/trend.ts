@@ -20,6 +20,7 @@ export async function trend(params: TrendParams): Promise<TrendPoint[]> {
   for (const p of await globPerDayFile(pr, "vitals.jsonl")) {
     for await (const [, v] of iterNdjson(p)) {
       if (v?.name !== params.metric) continue;
+      if (params.encounterId && v?.encounter_id !== params.encounterId) continue;
       const t = Date.parse(v?.sampled_at ?? "");
       if (!Number.isFinite(t) || t < fromMs || t > toMs) continue;
       const source = formatSource(v?.source);
@@ -37,6 +38,7 @@ export async function trend(params: TrendParams): Promise<TrendPoint[]> {
   for (const p of await globPerDayFile(pr, "events.ndjson")) {
     for await (const [, ev] of iterNdjson(p)) {
       if (ev?.type !== "observation") continue;
+      if (params.encounterId && ev?.encounter_id !== params.encounterId) continue;
       const name = ev?.data?.name;
       if (name !== params.metric) continue;
       const t = Date.parse(ev?.effective_at ?? "");

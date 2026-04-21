@@ -201,25 +201,16 @@ test("appendEvent rejects schema-invalid payload before persistence", async () =
   assert.equal((await readEvents(scope)).length, 0);
 });
 
-test("writeNote rejects schema-invalid payload before persistence", async () => {
+test("writeNote is deprecated for sanctioned authoring", async () => {
   const scope = await tmpChart();
   await assert.rejects(
     () =>
       writeNote({
-        frontmatter: {
-          id: "bad_note_id",
-          type: "communication",
-          subject: "patient_001",
-          encounter_id: "enc_001",
-          effective_at: "2026-04-18T08:45:00-05:00",
-          author: { id: "x", role: "rn_agent" },
-          source: { kind: "k" },
-          status: "final",
-        },
+        frontmatter: {} as any,
         body: "hello",
         scope,
       }),
-    /note failed schema validation/,
+    /deprecated/,
   );
   assert.deepEqual(await listNoteFiles(scope), []);
 });
@@ -261,7 +252,7 @@ test("write paths reject event subject that does not match patient directory", a
         scope,
         slug: "test",
       }),
-    /does not match patient directory/,
+    /deprecated/,
   );
   assert.equal((await readEvents(scope)).length, 0);
   assert.deepEqual(await listNoteFiles(scope), []);
@@ -361,9 +352,9 @@ test("appendEvent rejects explicit ID collision against structural markdown", as
   );
 });
 
-test("writeNote rejects explicit note ID collision even with different filename", async () => {
+test("writeCommunicationNote rejects explicit note ID collision even with different filename", async () => {
   const scope = await tmpChart();
-  const existingPath = await writeNote({
+  const { notePath: existingPath } = await writeCommunicationNote({
     frontmatter: {
       type: "communication",
       subject: "patient_001",
@@ -382,7 +373,7 @@ test("writeNote rejects explicit note ID collision even with different filename"
   );
   await assert.rejects(
     () =>
-      writeNote({
+      writeCommunicationNote({
         frontmatter: {
           ...(existingFrontmatter as any),
           recorded_at: "2026-04-18T08:46:00-05:00",
@@ -407,9 +398,9 @@ test("writeNote refuses overwrite", async () => {
     source: { kind: "k" },
     status: "final" as const,
   };
-  await writeNote({ frontmatter: fm, body: "hello", scope, slug: "test" });
+  await writeCommunicationNote({ frontmatter: fm, body: "hello", scope, slug: "test" });
   await assert.rejects(
-    () => writeNote({ frontmatter: fm, body: "again", scope, slug: "test" }),
+    () => writeCommunicationNote({ frontmatter: fm, body: "again", scope, slug: "test" }),
     /already exists/,
   );
 });
@@ -441,6 +432,31 @@ test("writeCommunicationNote produces note + matching comm event", async () => {
   assert.equal(ev.data.audience, "covering_md");
 });
 
+test("appendEvent rejects standalone communication events", async () => {
+  const scope = await tmpChart();
+  await assert.rejects(
+    () =>
+      appendEvent(
+        {
+          type: "communication",
+          subtype: "sbar",
+          subject: "patient_001",
+          encounter_id: "enc_001",
+          effective_at: "2026-04-18T08:45:00-05:00",
+          author: { id: "x", role: "rn_agent" },
+          source: { kind: "agent_synthesis" },
+          certainty: "performed",
+          status: "final",
+          data: { note_ref: "note_20260418T0845_sbar" },
+          links: { supports: [] },
+        },
+        scope,
+      ),
+    /writeCommunicationNote/,
+  );
+  assert.equal((await readEvents(scope)).length, 0);
+});
+
 test("writeCommunicationNote rolls back note when event persistence fails", async () => {
   const scope = await tmpChart();
   __setWriteCommunicationNoteTestHooksForTests({
@@ -465,6 +481,31 @@ test("writeCommunicationNote rolls back note when event persistence fails", asyn
         slug: "sbar",
       }),
     /injected event failure/,
+  );
+  assert.deepEqual(await listNoteFiles(scope), []);
+  assert.equal((await readEvents(scope)).length, 0);
+});
+
+test("writeCommunicationNote rejects unknown note references before persistence", async () => {
+  const scope = await tmpChart();
+  await assert.rejects(
+    () =>
+      writeCommunicationNote({
+        frontmatter: {
+          type: "communication",
+          subject: "patient_001",
+          encounter_id: "enc_001",
+          effective_at: "2026-04-18T08:45:00-05:00",
+          author: { id: "x", role: "rn_agent" },
+          source: { kind: "agent_synthesis" },
+          status: "final",
+          references: ["evt_missing"],
+        },
+        body: "SBAR body",
+        scope,
+        slug: "sbar",
+      }),
+    /references: unknown target id 'evt_missing'/,
   );
   assert.deepEqual(await listNoteFiles(scope), []);
   assert.equal((await readEvents(scope)).length, 0);
@@ -535,7 +576,7 @@ test("generated write timestamps use chart timezone and preserve caller-supplied
   assert.equal(artifactId, "evt_20260418T2330_01");
   assert.equal(events[1].effective_at, "2026-04-18T23:30:45-05:00");
 
-  const notePath = await writeNote({
+  const { notePath } = await writeCommunicationNote({
     frontmatter: {
       type: "communication",
       subject: "patient_001",
@@ -553,7 +594,7 @@ test("generated write timestamps use chart timezone and preserve caller-supplied
   assert.equal(noteFrontmatter?.effective_at, "2026-04-18T23:30:45-05:00");
   assert.equal(noteFrontmatter?.recorded_at, "2026-04-18T23:30:45-05:00");
 
-  const explicitPath = await writeNote({
+  const { notePath: explicitPath } = await writeCommunicationNote({
     frontmatter: {
       type: "communication",
       subject: "patient_001",
@@ -673,13 +714,33 @@ test("missing sessions/current.yaml is a no-op (caller still must supply author)
   );
 });
 
-test("cross-patient supersedes link is unresolvable within a patient scope", async () => {
-  // The validator rejects targets not in state.allIds because state is
-  // partitioned per patient; this test asserts the writer persists the event
-  // (it's syntactically valid) while validator catches the dangling target.
-  const { validateChart } = await import("./validate.js");
+test("appendEvent rejects unknown supersedes targets before persistence", async () => {
   const scope = await tmpChart();
-  await appendEvent(
+  await assert.rejects(
+    () =>
+      appendEvent(
+        {
+          type: "observation",
+          subject: "patient_001",
+          encounter_id: "enc_001",
+          effective_at: "2026-04-18T08:00:00-05:00",
+          author: { id: "x", role: "rn" },
+          source: { kind: "k" },
+          certainty: "observed",
+          status: "final",
+          data: { name: "spo2", value: 95 },
+          links: { supports: [], supersedes: ["evt_from_another_patient"] },
+        },
+        scope,
+      ),
+    /links\.supersedes: unknown target id 'evt_from_another_patient'/,
+  );
+  assert.equal((await readEvents(scope)).length, 0);
+});
+
+test("appendEvent rejects fulfills targets that are not intents", async () => {
+  const scope = await tmpChart();
+  const targetId = await appendEvent(
     {
       type: "observation",
       subject: "patient_001",
@@ -690,14 +751,93 @@ test("cross-patient supersedes link is unresolvable within a patient scope", asy
       certainty: "observed",
       status: "final",
       data: { name: "spo2", value: 95 },
-      links: { supports: [], supersedes: ["evt_from_another_patient"] },
+      links: { supports: [] },
     },
     scope,
   );
-  const report = await validateChart(scope);
-  assert(
-    report.errors.some((e) =>
-      /links\.supersedes: unknown target id 'evt_from_another_patient'/.test(e.message),
-    ),
+  await assert.rejects(
+    () =>
+      appendEvent(
+        {
+          type: "action",
+          subject: "patient_001",
+          encounter_id: "enc_001",
+          effective_at: "2026-04-18T08:05:00-05:00",
+          author: { id: "x", role: "rn" },
+          source: { kind: "k" },
+          certainty: "performed",
+          status: "final",
+          data: { action: "notify" },
+          links: { supports: [], fulfills: [targetId] },
+        },
+        scope,
+      ),
+    /links\.fulfills: target '.*' must be an intent/,
+  );
+});
+
+test("appendEvent rejects addresses targets that are not problems or intents", async () => {
+  const scope = await tmpChart();
+  const targetId = await appendEvent(
+    {
+      type: "observation",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T08:00:00-05:00",
+      author: { id: "x", role: "rn" },
+      source: { kind: "k" },
+      certainty: "observed",
+      status: "final",
+      data: { name: "spo2", value: 95 },
+      links: { supports: [] },
+    },
+    scope,
+  );
+  await assert.rejects(
+    () =>
+      appendEvent(
+        {
+          type: "intent",
+          subject: "patient_001",
+          encounter_id: "enc_001",
+          effective_at: "2026-04-18T08:05:00-05:00",
+          author: { id: "x", role: "rn_agent" },
+          source: { kind: "k" },
+          certainty: "planned",
+          status: "active",
+          data: { goal: "watch" },
+          links: { supports: [], addresses: [targetId] },
+        },
+        scope,
+      ),
+    /links\.addresses: target '.*' must be an assessment\/problem or intent/,
+  );
+});
+
+test("writeArtifactRef normalizes in-scope paths and rejects escapes", async () => {
+  const scope = await tmpChart();
+  const normalizedId = await writeArtifactRef({
+    artifactPath: "artifacts/../artifacts/imaging/cxr.pdf",
+    kind: "pdf",
+    description: "report",
+    encounterId: "enc_001",
+    subject: "patient_001",
+    scope,
+  });
+  const [event] = await readEvents(scope);
+  assert.equal(normalizedId, event.id);
+  assert.equal(event.data.path, "artifacts/imaging/cxr.pdf");
+
+  await assert.rejects(
+    () =>
+      writeArtifactRef({
+        artifactPath: "../outside.pdf",
+        kind: "pdf",
+        description: "report",
+        encounterId: "enc_001",
+        subject: "patient_001",
+        scope,
+      }),
+    /escapes the patient artifact tree|must stay under artifacts\//,
   );
 });

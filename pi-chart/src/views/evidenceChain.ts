@@ -10,6 +10,7 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { parseEvidenceRef, isVitalsUri } from "../evidence.js";
+import { resolveArtifactPath } from "../artifacts.js";
 import { loadContext, supersededPriors } from "./active.js";
 import { trend } from "./trend.js";
 import { narrative } from "./narrative.js";
@@ -101,6 +102,7 @@ async function resolveRef(
         metric: ref.metric,
         from: ref.from,
         to: ref.to,
+        encounterId: ref.encounterId,
       });
       return { kind: "vitals", metric: ref.metric, points };
     }
@@ -121,10 +123,15 @@ async function resolveArtifact(
   if (!ev || ev.type !== "artifact_ref") return null;
   const relPath = (ev.data as any)?.path;
   if (typeof relPath !== "string") return null;
-  const abs = path.join(patientRoot(params.scope), relPath);
+  let resolved: ReturnType<typeof resolveArtifactPath>;
   try {
-    await fs.access(abs);
-    return { id, path: relPath };
+    resolved = resolveArtifactPath(patientRoot(params.scope), relPath);
+  } catch {
+    return null;
+  }
+  try {
+    await fs.access(resolved.absolutePath);
+    return { id, path: resolved.storedPath };
   } catch {
     return null;
   }

@@ -52,7 +52,7 @@ This file documents the payload conventions for the six clinical types. See
   "data": { /* type-specific, see below */ },
 
   "links": {
-    "supports":    ["evt_..."],   // evidence — what this claim rests on (event ids or vitals:// URIs)
+    "supports":    ["evt_..."],   // evidence — bare ids, vitals:// URIs, or structured EvidenceRef objects
     "supersedes":  ["evt_..."],   // what this replaces (new version)
     "corrects":    ["evt_..."],   // narrower than supersedes — flags prior error
     "fulfills":    ["evt_..."],   // action → intent; closes the loop (invariant 10)
@@ -209,7 +209,11 @@ Conventional subtypes: `sbar`, `progress_note`, `handoff`, `portal_message`,
 }
 ```
 
-The note file itself follows `schemas/note.schema.json`.
+The note file itself follows `schemas/note.schema.json`. Sanctioned paired
+authoring goes through `writeCommunicationNote()` so the markdown note and
+matching `communication` event land together. `writeNote()` is lower-level:
+it only writes the note file, so callers must preserve the note↔communication
+invariant themselves.
 
 ---
 
@@ -228,6 +232,10 @@ Conventional subtypes: `lab_report`, `imaging`, `ecg`, `waveform`,
   "reported_at": "2026-04-18T06:30:00-05:00"
 }
 ```
+
+Stored `data.path` is patient-root-relative (for example `artifacts/...`),
+not an absolute filesystem path. Readers resolve it against the patient
+directory before opening the file.
 
 ---
 
@@ -249,10 +257,21 @@ They don't mean the same thing and they can vary independently.
 
 ## Evidence references
 
-`links.supports[]` items can be either an event id OR a `vitals://` URI that
-cites a stretch of monitor data. Per-row vitals samples don't carry ids, so
-the URI form lets assessments refer to trends without forcing every sample
-to be addressable.
+`links.supports[]` items can be bare ids / `vitals://` URIs or structured
+`EvidenceRef` objects:
+
+```ts
+type EvidenceRef =
+  | { kind: "event"; id: string }
+  | { kind: "note"; id: string }
+  | { kind: "artifact"; id: string }
+  | { kind: "vitals"; metric: string; from: string; to: string; encounterId?: string };
+```
+
+Per-row vitals samples don't carry ids, so the URI/object forms let
+assessments refer to trends without forcing every sample to be addressable.
+Structured note/artifact refs are the canonical way to cite narrative notes
+and artifact events inside `links.supports[]`.
 
 URI grammar:
 
@@ -272,5 +291,7 @@ window. An empty window is a validation error.
 
 The validator also enforces the assessment-evidence rule: every
 `assessment` event's `links.supports[]` must include at least one
-`observation` event, `vitals://` URI, or `artifact_ref` event — pure
-unsupported inference is rejected.
+`observation` event, vitals window (`vitals://` shorthand or structured
+`{ kind: "vitals", ... }`), or `artifact_ref` event. Structured `note` refs
+may appear for context, but they do not satisfy invariant 5 by themselves.
+Pure unsupported inference is rejected.

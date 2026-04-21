@@ -12,7 +12,6 @@ export {
 
 export {
   appendEvent,
-  writeNote,
   writeCommunicationNote,
   writeArtifactRef,
   nextEventId,

@@ -347,3 +347,55 @@ test("links.supports accepts a structured vitals EvidenceRef", async () => {
   const r = await validateChart(scope);
   assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
 });
+
+test("artifact_ref absolute path is rejected", async () => {
+  const scope = await copyFixture();
+  const evPath = patientTimelineEvents(scope);
+  const badArtifact = {
+    id: "evt_artifact_bad_abs",
+    type: "artifact_ref",
+    subtype: "pdf",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T10:00:00-05:00",
+    recorded_at: "2026-04-18T10:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "artifact_ingest" },
+    certainty: "observed",
+    status: "final",
+    data: { kind: "pdf", path: "/tmp/outside.pdf", description: "bad" },
+    links: { supports: [] },
+  };
+  await fs.appendFile(evPath, JSON.stringify(badArtifact) + "\n");
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /must be patient-root-relative, not absolute/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("artifact_ref traversal path is rejected", async () => {
+  const scope = await copyFixture();
+  const evPath = patientTimelineEvents(scope);
+  const badArtifact = {
+    id: "evt_artifact_bad_escape",
+    type: "artifact_ref",
+    subtype: "pdf",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T10:00:00-05:00",
+    recorded_at: "2026-04-18T10:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "artifact_ingest" },
+    certainty: "observed",
+    status: "final",
+    data: { kind: "pdf", path: "artifacts/../../outside.pdf", description: "bad" },
+    links: { supports: [] },
+  };
+  await fs.appendFile(evPath, JSON.stringify(badArtifact) + "\n");
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /escapes the patient artifact tree/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});

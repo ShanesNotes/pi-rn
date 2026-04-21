@@ -56,7 +56,10 @@ export async function openLoops(params: OpenLoopsParams): Promise<OpenLoop[]> {
     }
     if (isSuperseded(intent, ctx) || isCorrected(intent, ctx)) continue;
     const fulfillments = (fulfillmentsByIntent.get(intent.id) ?? []).filter(
-      (f) => isVisibleAsOf(f, ctx),
+      (f) =>
+        isVisibleAsOf(f, ctx) &&
+        !isSuperseded(f, ctx) &&
+        !isCorrected(f, ctx),
     );
     if (hasTerminalFinalFulfillment(fulfillments)) continue;
 

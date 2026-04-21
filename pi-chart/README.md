@@ -99,8 +99,8 @@ import {
 
   // writes (raise on contract violation)
   appendEvent,
-  writeNote,
-  writeCommunicationNote,
+  writeNote,              // low-level note-file helper; caller preserves note↔communication invariant
+  writeCommunicationNote, // sanctioned paired note + communication-event authoring
   writeArtifactRef,
   nextEventId,
   nextNoteId,
@@ -147,12 +147,16 @@ DESIGN §8; ten in v0.2:
 2. Append-only — corrections create new events with `links.supersedes` / `links.corrects`.
 3. `_derived/` is never authoritative.
 4. No orphan claims — every `links.*` target exists within the same patient.
-5. Assessments include at least one observation / vitals ref / artifact_ref in `links.supports`.
+5. Assessments include at least one observation / vitals ref / artifact_ref in `links.supports` (validator error today; not yet hoisted to write-time rejection).
 6. **Patient isolation** — writes match `patients/<id>/chart.yaml.subject` **and** the directory name; cross-patient links rejected.
 7. **Session transparency** — author captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity** — no circular chains, at most one supersessor per event.
 9. **Import provenance** (Phase 3) — imported events (Synthea; MIMIC-IV optional) carry structured `source` fields preserving original ids + timestamps.
 10. **Fulfillment typing** — `links.fulfills` targets must be `intent`; `links.addresses` targets must be problem-subtype assessment or intent.
+
+## Write-path scope
+
+`appendEvent()` / `writeNote()` enforce schema shape, patient isolation, and explicit-id collisions. `writeCommunicationNote()` additionally keeps the note file and matching `communication` event atomic. Graph-wide rules — link target resolution, `links.fulfills` / `links.addresses` typing, assessment support sufficiency, and note-reference integrity — remain the validator's job today.
 
 ## Clock source
 

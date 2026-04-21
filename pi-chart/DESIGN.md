@@ -207,7 +207,7 @@ it, and it can be deleted without data loss. Gitignored per §2.4.
 The council flagged ambient-working-directory as a footgun. Explicit
 boundaries:
 
-- **Low-level library functions** (`appendEvent`, `writeNote`, view
+- **Low-level library functions** (`appendEvent`, `writeNote` / `writeCommunicationNote`, view
   primitives): `chartRoot` is **required**. No `process.cwd()` fallback
   at this layer.
 - **CLI wrappers** (`scripts/*.ts`, any future `npx pi-chart ...` bin):
@@ -882,7 +882,7 @@ message naming its number.
 2. pi-chart is append-oriented; no mutation of prior claims.
 3. Derived files are not authoritative and may be hand-marked as such.
 4. No orphan claims — every `links.*` target exists within the same patient.
-5. Assessments link to supporting observations/trends when possible (warn, don't error).
+5. Assessments must link to supporting observation / vitals / artifact evidence; missing support is a validator error today.
 6. **Patient isolation**: writes match `patients/<id>/chart.yaml.subject`; cross-patient links rejected.
 7. **Session transparency**: `author` is captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity**: no circular supersession; at most one supersessor per event.
@@ -898,7 +898,8 @@ built UI-aware rather than retrofitted.
 
 Whatever the UI is — web, desktop, agent-facing — it will be a pure
 consumer of the six view primitives on read and a caller of
-`appendEvent` / `writeNote` on write. UI never reaches into the
+`appendEvent` / `writeCommunicationNote` on write. `writeNote` remains a
+low-level helper for callers that manage the matching communication event themselves. UI never reaches into the
 filesystem. Same contract pi-agent uses.
 
 Practical implication for the view layer: returned structures are

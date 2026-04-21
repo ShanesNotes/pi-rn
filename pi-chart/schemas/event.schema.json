@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pi-rn.local/schemas/event.schema.json",
   "title": "pi-chart event envelope",
-  "description": "One clinical claim/event envelope. Atomic structured events go in events.ndjson; narrative notes use frontmatter that conforms to note.schema.json. Clinical types (observation/assessment/intent/action/communication/artifact_ref) require encounter_id, certainty, data, and links in addition to the base envelope. Structural types (subject/encounter/constraint_set) require only the base envelope.",
+  "description": "One clinical claim/event envelope. Atomic structured events go in events.ndjson; narrative notes use frontmatter that conforms to note.schema.json and must have a matching communication event. Clinical types (observation/assessment/intent/action/communication/artifact_ref) require encounter_id, certainty, data, and links in addition to the base envelope. Structural types (subject/encounter/constraint_set) require only the base envelope.",
   "type": "object",
   "required": [
     "id",
@@ -107,7 +107,7 @@
               {
                 "type": "string",
                 "minLength": 1,
-                "description": "Bare string form. Either an event id (e.g. 'evt_20260418T0815_01' or 'note_20260418T0845_sbar') OR a vitals interval URI of the form 'vitals://<encounter_id>?name=<metric>&from=<iso8601>&to=<iso8601>[&unit=<unit>]'."
+                "description": "Bare string form. Either an event/note id (e.g. 'evt_20260418T0815_01' or 'note_20260418T0845_sbar') OR a vitals interval URI of the form 'vitals://<encounter_id>?name=<metric>&from=<iso8601>&to=<iso8601>[&unit=<unit>]'."
               },
               {
                 "type": "object",
@@ -120,11 +120,11 @@
                   "to": { "type": "string", "format": "date-time" },
                   "encounterId": { "type": "string" }
                 },
-                "description": "Structured EvidenceRef. Kind-specific required fields (id for event/note/artifact; metric/from/to for vitals) are enforced by the validator."
+                "description": "Structured EvidenceRef. Use kind:event/note/artifact for explicit record references and kind:vitals for encounter-scoped trend windows. Kind-specific required fields (id for event/note/artifact; metric/from/to for vitals) are enforced by the validator."
               }
             ]
           },
-          "description": "Evidence supporting this claim. Mix of bare ids / vitals:// URIs (back-compat) and structured EvidenceRef objects (canonical for vitals windows and explicit note/artifact references)."
+          "description": "Evidence supporting this claim. Mix of bare ids / vitals:// URIs (back-compat) and structured EvidenceRef objects (canonical for vitals windows and explicit note/artifact references). For assessments, validator rules still require at least one observation, vitals window, or artifact_ref among the supports."
         },
         "supersedes": {
           "type": "array",

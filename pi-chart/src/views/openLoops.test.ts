@@ -106,6 +106,39 @@ test("terminal-final fulfillment closes the loop (skipped from output)", async (
   assert.equal(loops.length, 0);
 });
 
+test("superseded fulfillment does not close the loop", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", action("evt_act_old", "2026-04-18T08:05:00-05:00", ["evt_intent_01"], {
+    status: "final",
+  }));
+  await appendRawEvent(scope, "2026-04-18", action("evt_act_new", "2026-04-18T08:06:00-05:00", ["evt_intent_01"], {
+    status: "active",
+    links: { supports: [], fulfills: ["evt_intent_01"], supersedes: ["evt_act_old"] },
+  }));
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:10:00-05:00" });
+  assert.equal(loops.length, 1);
+  assert.equal(loops[0].state, "in_progress");
+  assert.deepEqual(loops[0].fulfillments.map((f) => f.id), ["evt_act_new"]);
+});
+
+test("corrected failure fulfillment does not force failed", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", action("evt_act_old", "2026-04-18T08:05:00-05:00", ["evt_intent_01"], {
+    data: { action: "notify_md", outcome: "failed" },
+    status: "final",
+  }));
+  await appendRawEvent(scope, "2026-04-18", action("evt_act_fix", "2026-04-18T08:06:00-05:00", ["evt_intent_01"], {
+    status: "active",
+    links: { supports: [], fulfills: ["evt_intent_01"], corrects: ["evt_act_old"] },
+  }));
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:10:00-05:00" });
+  assert.equal(loops.length, 1);
+  assert.equal(loops[0].state, "in_progress");
+  assert.deepEqual(loops[0].fulfillments.map((f) => f.id), ["evt_act_fix"]);
+});
+
 test("an intent authored after asOf is hidden (regression: future intents leaking)", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", intent("evt_future", "2026-04-18T10:00:00-05:00"));

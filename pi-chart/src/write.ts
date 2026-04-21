@@ -17,6 +17,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { parseEvidenceRef } from "./evidence.js";
 import {
   appendNdjsonLine,
   atomicWriteFile,
@@ -30,6 +31,7 @@ import {
   parseFrontmatter,
   readTextIfExists,
 } from "./fs-util.js";
+import { resolveArtifactPath } from "./artifacts.js";
 import { ajvErrorsTo, loadValidator, normalizeForSchema } from "./schema.js";
 import { loadChartMeta, nowIsoForChart, nowIsoSeconds } from "./time.js";
 import { tryLoadSessionAuthor } from "./session.js";
@@ -80,6 +82,12 @@ interface FinalizedNoteWrite {
   target: string;
   content: string;
   dayDir: string;
+}
+
+interface ExistingTargets {
+  ids: Map<string, string>;
+  noteIds: Set<string>;
+  eventsById: Map<string, { type?: string; subtype?: string }>;
 }
 
 interface CommunicationNoteTestHooks {
@@ -164,18 +172,35 @@ function trackFirstId(ids: Map<string, string>, id: unknown, where: string): voi
   if (typeof id === "string" && !ids.has(id)) ids.set(id, where);
 }
 
-async function collectExistingIds(patientDir: string): Promise<Map<string, string>> {
+async function collectExistingTargets(patientDir: string): Promise<ExistingTargets> {
   const ids = new Map<string, string>();
+  const noteIds = new Set<string>();
+  const eventsById = new Map<string, { type?: string; subtype?: string }>();
+
+  const rememberEvent = (
+    id: unknown,
+    type: unknown,
+    subtype: unknown,
+  ): void => {
+    if (typeof id !== "string" || eventsById.has(id)) return;
+    eventsById.set(id, {
+      ...(typeof type === "string" ? { type } : {}),
+      ...(typeof subtype === "string" ? { subtype } : {}),
+    });
+  };
+
   for (const name of ["patient.md", "constraints.md"] as const) {
     const text = await readTextIfExists(path.join(patientDir, name));
     if (text === null) continue;
     const [frontmatter] = parseFrontmatter(text);
     trackFirstId(ids, frontmatter?.id, name);
+    rememberEvent(frontmatter?.id, frontmatter?.type, frontmatter?.subtype);
   }
   for (const encounterPath of await globEncounters(patientDir)) {
     const text = await fs.readFile(encounterPath, "utf8");
     const [frontmatter] = parseFrontmatter(text);
     trackFirstId(ids, frontmatter?.id, path.relative(patientDir, encounterPath));
+    rememberEvent(frontmatter?.id, frontmatter?.type, frontmatter?.subtype);
   }
   for (const eventsPath of await globPerDayFile(patientDir, "events.ndjson")) {
     for await (const [lineno, event] of iterNdjson(eventsPath)) {
@@ -184,31 +209,157 @@ async function collectExistingIds(patientDir: string): Promise<Map<string, strin
         event?.id,
         `${path.relative(patientDir, eventsPath)}:${lineno}`,
       );
+      rememberEvent(event?.id, event?.type, event?.subtype);
     }
   }
   for (const notePath of await globNotes(patientDir)) {
     const text = await fs.readFile(notePath, "utf8");
     const [frontmatter] = parseFrontmatter(text);
     trackFirstId(ids, frontmatter?.id, path.relative(patientDir, notePath));
+    if (typeof frontmatter?.id === "string") noteIds.add(frontmatter.id);
   }
-  return ids;
+  return { ids, noteIds, eventsById };
 }
 
 async function assertExplicitIdAvailable(
   patientDir: string,
   id: string | undefined,
+  existingTargets?: ExistingTargets,
 ): Promise<void> {
   if (!id) return;
-  const ids = await collectExistingIds(patientDir);
-  const prior = ids.get(id);
+  const targets = existingTargets ?? (await collectExistingTargets(patientDir));
+  const prior = targets.ids.get(id);
   if (prior) {
     throw new Error(`duplicate id '${id}' (first seen at ${prior})`);
+  }
+}
+
+function assertKnownTargetId(
+  targets: ExistingTargets,
+  targetId: string,
+  field: string,
+): void {
+  if (!targets.ids.has(targetId)) {
+    throw new Error(`${field}: unknown target id '${targetId}'`);
+  }
+}
+
+function assertTargetType(
+  targets: ExistingTargets,
+  targetId: string,
+  field: string,
+  predicate: (target: { type?: string; subtype?: string }) => boolean,
+  message: string,
+): void {
+  assertKnownTargetId(targets, targetId, field);
+  const target = targets.eventsById.get(targetId);
+  if (!predicate(target ?? {})) {
+    throw new Error(`${field}: ${message}`);
+  }
+}
+
+async function assertEventIntegrityAtWrite(
+  event: EventEnvelope,
+  patientDir: string,
+  targets: ExistingTargets,
+  opts?: { allowStandaloneCommunicationEvent?: boolean },
+): Promise<void> {
+  if (event.type === "communication" && !opts?.allowStandaloneCommunicationEvent) {
+    throw new Error(
+      "communication events must be authored through writeCommunicationNote()",
+    );
+  }
+
+  const links = event.links ?? {};
+  for (const field of ["supersedes", "corrects"] as const) {
+    for (const targetId of links[field] ?? []) {
+      if (typeof targetId !== "string") {
+        throw new Error(`links.${field}: non-string target`);
+      }
+      assertKnownTargetId(targets, targetId, `links.${field}`);
+    }
+  }
+
+  for (const targetId of links.fulfills ?? []) {
+    if (typeof targetId !== "string") {
+      throw new Error("links.fulfills: non-string target");
+    }
+    assertTargetType(
+      targets,
+      targetId,
+      "links.fulfills",
+      (target) => target.type === "intent",
+      `target '${targetId}' must be an intent`,
+    );
+  }
+
+  for (const targetId of links.addresses ?? []) {
+    if (typeof targetId !== "string") {
+      throw new Error("links.addresses: non-string target");
+    }
+    assertTargetType(
+      targets,
+      targetId,
+      "links.addresses",
+      (target) =>
+        target.type === "intent" ||
+        (target.type === "assessment" && target.subtype === "problem"),
+      `target '${targetId}' must be an assessment/problem or intent`,
+    );
+  }
+
+  for (const raw of links.supports ?? []) {
+    const ref = parseEvidenceRef(raw as string);
+    if (!ref) {
+      throw new Error("links.supports: malformed evidence reference");
+    }
+    switch (ref.kind) {
+      case "event":
+        assertKnownTargetId(targets, ref.id, "links.supports");
+        break;
+      case "note":
+        assertKnownTargetId(targets, ref.id, "links.supports");
+        if (!targets.noteIds.has(ref.id)) {
+          throw new Error(`links.supports: target '${ref.id}' is not a note`);
+        }
+        break;
+      case "artifact":
+        assertTargetType(
+          targets,
+          ref.id,
+          "links.supports",
+          (target) => target.type === "artifact_ref",
+          `target '${ref.id}' must be an artifact_ref`,
+        );
+        break;
+      case "vitals":
+        break;
+    }
+  }
+
+  if (event.type === "artifact_ref") {
+    const data = event.data as Record<string, unknown> | undefined;
+    const artifactPath = data?.path;
+    if (typeof artifactPath !== "string") {
+      throw new Error("artifact_ref.data.path must be a string");
+    }
+    data!.path = resolveArtifactPath(patientDir, artifactPath).storedPath;
+  }
+}
+
+function assertNoteReferencesExist(
+  note: NoteFrontmatter,
+  targets: ExistingTargets,
+): void {
+  for (const ref of note.references) {
+    assertKnownTargetId(targets, ref, "references");
   }
 }
 
 async function finalizeEventForWrite(
   event: EventInput,
   scope: PatientScope,
+  opts?: { allowStandaloneCommunicationEvent?: boolean },
 ): Promise<FinalizedEventWrite> {
   const patientDir = patientRoot(scope);
   // Session autofill (§3.4): only when caller did not supply author.
@@ -235,7 +386,11 @@ async function finalizeEventForWrite(
   }
   const finalized = normalized as EventEnvelope;
   await assertSubjectMatches(scope, patientDir, finalized.subject, "event");
-  if (explicitId) await assertExplicitIdAvailable(patientDir, finalized.id);
+  const existingTargets = await collectExistingTargets(patientDir);
+  if (explicitId) {
+    await assertExplicitIdAvailable(patientDir, finalized.id, existingTargets);
+  }
+  await assertEventIntegrityAtWrite(finalized, patientDir, existingTargets, opts);
 
   const dayDir = dayDirFromIso(patientDir, finalized.effective_at);
   return {
@@ -280,7 +435,11 @@ async function finalizeNoteForWrite(opts: WriteNoteOpts): Promise<FinalizedNoteW
   }
   const finalized = normalized as NoteFrontmatter;
   await assertSubjectMatches(opts.scope, patientDir, finalized.subject, "note");
-  if (explicitId) await assertExplicitIdAvailable(patientDir, finalized.id);
+  const existingTargets = await collectExistingTargets(patientDir);
+  if (explicitId) {
+    await assertExplicitIdAvailable(patientDir, finalized.id, existingTargets);
+  }
+  assertNoteReferencesExist(finalized, existingTargets);
 
   const dayDir = dayDirFromIso(patientDir, effectiveAt);
   const notesDir = path.join(dayDir, "notes");
@@ -384,8 +543,9 @@ export interface WriteNoteOpts {
 }
 
 export async function writeNote(opts: WriteNoteOpts): Promise<string> {
-  const finalized = await finalizeNoteForWrite(opts);
-  return persistNote(finalized);
+  throw new Error(
+    "writeNote() is deprecated for sanctioned authoring; use writeCommunicationNote()",
+  );
 }
 
 export interface WriteCommunicationNoteOpts extends WriteNoteOpts {
@@ -412,6 +572,7 @@ export async function writeCommunicationNote(
       links: { supports: [...note.references], supersedes: [] },
     },
     opts.scope,
+    { allowStandaloneCommunicationEvent: true },
   );
 
   const notePath = await persistNote(finalizedNote);

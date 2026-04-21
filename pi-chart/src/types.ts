@@ -254,6 +254,7 @@ export interface TrendParams {
   from: string;
   to: string;
   source?: string;
+  encounterId?: string;
 }
 
 export interface TrendPoint {

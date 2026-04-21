@@ -35,7 +35,7 @@
       "type": "object",
       "description": "Modifiers that condition the reading, e.g. o2_device, o2_flow_lpm, position."
     },
-    "quality":  { "enum": ["valid", "questionable", "invalid"] },
+    "quality":  { "enum": ["valid", "questionable", "invalid"], "description": "Signal quality flag. currentState drops invalid samples; questionable samples remain visible to downstream readers." },
     "artifact": { "type": "string", "description": "If the sample is artifact-laden, what kind, e.g. motion_possible." }
   }
 }

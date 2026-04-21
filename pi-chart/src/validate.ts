@@ -13,6 +13,7 @@ import {
   loadValidator,
   normalizeForSchema,
 } from "./schema.js";
+import { resolveArtifactPath } from "./artifacts.js";
 import {
   globEncounters,
   globNotes,
@@ -466,6 +467,18 @@ async function checkReferentialIntegrity(state: State) {
       const ref = ev?.data?.note_ref;
       if (typeof ref === "string" && !state.noteIds.has(ref)) {
         err(state, where, `data.note_ref: unknown note id '${ref}'`);
+      }
+    }
+    if (ev.type === "artifact_ref") {
+      const relPath = ev?.data?.path;
+      if (typeof relPath !== "string") {
+        err(state, where, "artifact_ref.data.path: missing string path");
+      } else {
+        try {
+          resolveArtifactPath(state.patientRoot, relPath);
+        } catch (error) {
+          err(state, where, String(error));
+        }
       }
     }
     if (ev.type === "assessment") {

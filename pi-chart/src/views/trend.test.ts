@@ -89,3 +89,46 @@ test("trend source filter narrows to one source", async () => {
     [93],
   );
 });
+
+test("trend encounterId filter keeps points inside the requested encounter", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "spo2",
+    value: 95,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:05:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "spo2",
+    value: 81,
+  });
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_obs_enc_2",
+    type: "observation",
+    subtype: "vital_sign",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    effective_at: "2026-04-18T08:06:00-05:00",
+    recorded_at: "2026-04-18T08:06:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "monitor_extension" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "spo2", value: 80, unit: "%" },
+    links: { supports: [] },
+  });
+  const points = await trend({
+    scope,
+    metric: "spo2",
+    from: "2026-04-18T08:00:00-05:00",
+    to: "2026-04-18T08:10:00-05:00",
+    encounterId: "enc_001",
+  });
+  assert.deepEqual(points.map((point) => point.value), [95]);
+});

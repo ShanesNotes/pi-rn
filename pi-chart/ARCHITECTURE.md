@@ -44,13 +44,16 @@ primitives (§1.6) for agent-facing reads.
 ### 1.3 Writes — `src/write.ts`
 
 Every write takes a `PatientScope` (`{chartRoot, patientId}`) and an
-`author`. Raises on contract violation (invariants 1–10, DESIGN §8).
+`author`. Raises on local contract violation (schema shape, patient
+isolation, explicit id/path collisions). Graph-wide link typing,
+referential integrity, and support sufficiency still land in
+`validateChart()` today.
 
 | Function                  | Writes to                                          |
 |---------------------------|----------------------------------------------------|
 | `appendEvent`             | `timeline/YYYY-MM-DD/events.ndjson`                |
-| `writeNote`               | `timeline/YYYY-MM-DD/notes/HHMM_<slug>.md`         |
-| `writeCommunicationNote`  | note + associated communication event              |
+| `writeNote`               | low-level `timeline/YYYY-MM-DD/notes/HHMM_<slug>.md` write only |
+| `writeCommunicationNote`  | sanctioned note + associated communication event pair |
 | `writeArtifactRef`        | `artifacts/` + `artifact_ref` event                |
 | `nextEventId`/`nextNoteId`| id allocator (stable, locally-unique per patient)  |
 
@@ -58,8 +61,9 @@ Every write takes a `PatientScope` (`{chartRoot, patientId}`) and an
 
 Implements DESIGN §8 invariants 1–10. Entry: `validateChart(scope?)`.
 Walks patient dirs (all or scoped), checks schemas, resolves links,
-enforces patient isolation, supersession monotonicity, fulfillment
-typing. CLI wrapper: `scripts/validate.ts`.
+enforces patient isolation, note↔communication binding, assessment
+support sufficiency, supersession monotonicity, and fulfillment
+/ addresses target typing. CLI wrapper: `scripts/validate.ts`.
 
 ### 1.5 Derived — `src/derived.ts`
 
@@ -99,10 +103,12 @@ explicit scope; CLIs fall back to session autofill.
 
 ### 1.9 Evidence / URIs — `src/evidence.ts`
 
-`parseEvidenceRef` accepts either bare event ids or structured
-`EvidenceRef` objects. `formatVitalsUri`/`isVitalsUri` handle the
-`vitals://YYYY-MM-DD/HHMMSS[.ms]` URI scheme (DESIGN §4.5) that lets
-claims cite a specific vitals sample without duplicating it as an event.
+`parseEvidenceRef` accepts bare ids / `vitals://` shorthand plus
+structured `EvidenceRef` objects for event, vitals, note, and artifact
+references. `formatVitalsUri`/`isVitalsUri` use the
+`vitals://<encounter_id>?name=<metric>&from=<iso8601>&to=<iso8601>`
+shape (DESIGN §4.5), and artifact refs resolve patient-root-relative
+paths under the patient directory.
 
 ### 1.10 Types & schemas
 
@@ -110,10 +116,14 @@ claims cite a specific vitals sample without duplicating it as an event.
   `Link`, status/certainty enums.
 - `src/schema.ts` — AJV loader for `schemas/*.schema.json`.
 - `schemas/event.schema.json` — the canonical envelope, with conditional
-  `allOf` for clinical types; `links.supports[]` admits bare ids or
-  structured `EvidenceRef`.
-- Other schemas: `note`, `vitals`, `constraints`, `pi-chart` (registry),
-  `session`.
+  `allOf` for clinical types; `links.supports[]` admits bare ids /
+  vitals:// shorthand plus structured `EvidenceRef` objects.
+- `schemas/note.schema.json` — note frontmatter, including required
+  `references[]` and the bidirectional note↔communication contract that
+  validator code checks.
+- `schemas/vitals.schema.json` — vitals rows, including `quality`
+  (`invalid` samples are dropped by `currentState`; `questionable` stays visible).
+- Other schemas: `constraints`, `pi-chart` (registry), `session`.
 
 ### 1.11 Scripts (`scripts/`)
 
@@ -135,10 +145,13 @@ Thin `tsx` wrappers over library code. No business logic.
 caller (agent, monitor-extension, CLI, test)
    │
    ▼  import from src/index.ts
-appendEvent(event, scope) / writeNote(...) / writeArtifactRef(...)
+appendEvent(event, scope) / writeCommunicationNote(...) / writeArtifactRef(...)
    │
-   ▼  enforces: schema valid, subject matches scope, links resolve, no circular supersession
+   ▼  enforces locally: schema valid, subject matches scope, append-only/id guardrails
 write.ts
+   │
+   ▼  graph-wide integrity (links resolve, note binding, target typing, support rules)
+validateChart
    │
    ▼  atomic append
 patients/<id>/timeline/YYYY-MM-DD/{events.ndjson | notes/*.md | vitals.jsonl}
