@@ -40,22 +40,31 @@ This file documents the payload conventions for the six clinical types. See
   "subject": "patient_001",
   "encounter_id": "enc_001",
 
-  "effective_at": "2026-04-18T08:15:00-05:00",   // when it was true/happened
-  "recorded_at":  "2026-04-18T08:15:03-05:00",   // when it was written
+  // exactly one of these two is present (invariant 11, ADR 005):
+  "effective_at": "2026-04-18T08:15:00-05:00",       // point event; meaning per-type (see §effective_at per type)
+  "effective_period": {                               // interval event; allow-listed per subtype (see table)
+    "start": "2026-04-18T06:30:00-05:00",
+    "end":   "2026-04-18T08:45:00-05:00"              // omit for open (ongoing) intervals; close via supersession
+  },
+  "recorded_at":  "2026-04-18T08:15:03-05:00",        // ≥ effective_at except for future-dated intents
 
   "author": { "id": "pi-agent", "role": "rn_agent", "run_id": "run_..." },
-  "source": { "kind": "patient_statement", "ref": "bedside" },
+  "source": { "kind": "patient_statement", "ref": "bedside" },   // kind drawn from closed taxonomy in DESIGN §1 (ADR 006)
 
   "certainty": "observed | reported | inferred | planned | performed",
-  "status":    "draft | active | final | superseded | entered_in_error",
+  "status":    "draft | active | final | superseded | entered_in_error",  // graph lifecycle only (ADR 002)
 
-  "data": { /* type-specific, see below */ },
+  "data": {
+    /* type-specific, see below */
+    "status_detail": "...",                           // OPTIONAL, per-subtype domain lifecycle (ADR 002; see table)
+    /* other payload fields */
+  },
 
   "links": {
     "supports":    ["evt_..."],   // evidence — bare ids, vitals:// URIs, or structured EvidenceRef objects
-    "supersedes":  ["evt_..."],   // what this replaces (new version)
+    "supersedes":  ["evt_..."],   // what this replaces (new version); also used to close open intervals + detail transitions
     "corrects":    ["evt_..."],   // narrower than supersedes — flags prior error
-    "fulfills":    ["evt_..."],   // action → intent; closes the loop (invariant 10)
+    "fulfills":    ["evt_..."],   // SOURCES must be action; TARGETS must be intent (invariant 10, ADR 003)
     "addresses":   ["evt_..."]    // intent → problem-subtype assessment or parent intent (invariant 10)
   }
 }
@@ -179,7 +188,33 @@ invariant 10 requires `fulfills` targets to be `intent` events.
 observations that triggered it).
 
 Conventional subtypes: `administration`, `procedure`, `notification`,
-`measurement`, `intervention`.
+`measurement`, `intervention`, and — for **acquisition actions** that
+fulfill data-producing orders (ADR 003) — `specimen_collection`,
+`imaging_acquired`, `procedure_performed`. Acquisition actions carry
+`links.fulfills → intent.order`; the resulting `observation` then
+`supports` the acquisition action.
+
+### Acquisition action (fulfills a data-producing order)
+
+```jsonc
+{
+  "type": "action",
+  "subtype": "specimen_collection",
+  "effective_at": "2026-04-18T05:14:00-05:00",       // when the specimen was collected (performed-at)
+  "author": { "id": "rn_shane", "role": "rn" },
+  "source": { "kind": "nurse_charted" },
+  "status": "final",
+  "data": {
+    "specimen_id": "spec_01J8Q...",
+    "specimen_type": "blood",
+    "specimen_source": "venous",
+    "origin": "routine"                               // "routine" | "ad_hoc" | "standing_protocol"
+  },
+  "links": {
+    "fulfills": ["evt_order_bmp_01"]                  // the originating lab order intent
+  }
+}
+```
 
 ```jsonc
 "data": {
@@ -294,4 +329,115 @@ The validator also enforces the assessment-evidence rule: every
 `observation` event, vitals window (`vitals://` shorthand or structured
 `{ kind: "vitals", ... }`), or `artifact_ref` event. Structured `note` refs
 may appear for context, but they do not satisfy invariant 5 by themselves.
-Pure unsupported inference is rejected.
+Pure unsupported inference is rejected. Assessments cannot cite other
+assessments as support — the validator (`hasObservationEvidence` in
+`src/validate.ts`) narrows bare-id support targets to `observation` and
+`artifact_ref`.
+
+---
+
+## `effective_at` per type (ADR 004)
+
+`effective_at` means different things per event type. The single
+meaning is "when the claim was true in the world relative to the
+patient." Pick the timestamp that best carries that per type:
+
+| Event type       | `effective_at` means                                                        | Notes                                                                                                     |
+|------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `observation`    | Physiologic truth-time — specimen collected, study performed, exam observed | Drives `trend` alignment. `data.resulted_at` / `data.verified_at` may appear as informational payload.    |
+| `action`         | Performed-at — the moment the action occurred                                | For acquisition actions, this is typically specimen-collected or scan-performed time.                     |
+| `intent`         | Ordered-at — when the intent came into force                                | May be **future-dated** when `data.due_by` or `effective_period.start` is present (scheduled/cadence).   |
+| `communication`  | Sent-at — when the message left the sender                                   | Callback windows measure from here.                                                                        |
+| `artifact_ref`   | Captured-at — when the native artifact was generated                         | Correlates with the originating observation's `effective_at`.                                             |
+| `assessment`     | Time-of-writing (≈ `recorded_at`)                                            | Reasoning payload may carry `data.reasoned_asOf` for the clinical as-of the reasoning targets.            |
+
+**Ordering rule.** `recorded_at ≥ effective_at` for all types **except**
+`intent`, where future-dated scheduled intents are allowed. Validator
+V-TIME-01 enforces the default; V-TIME-02 permits the exemption when
+scheduled fields are present.
+
+**Amendments and corrections.** A correction event's `effective_at` is
+the physiologic truth-time of the corrected state, **not** the time the
+correction was issued. `recorded_at` captures when the correction was
+written. This keeps trend and asOf semantics truthful.
+
+---
+
+## Envelope `status` vs. `data.status_detail` (ADR 002)
+
+Envelope `status` governs graph lifecycle (present, replaced, retracted).
+Domain lifecycle (held, failed, preliminary, declined, cancelled, …)
+moves to optional `data.status_detail`, scoped per `(type, subtype)`.
+
+### Envelope `status` (five values, universal)
+
+| Value              | Meaning                                                           |
+|--------------------|-------------------------------------------------------------------|
+| `draft`            | Not yet authoritative; agent-provisional before human confirm (rare). |
+| `active`           | Current, effective, not yet terminal.                             |
+| `final`            | Reached terminal domain state in the normal lifecycle.            |
+| `superseded`       | Replaced by a later event via `links.supersedes`.                 |
+| `entered_in_error` | Retracted — written in error, not a domain state change. Uses `links.corrects`. |
+
+### `data.status_detail` — per-subtype allowed values
+
+Registered per subtype. Events whose subtype is absent from this table
+do not carry `status_detail`.
+
+| Type          | Subtype                              | `status_detail` allowed values                                                     |
+|---------------|--------------------------------------|------------------------------------------------------------------------------------|
+| `intent`      | `order`                              | `pending \| active \| on_hold \| cancelled \| completed \| failed \| declined`     |
+| `intent`      | `care_plan`, `monitoring_plan`       | `pending \| active \| on_hold \| completed \| failed \| cancelled`                 |
+| `action`      | `administration`                     | `performed \| held \| refused \| failed \| deferred`                               |
+| `action`      | `result_review`                      | `acknowledged \| deferred`                                                         |
+| `observation` | `lab_result`, `diagnostic_result`    | `preliminary \| final \| corrected \| amended \| addendum \| cancelled`            |
+| `communication` | (any)                              | `sent \| acknowledged \| failed`                                                   |
+| `assessment`  | `problem`                            | `active \| resolved \| inactive \| ruled_out`                                      |
+
+### Consistency rules (validator V-STATUS-01/02/03)
+
+1. `data.status_detail` must be in the subtype's allowed set.
+2. `status: entered_in_error` forbids `status_detail`.
+3. `status: final` requires a terminal `status_detail` value when one
+   is defined for the subtype (e.g., `order` with `final` →
+   `status_detail ∈ {completed, cancelled, failed, declined}`).
+4. Lifecycle transitions use append+supersede: a new event carrying the
+   new `status_detail` and `links.supersedes: [<prior>]`. No in-place
+   mutation.
+
+A2's `recommendation_status` (accepted / declined / deferred) is a
+**payload field on `result_review`**, not a `status_detail` — it is a
+property of the review's content, not the action's lifecycle. Keep
+distinct.
+
+---
+
+## `effective_period` — interval events (ADR 005)
+
+Exactly one of `effective_at` (point) or `effective_period` (interval)
+is present per event. `effective_period` is allow-listed per
+`(type, subtype)`:
+
+| Type          | Subtype                                | Interval semantics                                                               |
+|---------------|----------------------------------------|----------------------------------------------------------------------------------|
+| `intent`      | `monitoring_plan`, `care_plan`         | The plan's active window.                                                        |
+| `action`      | `administration` (infusion/titration)  | The infusion period at a stable rate. New event per rate change (supersedes).    |
+| `observation` | `device_reading` (stable setting)      | Vent settings, pressor drip rate, FiO2 epoch.                                    |
+| `observation` | `context_segment` (new, ADR 005)       | Care location, NPO, isolation precautions, restraint interval, coverage window.  |
+
+Events outside this allow-list must use `effective_at` (V-INTERVAL-02).
+
+**Open intervals** (`end` absent) close via supersession — a new event
+with the same payload plus a populated `effective_period.end` and
+`links.supersedes: [<open-interval-id>]` (V-INTERVAL-04 in spirit;
+enforced via invariant 2 append-only).
+
+---
+
+## `source.kind` — closed taxonomy
+
+The canonical enumeration lives in DESIGN §1 (post ADR 006). Validator
+warns on unknown kind in v0.2 and errors in v0.3. New kinds are added
+by ADR amendment referencing DESIGN §1 plus a kind-specific payload
+convention entry here in CLAIM-TYPES. `agent_reasoning` is accepted
+with a deprecation notice and migrates to `agent_inference`.

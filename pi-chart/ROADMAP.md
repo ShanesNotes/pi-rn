@@ -60,11 +60,39 @@ chart, not a demo fixture.
 | 1 | pi-sim vitals schema ↔ ingest translator  | translate in extension vs. rename sim fields  | open   |
 | 2 | encounter_id resolution for ingest        | sim emits it, vs. chart lookup from latest    | open   |
 | 3 | chart-tools Pi extension against v0.2     | rewrite `_imports/pi-agent-chart-tools-spec.md` for `PatientScope` + session autofill | open   |
-| 4 | `Status` enum — missing `"failed"`         | add + bump schema_version                     | open   |
-| 5 | ICU stay granularity (DESIGN §5.2)        | context event vs. care_location_segments vs. observation subtype | open   |
+| 4 | `Status` enum — missing `"failed"`         | two-layer via `data.status_detail`          | **closed** by ADR 002 (pending implementation) |
+| 5 | ICU stay granularity (DESIGN §5.2)        | `observation.context_segment` + `effective_period` | **closed** by ADR 005 (pending implementation) |
 
-None of these block v0.2's existing functionality; all block the
+None of the open rows block v0.2's existing functionality; all block the
 pi-agent ↔ pi-chart ↔ pi-sim loop.
+
+## Foundation ADRs — 2026-04-20 tightening pass
+
+Five primitive-touching ADRs authored together to remove ambiguity
+before Phase A Batch 2. Implementation is deferred to a follow-up
+execution plan; decisions themselves are committed.
+
+| ADR  | Topic                                   | Status         | Implementation touches                                   |
+|------|-----------------------------------------|----------------|----------------------------------------------------------|
+| 002  | Status lifecycle two-layer              | proposed       | CLAIM-TYPES table (done); schema unchanged; validate.ts V-STATUS-01/02/03 |
+| 003  | Fulfillment via intermediate action     | proposed       | CLAIM-TYPES new action subtypes (done); validate.ts V-FULFILL-01/02/03; seed audit |
+| 004  | `effective_at` semantics per type       | proposed       | CLAIM-TYPES per-type table (done); validate.ts V-TIME-01/02/03; seed audit |
+| 005  | Interval primitive `effective_period`   | proposed       | event.schema.json `oneOf`; validate.ts V-INTERVAL-01/02/03; view interval-awareness; seed audit |
+| 006  | Closed `source.kind` taxonomy           | proposed       | DESIGN §1 registry table; validate.ts V-SRC-01/02/03; seed audit |
+
+## Deferred primitives (named now, decided later)
+
+From autoresearch `report.md` — additive layers that do **not** pressure
+the current primitives during Phase A Batch 2. Each is a candidate for a
+future ADR when the corresponding artifact makes the need concrete.
+
+| Item                                        | Source                        | Trigger for decision                                    |
+|---------------------------------------------|-------------------------------|---------------------------------------------------------|
+| Actor / attestation enrichment              | autoresearch P3               | A4 MAR (co-sign) or pi-agent integration design         |
+| Definition / protocol directory             | autoresearch P2               | A9b orderset invocation, or standing-protocol execution |
+| Semantic profile registry                   | autoresearch P6               | After ADRs 002/003/006 settle — profiles build on them  |
+| Longitudinal problem-thread primitive       | autoresearch P7               | A8 ICU nursing assessment (problem list)                |
+| Per-event `schema_version`                  | foundation hole-poke C6       | First schema-breaking change after v0.2                 |
 
 ---
 

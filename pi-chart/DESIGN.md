@@ -55,6 +55,38 @@ There is no "MIMIC mode" and no "live mode." There is a MIMIC writer and
 a pi-sim writer; both emit envelopes. The chart sees envelopes. This is
 the core invariant and it is not broken by any downstream feature.
 
+### Envelope disciplines (post ADRs 002–006, 2026-04-20)
+
+The six clinical types, five link types, and six view primitives are
+unchanged. ADRs 002–006 refine *how* envelope fields are disciplined
+without expanding the primitive grammar:
+
+- **Envelope `status` remains graph-lifecycle.** Domain lifecycle
+  (`preliminary`, `on_hold`, `failed`, `declined`, `cancelled`, etc.)
+  moves to optional `data.status_detail`, scoped per subtype (ADR 002).
+- **Fulfillment via intermediate action.** Data-producing intents are
+  closed by an acquisition action (`specimen_collection`,
+  `imaging_acquired`, `procedure_performed`, `measurement`); the
+  resulting observation `supports` that action. Invariant 10 stays
+  intact — observations do not carry `fulfills` (ADR 003).
+- **`effective_at` meaning is per-type.** Observation = physiologic
+  truth-time; action = performed-at; intent = ordered-at (may be
+  future-dated); communication = sent-at; artifact_ref = captured-at;
+  assessment = time-of-writing. `recorded_at ≥ effective_at` except
+  for scheduled intents (ADR 004).
+- **Interval events via `effective_period`.** Exactly one of
+  `effective_at` or `effective_period: { start, end? }` per event.
+  Interval usage allow-listed per subtype (context segments, care
+  plans, infusion administrations, stable device settings). Open
+  intervals close via supersession (ADR 005).
+- **Closed `source.kind` taxonomy.** Enumerated in §1.1 below;
+  validator warn-on-unknown, promotes to error in the next minor.
+  `agent_reasoning` collapses into `agent_inference` (ADR 006).
+
+These disciplines do not change the §0 primitives. They remove
+ambiguity so the type/link/view grammar carries more semantic load
+without growing.
+
 ---
 
 ## 2. Multi-patient architecture
@@ -796,6 +828,12 @@ interpret the append-only log as coherent current state.
 - `supports` items may be `EvidenceRef` objects or bare id strings (§4.5).
 - `supersedes`, `corrects`, `fulfills`, `addresses` are always arrays of
   event-id strings referencing events within the same patient.
+- **`fulfills` sources are `action` events.** Observations and
+  assessments do not carry `links.fulfills`; their relation to an
+  upstream intent is indirect — expressed as `supports` on an
+  intermediate acquisition action (`specimen_collection`,
+  `imaging_acquired`, `procedure_performed`, `measurement`). See
+  ADR 003.
 
 ### 6.2 Writing corrections
 
@@ -837,9 +875,25 @@ entered-in-error." Views distinguish them.
   supersede A.
 - At most one supersessor per event. Two supersessors for one target is
   rejected.
-- `fulfills` targets must be events of type `intent`.
+- `fulfills` **sources** must be events of type `action`; **targets**
+  must be events of type `intent` (ADR 003).
 - `addresses` targets must be events of type `assessment` with subtype
   `problem`, or of type `intent` (when an action addresses an order).
+- **Acquisition actions required for data-producing orders** (ADR 003).
+  An `intent.subtype = order` that produces a result is closed by an
+  `action` with subtype in `{specimen_collection, imaging_acquired,
+  procedure_performed, measurement}` carrying `links.fulfills`. The
+  result `observation` then `supports` the acquisition action.
+  Exceptions (ad-hoc POC, standing-protocol ticks) are documented on
+  the action via `data.origin` + `data.rationale_text`.
+- **`data.status_detail` transitions use supersession** (ADR 002). A
+  lifecycle change (e.g., `on_hold → active` for an intent) is a new
+  event carrying the new `status_detail` value and
+  `links.supersedes: [<prior>]`. No in-place mutation.
+- **Interval events close via supersession** (ADR 005). An open
+  `effective_period` (no `end`) is closed by a new event carrying the
+  same payload with a populated `effective_period.end` and
+  `links.supersedes: [<open-interval-event-id>]`.
 
 ---
 
@@ -878,16 +932,18 @@ Concretely, pi-chart v0.2 guarantees:
 For the validator. Each invariant has an explicit check with an error
 message naming its number.
 
-1. Every claim has `source`, `effective_at`, `recorded_at`, `author`, `status`.
-2. pi-chart is append-oriented; no mutation of prior claims.
+1. Every claim has `source`, exactly one of (`effective_at` | `effective_period`) (ADR 005), `recorded_at`, `author`, `status`. Optional `data.status_detail` admits a per-subtype enum (ADR 002).
+2. pi-chart is append-oriented; no mutation of prior claims. `status_detail` and `effective_period.end` transitions use supersession, not in-place mutation.
 3. Derived files are not authoritative and may be hand-marked as such.
 4. No orphan claims — every `links.*` target exists within the same patient.
-5. Assessments must link to supporting observation / vitals / artifact evidence; missing support is a validator error today.
+5. Assessments must link to supporting observation / vitals / artifact evidence; missing support is a validator error. Bare-id support targets are narrowed to `observation` and `artifact_ref` (enforced by `hasObservationEvidence` in `validate.ts`); assessments cannot cite other assessments as support.
 6. **Patient isolation**: writes match `patients/<id>/chart.yaml.subject`; cross-patient links rejected.
 7. **Session transparency**: `author` is captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity**: no circular supersession; at most one supersessor per event.
 9. **Import provenance**: imported events (e.g. `source.kind: synthea_import`, `source.kind: mimic_iv_import`) carry origin ids + timestamps (corpus-specific: e.g. `subject_id`, `hadm_id`, `row_id`, `original_time`, `rebase_delta_ms`) structurally on `source` — not only in `source.ref`.
-10. **Fulfillment typing**: `links.fulfills` targets must be `intent` events; `links.addresses` targets must be problem-subtype assessments or intents (§6.4).
+10. **Fulfillment typing** (ADR 003): `links.fulfills` **sources** must be `action` events; **targets** must be `intent` events. Observations and assessments do not carry `fulfills` — they relate to an intent indirectly via an intermediate acquisition `action` (`specimen_collection`, `imaging_acquired`, `procedure_performed`, `measurement`). `links.addresses` targets must be problem-subtype assessments or intents (§6.4).
+11. **Temporal shape** (ADR 005): exactly one of `effective_at` / `effective_period` per event. `effective_period` is allow-listed per `(type, subtype)` (CLAIM-TYPES). `recorded_at ≥ effective_at` except for future-dated `intent` events carrying `data.due_by` or `effective_period.start`.
+12. **`source.kind` taxonomy** (ADR 006): closed canonical list enumerated in §1. Validator warns on unknown kind in v0.2; errors in v0.3. `agent_reasoning` accepted with deprecation notice, migrates to `agent_inference`.
 
 ---
 
@@ -1043,6 +1099,36 @@ Council-approved amendments, all integrated above.
   banner, and invariant 9 updated in place. §5.2–§5.9 mechanics
   retained as structural reference pending Synthea-specific rewrite at
   Phase 3 start.
+- **2026-04-20 — ADR 002 (status lifecycle):** envelope `status`
+  reserved for graph lifecycle; domain lifecycle moves to optional
+  `data.status_detail` with per-subtype allowed values (registered in
+  CLAIM-TYPES). Invariant 1 extended. Validator rules V-STATUS-01/02/03
+  follow in the implementation ADR.
+- **2026-04-20 — ADR 003 (fulfillment via intermediate action):**
+  data-producing intents are closed by an acquisition `action`
+  (`specimen_collection`, `imaging_acquired`, `procedure_performed`,
+  `measurement`); the resulting observation `supports` that action.
+  Invariant 10 tightened — `fulfills` sources are `action`,
+  observations/assessments do not carry `fulfills`. §6.1 and §6.4
+  updated; CLAIM-TYPES `action` subtypes extended.
+- **2026-04-20 — ADR 004 (`effective_at` per type):** per-type
+  convention replaces the single under-specified definition.
+  Observation = truth-time; action = performed; intent = ordered (may
+  be future-dated); communication = sent; artifact_ref = captured;
+  assessment = time-of-writing. Invariant 1 extended;
+  V-TIME-01/02/03 follow.
+- **2026-04-20 — ADR 005 (interval primitive):** optional envelope
+  field `effective_period: { start, end? }` alongside `effective_at`;
+  exactly one per event. Interval use is allow-listed per subtype.
+  Open intervals close via supersession. New invariant 11; resolves
+  §5.2 ICU-stay-granularity open seam via
+  `observation.context_segment`. Schema adds `oneOf` constraint;
+  V-INTERVAL-01/02/03 follow.
+- **2026-04-20 — ADR 006 (`source.kind` taxonomy):** closed canonical
+  taxonomy enumerated in §1 subsection; schema stays permissive,
+  validator warns on unknown kind in v0.2 and errors in v0.3.
+  `agent_reasoning` deprecated in favor of `agent_inference`.
+  New invariant 12; V-SRC-01/02/03 follow.
 
 ---
 
