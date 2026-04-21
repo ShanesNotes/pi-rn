@@ -12,8 +12,10 @@ Scope:
 
 1. How pi-chart becomes a **multi-patient EHR substrate** without losing
    the single-patient-chart primitive.
-2. How historical data (MIMIC-IV) and runtime data (pi-sim + pi-agent)
-   live in the same chart as one stream of claims, not two modes.
+2. How imported historical data (Synthea primary; MIMIC-IV optional-later
+   per `decisions/001-mimic-to-synthea.md`) and runtime data (pi-sim +
+   pi-agent) live in the same chart as one stream of claims, not two
+   modes.
 3. The **view primitives** — the six projections over the claim graph
    that any agent or UI consumes.
 4. **Session and author** ergonomics.
@@ -28,7 +30,12 @@ ask.
 
 ---
 
-## 1. The load-bearing principle
+## 1. Primitives — the load-bearing foundation
+
+> **§0-level invariant.** This section is the foundation pi-chart reduces
+> to. Changes here require an ADR in `decisions/` and a version bump of
+> `schema_version`. Everything below §1 is implementation over these
+> primitives.
 
 > **A chart is one stream of claims. Different patients start that
 > stream at different historical points. Writers differ in provenance;
@@ -527,6 +534,16 @@ None of these are tabs. Any chart UI will compose them.
 
 ## 5. MIMIC-IV ingestion
 
+> **Status note (post ADR 001).** The mechanics below were written for
+> MIMIC-IV. Per `decisions/001-mimic-to-synthea.md`, **Synthea is now
+> the primary historical corpus**; MIMIC-IV is optional-later and
+> requires credentialed access. This section is retained as structural
+> reference — rebase logic, provenance preservation, manifest writer,
+> and invariants 4 & 9 are corpus-agnostic and will be reused. A
+> Synthea-specific mapping (`src/importers/synthea/`) will replace
+> §5.2–§5.9 when Phase 3 begins. Primitives (§1) and the envelope are
+> unchanged.
+
 ### 5.1 Goal
 
 Load a MIMIC-IV subject into `patients/<id>/` such that the resulting
@@ -869,7 +886,7 @@ message naming its number.
 6. **Patient isolation**: writes match `patients/<id>/chart.yaml.subject`; cross-patient links rejected.
 7. **Session transparency**: `author` is captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity**: no circular supersession; at most one supersessor per event.
-9. **MIMIC provenance**: events with `source.kind: mimic_iv_import` carry `subject_id`, `hadm_id`, `row_id`, `original_time`, `rebase_delta_ms` structurally — not only in `source.ref`.
+9. **Import provenance**: imported events (e.g. `source.kind: synthea_import`, `source.kind: mimic_iv_import`) carry origin ids + timestamps (corpus-specific: e.g. `subject_id`, `hadm_id`, `row_id`, `original_time`, `rebase_delta_ms`) structurally on `source` — not only in `source.ref`.
 10. **Fulfillment typing**: `links.fulfills` targets must be `intent` events; `links.addresses` targets must be problem-subtype assessments or intents (§6.4).
 
 ---
@@ -1010,6 +1027,21 @@ Council-approved amendments, all integrated above.
 - FHIR boundary adapter.
 - SQLite indexing when grep performance degrades.
 - UI stack selection (Phase 4).
+
+---
+
+**Post-revision amendments (tracked in `decisions/`)**
+- **2026-04-20:** §1 renamed from "The load-bearing principle" to
+  "Primitives — the load-bearing foundation" with a §0-invariant
+  callout. Changes to §1 now require an ADR + `schema_version` bump.
+  Companion docs added: `ARCHITECTURE.md` (code map), `ROADMAP.md`
+  (phases + seams), `decisions/` (ADRs), `clinical-reference/` (domain
+  research).
+- **2026-04-20 — ADR 001:** Phase 3 importer pivots from MIMIC-IV to
+  Synthea as primary corpus; MIMIC-IV optional-later. §0 scope, §5
+  banner, and invariant 9 updated in place. §5.2–§5.9 mechanics
+  retained as structural reference pending Synthea-specific rewrite at
+  Phase 3 start.
 
 ---
 

@@ -38,9 +38,14 @@ and NDJSON are carriers.
 
 ```
 pi-chart/
-├── README.md                 # this file
-├── DESIGN.md                 # the spec — committed decisions + open items
+├── README.md                 # this file (primer)
+├── DESIGN.md                 # the spec — §1 primitives + committed decisions
 ├── CLAIM-TYPES.md            # event types, subtypes, data shapes
+├── ARCHITECTURE.md           # code map over DESIGN
+├── ROADMAP.md                # phases, shipped vs deferred, open seams
+├── decisions/                # ADRs (NNN-*.md) for pivots over primitives
+├── clinical-reference/       # domain research feeding design (not code)
+├── docs/                     # research directives (Phase A charter/template/execution)
 ├── pi-chart.yaml             # system registry (patient ids, defaults)
 ├── sessions/
 │   ├── current.yaml          # GITIGNORED — operator identity + current patient
@@ -146,7 +151,7 @@ DESIGN §8; ten in v0.2:
 6. **Patient isolation** — writes match `patients/<id>/chart.yaml.subject` **and** the directory name; cross-patient links rejected.
 7. **Session transparency** — author captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity** — no circular chains, at most one supersessor per event.
-9. **MIMIC provenance** (Phase 3) — structured `source` fields for imported events.
+9. **Import provenance** (Phase 3) — imported events (Synthea; MIMIC-IV optional) carry structured `source` fields preserving original ids + timestamps.
 10. **Fulfillment typing** — `links.fulfills` targets must be `intent`; `links.addresses` targets must be problem-subtype assessment or intent.
 
 ## Clock source
@@ -184,9 +189,14 @@ cycle: escalation trigger met; SpO2 89% sustained, SBAR to provider
 ## Growth path
 
 - **v0.2 (now):** multi-patient layout, view primitives, explicit
-  fulfillment links, MIMIC provenance structure.
-- **Phase 3:** MIMIC-IV ingestion (`src/importers/mimic-iv/`). Deferred
-  pending CSV staging; see DESIGN §5 and §10.
+  fulfillment links, import provenance structure.
+- **Current focus:** deepen clinical content before pi-agent integration
+  — see `ROADMAP.md`. Research directives for what a real chart
+  contains live under `docs/` (Phase A) with outputs in
+  `clinical-reference/`.
+- **Phase 3:** Synthea import (`src/importers/synthea/`). Per
+  `decisions/001-mimic-to-synthea.md`, Synthea is the primary historical
+  corpus; MIMIC-IV is a later-optional path requiring credentialing.
 - **Phase 4:** UI. Separate design doc when ready; will compose view
   primitives.
 - **Later:** SQLite index over `events.ndjson` when grep gets slow;

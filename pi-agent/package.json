@@ -1,0 +1,14 @@
+{
+  "name": "pi-rn",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal project-local Pi scaffold.",
+  "type": "module",
+  "scripts": {
+    "pi": "pi"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.67.6",
+    "@types/node": "^22.0.0"
+  }
+}

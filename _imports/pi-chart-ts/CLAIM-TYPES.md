@@ -52,11 +52,9 @@ This file documents the payload conventions for the six clinical types. See
   "data": { /* type-specific, see below */ },
 
   "links": {
-    "supports":    ["evt_..."],   // evidence — what this claim rests on (event ids or vitals:// URIs)
-    "supersedes":  ["evt_..."],   // what this replaces (new version)
-    "corrects":    ["evt_..."],   // narrower than supersedes — flags prior error
-    "fulfills":    ["evt_..."],   // action → intent; closes the loop (invariant 10)
-    "addresses":   ["evt_..."]    // intent → problem-subtype assessment or parent intent (invariant 10)
+    "supports":    ["evt_..."],   // what this claim rests on
+    "supersedes":  ["evt_..."],   // what this replaces
+    "corrects":    ["evt_..."]    // narrower than supersedes — flags prior error
   }
 }
 ```
@@ -172,11 +170,8 @@ This is where pi-agent earns its keep — plans with follow-through.
 
 ## 4. `action`
 
-Something actually performed. Distinct from `intent`. When an action
-closes an intent, use `links.fulfills` (not `links.supports`) —
-invariant 10 requires `fulfills` targets to be `intent` events.
-`links.supports` still carries evidence the action rests on (e.g. the
-observations that triggered it).
+Something actually performed. Distinct from `intent`. Should have
+`links.supports` pointing to the intent it fulfills, when applicable.
 
 Conventional subtypes: `administration`, `procedure`, `notification`,
 `measurement`, `intervention`.

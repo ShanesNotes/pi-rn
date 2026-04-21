@@ -1,0 +1,7 @@
+{
+  "sessionDir": "./sessions",
+  "extensions": ["./extensions"],
+  "skills": ["./skills"],
+  "prompts": ["./prompts"],
+  "themes": ["./themes"]
+}

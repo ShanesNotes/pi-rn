@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-rn.local/schemas/constraints.schema.json",
+  "title": "pi-chart structured constraints",
+  "description": "Machine-readable constraint block embedded in the YAML frontmatter of constraints.md. Lets pi-agent avoid parsing prose for safety-critical decisions (allergies, code status, preferences). The narrative body of constraints.md remains canonical for nuance; this is the queryable subset.",
+  "type": "object",
+  "properties": {
+    "allergies": {
+      "type": "array",
+      "description": "Substances the patient cannot tolerate. Each entry must carry status so retired allergies can be retained for history.",
+      "items": {
+        "type": "object",
+        "required": ["substance", "status"],
+        "properties": {
+          "substance": { "type": "string" },
+          "reaction":  { "type": "string", "description": "Free-text description of historical reaction." },
+          "severity":  { "enum": ["mild", "moderate", "severe", "anaphylaxis", "unknown"] },
+          "source":    { "type": "string", "description": "Provenance, e.g. patient_report, chart_history, family_report." },
+          "status":    { "enum": ["active", "inactive", "entered_in_error"] }
+        }
+      }
+    },
+    "code_status": {
+      "enum": ["full_code", "dnr", "dni", "dnr_dni", "comfort_only", "unspecified"],
+      "description": "Resuscitation status. Required field once any structured constraints block is authored; use 'unspecified' to defer."
+    },
+    "preferences": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Snake_case preference tokens, e.g. minimize_sedation_if_possible, return_to_work_priority."
+    },
+    "access_constraints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Dosing/access limits, e.g. renal_adjusted_dosing_required."
+    },
+    "advance_directive": {
+      "type": "string",
+      "description": "Free-text or document reference. Empty/absent if none on file."
+    }
+  },
+  "additionalProperties": false
+}
