@@ -112,6 +112,9 @@ registry; no schema change needed.
 |                      | `cardiology_reporting`     | Cardiology reporting system (echo, cath, EP).                           |
 |                      | `endoscopy_reporting`      | Endoscopy reporting system.                                             |
 | **Agent-origin**     | `agent_inference`          | Agent-authored conclusion drawn from observed chart data.               |
+|                      | `agent_bedside_observation`| Agent-authored directly observed bedside finding or environment check.  |
+|                      | `agent_action`             | Agent-authored performed action in the workflow or chart.               |
+|                      | `agent_synthesis`          | Agent-authored narrative or structured synthesis composed from evidence.|
 |                      | `agent_reasoning`          | Deprecated synonym for `agent_inference`; validator warns and suggests migration (ADR 006). |
 |                      | `agent_review`             | Agent-authored `action.result_review` (may require human confirmation). |
 | **Import-origin**    | `synthea_import`           | Synthea-generated historical corpus (primary per ADR 001).              |
@@ -123,6 +126,12 @@ Per-kind structured `source.*` field conventions (e.g.,
 `synthea_import` carries `generator_version` / `seed` / original-ids)
 are documented in CLAIM-TYPES.md. Import-origin kinds are required to
 carry structured provenance per invariant 9.
+
+Writers do not invent a generic `artifact_ingest` provenance bucket.
+An `artifact_ref` event carries the canonical origin-channel that
+actually produced or introduced the artifact (for example
+`pacs_interface`, `lab_interface_hl7`, `manual_scenario`,
+`agent_synthesis`, `clinician_chart_action`).
 
 **Separation of concerns.** `source.kind` describes the
 origin-channel (where the event entered the chart); `author.role`

@@ -20,12 +20,21 @@
   ADR implementation. The canonical registry table now lives in
   DESIGN §1.1 (added in pass 1 of review via DESIGN.md edit); this
   ADR remains the rationale document.
+- **2026-04-21 (ADR 007 implementation gate):** Closed the gap
+  between accepted taxonomy and repo runtime usage. Added
+  `agent_bedside_observation`, `agent_action`, and
+  `agent_synthesis` as canonical agent-origin kinds. Explicitly
+  rejected generic `artifact_ingest` as a canonical kind; artifact
+  writes must carry caller-supplied canonical provenance instead of a
+  writer-invented bucket.
 
 ## Context
 
 `source.kind` is a free-form string today. Values currently in circulation across docs and drafts:
 
-- **Runtime:** `monitor_extension`, `patient_statement`, `admission_intake`, `nurse_charted`
+- **Runtime:** `monitor_extension`, `patient_statement`,
+  `admission_intake`, `nurse_charted`, `agent_bedside_observation`,
+  `agent_action`, `agent_synthesis`, `artifact_ingest`
 - **Agent:** `agent_inference`, `agent_reasoning` (difference never defined)
 - **Import:** `synthea_import`, `mimic_iv_import`
 - **A1 additions:** `lab_analyzer`, `lab_interface_hl7`, `poc_device`, `manual_lab_entry`
@@ -41,6 +50,11 @@ Problems:
    well-known — unknown values bypass the invariant.
 5. Autoresearch P6 identifies this as a precursor to a broader profile
    registry.
+6. Some repo-owned fixtures and writer defaults already use uncovered
+   agent/runtime values (`agent_bedside_observation`,
+   `agent_action`, `agent_synthesis`, `artifact_ingest`). Leaving
+   them outside the registry would make the validator warn on its own
+   sanctioned runtime surfaces.
 
 ## Decision
 
@@ -75,6 +89,9 @@ Grouped by origin family.
 |                    | `endoscopy_reporting`      | Endoscopy reporting system.                                             |
 |                    | `manual_lab_entry`         | Result transcribed manually (outside-hospital result, faxed, phoned-in).|
 | **Agent-origin**   | `agent_inference`          | Agent-authored conclusion drawn from observed chart data (assessment, trend, differential). |
+|                    | `agent_bedside_observation`| Agent-authored directly observed bedside finding or environment check. Observed, not inferred. |
+|                    | `agent_action`             | Agent-authored performed action in the chart/workflow (notification, follow-up action, escalation). |
+|                    | `agent_synthesis`          | Agent-authored narrative or structured synthesis artifact/communication composed from chart evidence. |
 |                    | `agent_reasoning`          | **Collapsed into `agent_inference`.** Retained as a synonym; validator warns and suggests migration. |
 |                    | `agent_review`             | Agent-authored `action.result_review` (may require human confirmation, see ADR 002 status draft). |
 | **Import-origin**  | `synthea_import`           | Synthea-generated historical corpus (primary per ADR 001).              |
@@ -88,6 +105,11 @@ documented per-kind in CLAIM-TYPES (e.g., `lab_interface_hl7` carries
 `system`, `verified_by`, `raw_ref?`; `synthea_import` carries
 `generator_version`, `seed`, original-ids). Import-origin kinds are
 already required by invariant 9 to carry structured provenance fields.
+Writers do not invent a generic `artifact_ingest` kind; an
+`artifact_ref` event inherits the provenance channel that actually
+produced or introduced the artifact (for example `pacs_interface`,
+`lab_interface_hl7`, `manual_scenario`, `agent_synthesis`,
+`clinician_chart_action`).
 
 ### Validator changes
 
@@ -136,6 +158,8 @@ keeping everyday registration cheap.
   and import-origin kinds.
 - **src/validate.ts** — V-SRC-01/02/03 as above; taxonomy loaded from a
   data table (not hardcoded) so the ADR-amendment pattern works.
+- **src/write.ts** — `writeArtifactRef()` takes caller-supplied
+  canonical `source`; the writer no longer emits `artifact_ingest`.
 - **Seed `patient_001`** — audit for any events using `agent_reasoning`
   or undocumented kinds. Migrate during implementation ADR follow-up.
 - **A1/A2 draft fixtures** — audit for `agent_review` vs
@@ -143,6 +167,9 @@ keeping everyday registration cheap.
   drafts predate this ADR's split between the two; any review
   action tagged `agent_inference` should migrate to `agent_review`
   during ADR implementation. Tracked alongside the seed audit.
+- **Repo-owned examples/tests** — normalize repo literals to canonical
+  agent kinds. `agent_reasoning` remains only where V-SRC-02
+  intentionally exercises the deprecation path.
 
 ## Not decided here
 

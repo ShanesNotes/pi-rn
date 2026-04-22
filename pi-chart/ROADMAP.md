@@ -70,16 +70,17 @@ pi-agent ↔ pi-chart ↔ pi-sim loop.
 
 Five primitive-touching ADRs authored together to remove ambiguity
 before Phase A Batch 2. All accepted on 2026-04-21 after two
-operator review passes. Implementation is deferred to a follow-up
-execution ADR.
+operator review passes. End-to-end implementation now routes through
+ADR 007: schema + types/read/write/views + validator + corpus cleanup,
+not validator-only patches.
 
 | ADR  | Topic                                   | Status          | Implementation touches                                   |
 |------|-----------------------------------------|-----------------|----------------------------------------------------------|
-| 002  | Status lifecycle two-layer              | accepted 2026-04-21 | CLAIM-TYPES table (done); schema unchanged; validate.ts V-STATUS-01/02/03 |
-| 003  | Fulfillment via intermediate action     | accepted 2026-04-21 | CLAIM-TYPES new action subtypes (done); validate.ts V-FULFILL-01/02/03; seed audit |
-| 004  | `effective_at` semantics per type       | accepted 2026-04-21 | CLAIM-TYPES per-type table (done); validate.ts V-TIME-01/02/03; seed audit |
-| 005  | Interval primitive `effective_period`   | accepted 2026-04-21 | event.schema.json `oneOf`; validate.ts V-INTERVAL-01/02/03; view interval-awareness; seed audit |
-| 006  | Closed `source.kind` taxonomy           | accepted 2026-04-21 | DESIGN §1.1 registry table (done); validate.ts V-SRC-01/02/03; seed audit |
+| 002  | Status lifecycle two-layer              | accepted 2026-04-21 | CLAIM-TYPES table (done); schema/status-detail surface; validate.ts V-STATUS-01/02/03; openLoops failure semantics |
+| 003  | Fulfillment via intermediate action     | accepted 2026-04-21 | CLAIM-TYPES new action subtypes (done); validate.ts V-FULFILL-01/02/03; seed/fixture audit |
+| 004  | `effective_at` semantics per type       | accepted 2026-04-21 | CLAIM-TYPES per-type table (done); validate.ts V-TIME-01/02/03; time/read/view helpers |
+| 005  | Interval primitive `effective_period`   | accepted 2026-04-21 | event.schema.json `oneOf`; types/read/write/view interval-awareness; validate.ts V-INTERVAL-01/02/03/04; seed audit |
+| 006  | Closed `source.kind` taxonomy           | accepted 2026-04-21 | DESIGN §1.1 registry table (done); validate.ts V-SRC-01/02/03; writer/source-kind cleanup; seed/fixture audit |
 
 ## Deferred primitives (named now, decided later)
 

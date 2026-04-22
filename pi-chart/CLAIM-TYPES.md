@@ -391,7 +391,7 @@ do not carry `status_detail`.
 | `action`      | `administration`                     | `performed \| held \| refused \| failed \| deferred`                               |
 | `action`      | `result_review`                      | `acknowledged \| deferred`                                                         |
 | `observation` | `lab_result`, `diagnostic_result`    | `preliminary \| final \| corrected \| amended \| addendum \| cancelled`            |
-| `communication` | (any)                              | `sent \| acknowledged \| failed`                                                   |
+| `communication` | (any)                              | `sent \| acknowledged \| timeout \| failed`                                        |
 | `assessment`  | `problem`                            | `active \| resolved \| inactive \| ruled_out`                                      |
 
 ### Consistency rules (validator V-STATUS-01/02/03)
@@ -440,4 +440,8 @@ The canonical enumeration lives in DESIGN §1.1 (post ADR 006). Validator
 warns on unknown kind in v0.2 and errors in v0.3. New kinds are added
 by ADR amendment referencing DESIGN §1.1 plus a kind-specific payload
 convention entry here in CLAIM-TYPES. `agent_reasoning` is accepted
-with a deprecation notice and migrates to `agent_inference`.
+with a deprecation notice and migrates to `agent_inference`. Canonical
+agent-authored runtime values now include `agent_bedside_observation`,
+`agent_action`, `agent_synthesis`, `agent_inference`, and
+`agent_review`; repo-owned examples and tests should use those values,
+not ad hoc synonyms.

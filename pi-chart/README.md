@@ -213,8 +213,11 @@ cycle: escalation trigger met; SpO2 89% sustained, SBAR to provider
 An extension observes monitor output from `pi-sim` (the public
 `vitals/current.json` surface only) and appends vitals events into the
 chart with `source.kind: "monitor_extension"`. Patient-reported symptoms
-arrive via `source.kind: "patient_statement"`. Agent-derived conclusions
-carry `source.kind: "agent_inference"` or `"agent_reasoning"`.
+arrive via `source.kind: "patient_statement"`. Agent-authored bedside
+findings use `source.kind: "agent_bedside_observation"`. Agent-derived
+conclusions use `source.kind: "agent_inference"`. Agent-authored
+workflow actions and synthesized communications use
+`source.kind: "agent_action"` and `"agent_synthesis"`.
 
 This asymmetry is the point. The agent only knows what has been
 observed, reported, inferred, or documented — never ground truth.
