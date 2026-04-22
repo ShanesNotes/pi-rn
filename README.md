@@ -1,6 +1,6 @@
 # pi-rn
 
-Monorepo-style parent workspace for the clinical agent system.
+clinical agent system.
 
 ## Layout
 
@@ -12,19 +12,13 @@ pi-sim/     hidden patient simulation backend
 
 ## Intent
 
-- `pi-agent/` is the only workspace the agent should see at runtime
-- `pi-chart/` is the charting/EHR surface or backend
-- `pi-sim/` is the hidden simulator and should stay outside the agent container context
+- `pi-agent/` agent harness
+- `pi-chart/` agent-native clinical memory substrate
+- `pi-sim/` clinical monitor simulation
 
 Start simple: build boundaries first, then grow each subsystem deliberately.
 
-## Disclaimer
 
-pi-rn is research and experimental software. It is **not a medical
-device**, **not FDA-approved**, **not intended for clinical decision
-support**, and **not validated for patient care**. No warranty of
-medical accuracy is expressed or implied. Do not use in any clinical
-setting where patient outcomes depend on the output of this code.
 
 ## License
 
