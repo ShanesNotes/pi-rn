@@ -17,6 +17,14 @@ import yaml from "js-yaml";
 import { iterNdjson, globPerDayFile, readTextIfExists } from "./fs-util.js";
 import type { ChartMeta, SystemRegistry } from "./types.js";
 
+interface EventTemporalLike {
+  effective_at?: unknown;
+  effective_period?: {
+    start?: unknown;
+    end?: unknown;
+  } | null;
+}
+
 export interface Clock {
   now(): Promise<Date>;
 }
@@ -70,13 +78,59 @@ export async function chartClock(patientRoot: string): Promise<Clock> {
   return new SimClock(patientRoot);
 }
 
-/** Max effective_at across events plus max sampled_at across vitals. */
+export function eventStartIso(event: EventTemporalLike): string | null {
+  if (typeof event.effective_at === "string" && event.effective_at.length > 0) {
+    return event.effective_at;
+  }
+  const start = event.effective_period?.start;
+  return typeof start === "string" && start.length > 0 ? start : null;
+}
+
+export function eventStartDate(event: EventTemporalLike): Date | null {
+  return parseIso(eventStartIso(event));
+}
+
+export function eventStartMs(event: EventTemporalLike): number | null {
+  const date = eventStartDate(event);
+  return date ? date.getTime() : null;
+}
+
+export function eventEndIso(event: EventTemporalLike): string | null {
+  const end = event.effective_period?.end;
+  return typeof end === "string" && end.length > 0 ? end : null;
+}
+
+export function eventEndDate(event: EventTemporalLike): Date | null {
+  return parseIso(eventEndIso(event));
+}
+
+export function eventEndMs(event: EventTemporalLike): number | null {
+  const date = eventEndDate(event);
+  return date ? date.getTime() : null;
+}
+
+/**
+ * "Active at T" semantics. Point events remain active after their start
+ * until superseded/corrected by view logic; interval events additionally
+ * respect `effective_period.end` when present.
+ */
+export function eventCoversAsOf(
+  event: EventTemporalLike,
+  asOfMs: number,
+): boolean {
+  const start = eventStartMs(event);
+  if (start === null || start > asOfMs) return false;
+  const end = eventEndMs(event);
+  return end === null || end >= asOfMs;
+}
+
+/** Max event start across events plus max sampled_at across vitals. */
 export async function latestEffectiveAt(patientRoot: string): Promise<Date | null> {
   let best: Date | null = null;
 
   for (const p of await globPerDayFile(patientRoot, "events.ndjson")) {
     for await (const [, ev] of iterNdjson(p)) {
-      const t = parseIso(ev?.effective_at);
+      const t = eventStartDate(ev as EventTemporalLike);
       if (t && (!best || t > best)) best = t;
     }
   }

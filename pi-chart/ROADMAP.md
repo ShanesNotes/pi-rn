@@ -70,17 +70,17 @@ pi-agent ↔ pi-chart ↔ pi-sim loop.
 
 Five primitive-touching ADRs authored together to remove ambiguity
 before Phase A Batch 2. All accepted on 2026-04-21 after two
-operator review passes. End-to-end implementation now routes through
-ADR 007: schema + types/read/write/views + validator + corpus cleanup,
-not validator-only patches.
+operator review passes. End-to-end implementation landed 2026-04-21
+under ADR 007: schema + types/read/write/views + validator + corpus
+cleanup.
 
-| ADR  | Topic                                   | Status          | Implementation touches                                   |
+| ADR  | Topic                                   | Status          | Implementation (done 2026-04-21 under ADR 007)           |
 |------|-----------------------------------------|-----------------|----------------------------------------------------------|
-| 002  | Status lifecycle two-layer              | accepted 2026-04-21 | CLAIM-TYPES table (done); schema/status-detail surface; validate.ts V-STATUS-01/02/03; openLoops failure semantics |
-| 003  | Fulfillment via intermediate action     | accepted 2026-04-21 | CLAIM-TYPES new action subtypes (done); validate.ts V-FULFILL-01/02/03; seed/fixture audit |
-| 004  | `effective_at` semantics per type       | accepted 2026-04-21 | CLAIM-TYPES per-type table (done); validate.ts V-TIME-01/02/03; time/read/view helpers |
-| 005  | Interval primitive `effective_period`   | accepted 2026-04-21 | event.schema.json `oneOf`; types/read/write/view interval-awareness; validate.ts V-INTERVAL-01/02/03/04; seed audit |
-| 006  | Closed `source.kind` taxonomy           | accepted 2026-04-21 | DESIGN §1.1 registry table (done); validate.ts V-SRC-01/02/03; writer/source-kind cleanup; seed/fixture audit |
+| 002  | Status lifecycle two-layer              | accepted 2026-04-21 | `data.status_detail` in envelope/types; V-STATUS-01/02/03 in validate.ts; openLoops failure semantics wired through status_detail |
+| 003  | Fulfillment via intermediate action     | accepted 2026-04-21 | CLAIM-TYPES action subtypes; V-FULFILL-01/02/03; `data.origin` exception path; writeArtifactRef provenance tightening; seed clean (no retrofits needed) |
+| 004  | `effective_at` semantics per type       | accepted 2026-04-21 | per-type `effective_at` table; V-TIME-01/02/03; shared time helpers consumed by read / views / derived |
+| 005  | Interval primitive `effective_period`   | accepted 2026-04-21 | event.schema.json `oneOf` + `effective_period`; types/read/write/view interval-awareness; V-INTERVAL-01/02/03/04 (stop-event rejection); derived rebuild |
+| 006  | Closed `source.kind` taxonomy           | accepted 2026-04-21 | DESIGN §1.1 registry (amended with runtime agent kinds); V-SRC-01/02/03 (warn in v0.2); writer/source-kind cleanup; seed + repo-owned test/example normalization |
 
 ## Deferred primitives (named now, decided later)
 

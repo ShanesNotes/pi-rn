@@ -8,7 +8,6 @@
     "id",
     "type",
     "subject",
-    "effective_at",
     "recorded_at",
     "author",
     "source",
@@ -52,6 +51,22 @@
       "format": "date-time",
       "description": "When the claim was/is true in the world."
     },
+    "effective_period": {
+      "type": "object",
+      "required": ["start"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Interval form for time-spanning events. Exactly one of effective_at or effective_period is required."
+    },
     "recorded_at": {
       "type": "string",
       "format": "date-time",
@@ -75,7 +90,7 @@
       "properties": {
         "kind": {
           "type": "string",
-          "description": "Provenance channel, e.g. monitor_extension, patient_statement, agent_inference, agent_reasoning, agent_bedside_observation, agent_synthesis, agent_action, admission_intake, admission_order, lab_instrument."
+          "description": "Provenance channel. Canonical registry lives in DESIGN.md §1.1; schema stays permissive so validator severity can evolve independently of schema."
         },
         "ref": {
           "type": "string",
@@ -95,6 +110,12 @@
     },
     "data": {
       "type": "object",
+      "properties": {
+        "status_detail": {
+          "type": "string",
+          "description": "Optional domain lifecycle detail. Allowed values are validator-enforced per (type, subtype); see CLAIM-TYPES.md and ADR 002."
+        }
+      },
       "description": "Type-specific payload. See CLAIM-TYPES.md for conventional shapes."
     },
     "links": {
@@ -149,6 +170,16 @@
       }
     }
   },
+  "oneOf": [
+    {
+      "required": ["effective_at"],
+      "not": { "required": ["effective_period"] }
+    },
+    {
+      "required": ["effective_period"],
+      "not": { "required": ["effective_at"] }
+    }
+  ],
   "allOf": [
     {
       "if": {

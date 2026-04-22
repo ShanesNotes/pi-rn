@@ -13,6 +13,7 @@ import {
   loadContext,
   resolveAsOfMs,
 } from "./active.js";
+import { eventStartIso, eventStartMs } from "../time.js";
 
 const CLINICAL_TYPES: ReadonlySet<ClinicalType> = new Set([
   "observation",
@@ -47,22 +48,23 @@ export async function timeline(params: TimelineParams): Promise<TimelineEntry[]>
     if (subtypeSet && (!ev.subtype || !subtypeSet.has(ev.subtype))) continue;
     if (params.subtypePrefix && (!ev.subtype || !ev.subtype.startsWith(params.subtypePrefix))) continue;
     if (params.encounterId && ev.encounter_id !== params.encounterId) continue;
-    const t = Date.parse(ev.effective_at);
-    if (!Number.isFinite(t)) continue;
+    const t = eventStartMs(ev);
+    const startIso = eventStartIso(ev);
+    if (t === null || !startIso) continue;
     if (t < fromMs || t > toMs) continue;
     if (!params.includeSuperseded && (isSuperseded(ev, ctx) || isCorrected(ev, ctx))) continue;
     out.push({
       id: ev.id,
       type: ev.type as ClinicalType,
       subtype: ev.subtype,
-      effective_at: ev.effective_at,
+      effective_start: startIso,
       author: ev.author,
       summary: summarize(ev),
       raw: ev,
     });
   }
   out.sort((a, b) =>
-    a.effective_at.localeCompare(b.effective_at) ||
+    a.effective_start.localeCompare(b.effective_start) ||
     a.id.localeCompare(b.id),
   );
   return out;

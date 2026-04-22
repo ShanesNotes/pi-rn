@@ -23,7 +23,7 @@ import {
   readTextIfExists,
 } from "./fs-util.js";
 import { parseEvidenceRef, isVitalsUri } from "./evidence.js";
-import { parseIso, loadChartMeta } from "./time.js";
+import { eventStartIso, parseIso, loadChartMeta } from "./time.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope, ReportEntry, ValidationReport } from "./types.js";
 
@@ -45,6 +45,430 @@ function err(s: State, where: string, message: string) {
 }
 function warn(s: State, where: string, message: string) {
   s.warnings.push({ where, message });
+}
+
+type StatusRule = {
+  allowed: readonly string[];
+  terminal: readonly string[];
+  transitions: Readonly<Record<string, readonly string[]>>;
+};
+
+const SOURCE_KIND_CANONICAL = new Set([
+  "patient_statement",
+  "admission_intake",
+  "nurse_charted",
+  "clinician_chart_action",
+  "protocol_standing_order",
+  "manual_lab_entry",
+  "monitor_extension",
+  "poc_device",
+  "lab_analyzer",
+  "lab_interface_hl7",
+  "pacs_interface",
+  "dictation_system",
+  "pathology_lis",
+  "cardiology_reporting",
+  "endoscopy_reporting",
+  "agent_inference",
+  "agent_bedside_observation",
+  "agent_action",
+  "agent_synthesis",
+  "agent_reasoning",
+  "agent_review",
+  "synthea_import",
+  "mimic_iv_import",
+  "manual_scenario",
+]);
+
+const DEPRECATED_SOURCE_KIND_MIGRATIONS: Readonly<Record<string, string>> = {
+  agent_reasoning: "agent_inference",
+};
+
+const IMPORT_SOURCE_REQUIRED_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  synthea_import: ["generator_version", "seed", "original_time", "rebase_delta_ms"],
+  mimic_iv_import: [
+    "table",
+    "subject_id",
+    "hadm_id",
+    "row_id",
+    "original_time",
+    "rebase_delta_ms",
+  ],
+};
+
+const INTERVAL_ALLOWED = new Set([
+  "intent:monitoring_plan",
+  "intent:care_plan",
+  "action:administration",
+  "observation:device_reading",
+  "observation:context_segment",
+]);
+
+const OPEN_INTERVAL_ALLOWED = new Set([
+  "intent:monitoring_plan",
+  "intent:care_plan",
+  "action:administration",
+  "observation:device_reading",
+  "observation:context_segment",
+]);
+
+const ACQUISITION_ACTION_SUBTYPES = new Set([
+  "specimen_collection",
+  "imaging_acquired",
+  "procedure_performed",
+  "measurement",
+]);
+
+const RESULT_OBSERVATION_SUBTYPES = new Set([
+  "lab_result",
+  "diagnostic_result",
+]);
+
+const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
+  "intent:order": {
+    allowed: ["pending", "active", "on_hold", "cancelled", "completed", "failed", "declined"],
+    terminal: ["cancelled", "completed", "failed", "declined"],
+    transitions: {
+      pending: ["active", "on_hold", "cancelled", "completed", "failed", "declined"],
+      active: ["on_hold", "cancelled", "completed", "failed", "declined"],
+      on_hold: ["active", "cancelled", "completed", "failed", "declined"],
+      cancelled: [],
+      completed: [],
+      failed: [],
+      declined: [],
+    },
+  },
+  "intent:care_plan": {
+    allowed: ["pending", "active", "on_hold", "completed", "failed", "cancelled"],
+    terminal: ["completed", "failed", "cancelled"],
+    transitions: {
+      pending: ["active", "on_hold", "completed", "failed", "cancelled"],
+      active: ["on_hold", "completed", "failed", "cancelled"],
+      on_hold: ["active", "completed", "failed", "cancelled"],
+      completed: [],
+      failed: [],
+      cancelled: [],
+    },
+  },
+  "intent:monitoring_plan": {
+    allowed: ["pending", "active", "on_hold", "completed", "failed", "cancelled"],
+    terminal: ["completed", "failed", "cancelled"],
+    transitions: {
+      pending: ["active", "on_hold", "completed", "failed", "cancelled"],
+      active: ["on_hold", "completed", "failed", "cancelled"],
+      on_hold: ["active", "completed", "failed", "cancelled"],
+      completed: [],
+      failed: [],
+      cancelled: [],
+    },
+  },
+  "action:administration": {
+    allowed: ["performed", "held", "refused", "failed", "deferred"],
+    terminal: ["performed", "held", "refused", "failed", "deferred"],
+    transitions: {
+      performed: [],
+      held: [],
+      refused: [],
+      failed: [],
+      deferred: [],
+    },
+  },
+  "action:result_review": {
+    allowed: ["acknowledged", "deferred"],
+    terminal: ["acknowledged", "deferred"],
+    transitions: {
+      acknowledged: [],
+      deferred: [],
+    },
+  },
+  "observation:lab_result": {
+    allowed: ["preliminary", "final", "corrected", "amended", "addendum", "cancelled"],
+    terminal: ["final", "corrected", "amended", "addendum", "cancelled"],
+    transitions: {
+      preliminary: ["final", "corrected", "amended", "addendum", "cancelled"],
+      final: ["corrected", "amended", "addendum"],
+      corrected: ["amended", "addendum"],
+      amended: ["addendum"],
+      addendum: [],
+      cancelled: [],
+    },
+  },
+  "observation:diagnostic_result": {
+    allowed: ["preliminary", "final", "corrected", "amended", "addendum", "cancelled"],
+    terminal: ["final", "corrected", "amended", "addendum", "cancelled"],
+    transitions: {
+      preliminary: ["final", "corrected", "amended", "addendum", "cancelled"],
+      final: ["corrected", "amended", "addendum"],
+      corrected: ["amended", "addendum"],
+      amended: ["addendum"],
+      addendum: [],
+      cancelled: [],
+    },
+  },
+  "communication:*": {
+    allowed: ["sent", "acknowledged", "timeout", "failed"],
+    terminal: ["sent", "acknowledged", "timeout", "failed"],
+    transitions: {
+      sent: ["acknowledged", "timeout", "failed"],
+      acknowledged: [],
+      timeout: [],
+      failed: [],
+    },
+  },
+  "assessment:problem": {
+    allowed: ["active", "resolved", "inactive", "ruled_out"],
+    terminal: ["resolved", "inactive", "ruled_out"],
+    transitions: {
+      active: ["resolved", "inactive", "ruled_out"],
+      resolved: [],
+      inactive: [],
+      ruled_out: [],
+    },
+  },
+};
+
+function ruleErr(state: State, where: string, code: string, message: string) {
+  err(state, where, `${code}: ${message}`);
+}
+
+function ruleWarn(state: State, where: string, code: string, message: string) {
+  warn(state, where, `${code}: ${message}`);
+}
+
+function eventKindKey(ev: any): string {
+  return `${String(ev?.type ?? "")}:${String(ev?.subtype ?? "")}`;
+}
+
+function getStatusRule(ev: any): StatusRule | null {
+  if (ev?.type === "communication") return STATUS_RULES["communication:*"] ?? null;
+  return STATUS_RULES[eventKindKey(ev)] ?? null;
+}
+
+function validateSourceKind(state: State, where: string, ev: any) {
+  const kind = ev?.source?.kind;
+  if (typeof kind !== "string") return;
+  if (!SOURCE_KIND_CANONICAL.has(kind)) {
+    ruleWarn(
+      state,
+      where,
+      "V-SRC-01",
+      `source.kind '${kind}' is not in the DESIGN §1.1 canonical registry`,
+    );
+  }
+  const replacement = DEPRECATED_SOURCE_KIND_MIGRATIONS[kind];
+  if (replacement) {
+    ruleWarn(
+      state,
+      where,
+      "V-SRC-02",
+      `source.kind '${kind}' is deprecated; use '${replacement}'`,
+    );
+  }
+  const required = IMPORT_SOURCE_REQUIRED_FIELDS[kind];
+  if (!required) return;
+  const missing = required.filter(
+    (field) => ev?.source?.[field] === undefined || ev?.source?.[field] === null,
+  );
+  if (missing.length) {
+    ruleErr(
+      state,
+      where,
+      "V-SRC-03",
+      `import source.kind '${kind}' is missing required source fields: ${missing.join(", ")} (invariant 9: structured import provenance)`,
+    );
+  }
+}
+
+function validateTimeSemantics(state: State, where: string, ev: any) {
+  const recordedAt = parseIso(ev?.recorded_at);
+  const effectiveStartIso = eventStartIso(ev);
+  const effectiveStart = parseIso(effectiveStartIso);
+  if (!recordedAt || !effectiveStart || !effectiveStartIso) return;
+
+  if (ev?.type !== "intent") {
+    if (recordedAt.getTime() < effectiveStart.getTime()) {
+      ruleErr(
+        state,
+        where,
+        "V-TIME-01",
+        `recorded_at '${ev.recorded_at}' is earlier than event start '${effectiveStartIso}'`,
+      );
+    }
+  } else if (recordedAt.getTime() < effectiveStart.getTime() && !ev?.effective_period) {
+    const dueByRaw = ev?.data?.due_by;
+    const dueBy = parseIso(dueByRaw);
+    if (!dueBy) {
+      ruleErr(
+        state,
+        where,
+        "V-TIME-02",
+        `future-dated point intent '${effectiveStartIso}' requires data.due_by`,
+      );
+    } else if (dueBy.getTime() < effectiveStart.getTime()) {
+      ruleErr(
+        state,
+        where,
+        "V-TIME-02",
+        `data.due_by '${dueByRaw}' is earlier than future effective_at '${effectiveStartIso}'`,
+      );
+    }
+  }
+
+  if (ev?.type !== "observation") return;
+  const resultedAt = parseIso(ev?.data?.resulted_at);
+  const verifiedAt = parseIso(ev?.data?.verified_at);
+  if (resultedAt && resultedAt.getTime() < effectiveStart.getTime()) {
+    ruleWarn(
+      state,
+      where,
+      "V-TIME-03",
+      `data.resulted_at '${ev.data.resulted_at}' is earlier than event start '${effectiveStartIso}'`,
+    );
+  }
+  if (verifiedAt && verifiedAt.getTime() < effectiveStart.getTime()) {
+    ruleWarn(
+      state,
+      where,
+      "V-TIME-03",
+      `data.verified_at '${ev.data.verified_at}' is earlier than event start '${effectiveStartIso}'`,
+    );
+  }
+  if (resultedAt && verifiedAt && resultedAt.getTime() > verifiedAt.getTime()) {
+    ruleWarn(
+      state,
+      where,
+      "V-TIME-03",
+      `data.resulted_at '${ev.data.resulted_at}' is later than data.verified_at '${ev.data.verified_at}'`,
+    );
+  }
+}
+
+function validateIntervalSemantics(state: State, where: string, ev: any) {
+  const hasEffectiveAt = typeof ev?.effective_at === "string";
+  const hasEffectivePeriod = !!ev?.effective_period && typeof ev.effective_period === "object";
+  if (hasEffectiveAt === hasEffectivePeriod) {
+    ruleErr(
+      state,
+      where,
+      "V-INTERVAL-01",
+      "provide exactly one of effective_at or effective_period",
+    );
+  }
+
+  if (hasEffectivePeriod) {
+    const key = eventKindKey(ev);
+    if (!INTERVAL_ALLOWED.has(key)) {
+      ruleErr(
+        state,
+        where,
+        "V-INTERVAL-02",
+        `effective_period is not permitted on ${key || String(ev?.type ?? "unknown")}`,
+      );
+    }
+    const start = parseIso(ev?.effective_period?.start);
+    const end = parseIso(ev?.effective_period?.end);
+    if (start && end && start.getTime() > end.getTime()) {
+      ruleErr(
+        state,
+        where,
+        "V-INTERVAL-03",
+        `effective_period.start '${ev.effective_period.start}' is later than end '${ev.effective_period.end}'`,
+      );
+    }
+    if (!ev?.effective_period?.end && !OPEN_INTERVAL_ALLOWED.has(key)) {
+      ruleErr(
+        state,
+        where,
+        "V-INTERVAL-02",
+        `open effective_period is not permitted on ${key || String(ev?.type ?? "unknown")}`,
+      );
+    }
+    return;
+  }
+
+  if (typeof ev?.data?.closes === "string") {
+    ruleErr(
+      state,
+      where,
+      "V-INTERVAL-04",
+      "point events may not claim to close another event's interval via data.closes",
+    );
+  }
+  if (typeof ev?.data?.event === "string" && ev.data.event.toLowerCase() === "stop") {
+    ruleErr(
+      state,
+      where,
+      "V-INTERVAL-04",
+      "stop-event closure is not permitted; close intervals by superseding them with a new interval event",
+    );
+  }
+}
+
+function validateStatusDetailSemantics(state: State, where: string, ev: any) {
+  const detail = ev?.data?.status_detail;
+  const hasDetail = detail !== undefined && detail !== null;
+  const rule = getStatusRule(ev);
+
+  if ((ev?.status === "entered_in_error" || ev?.status === "superseded") && hasDetail) {
+    ruleErr(
+      state,
+      where,
+      "V-STATUS-02",
+      `status '${ev.status}' forbids data.status_detail`,
+    );
+    return;
+  }
+
+  if (!hasDetail) {
+    if (rule && ev?.status === "final") {
+      ruleErr(
+        state,
+        where,
+        "V-STATUS-02",
+        `status 'final' requires terminal data.status_detail for ${ev?.type}:${ev?.subtype ?? "*"}`,
+      );
+    }
+    return;
+  }
+
+  if (typeof detail !== "string") {
+    ruleErr(state, where, "V-STATUS-01", "data.status_detail must be a string when present");
+    return;
+  }
+  if (!rule) {
+    ruleErr(
+      state,
+      where,
+      "V-STATUS-01",
+      `data.status_detail is not allowed on ${ev?.type}:${ev?.subtype ?? "*"}`,
+    );
+    return;
+  }
+  if (!rule.allowed.includes(detail)) {
+    ruleErr(
+      state,
+      where,
+      "V-STATUS-01",
+      `data.status_detail '${detail}' is not allowed on ${ev?.type}:${ev?.subtype ?? "*"}`,
+    );
+    return;
+  }
+  if (ev?.status === "final" && !rule.terminal.includes(detail)) {
+    ruleErr(
+      state,
+      where,
+      "V-STATUS-02",
+      `status 'final' requires terminal data.status_detail for ${ev?.type}:${ev?.subtype ?? "*"}`,
+    );
+  }
+  if (ev?.status === "active" && rule.terminal.includes(detail)) {
+    ruleErr(
+      state,
+      where,
+      "V-STATUS-02",
+      `status 'active' cannot carry terminal data.status_detail '${detail}'`,
+    );
+  }
 }
 
 export async function validateChart(scope: PatientScope): Promise<ValidationReport> {
@@ -199,6 +623,13 @@ async function validateStructuralMarkdown(
   }
   const evid = normalized.id;
   if (typeof evid === "string") trackId(state, evid, rel);
+  if (typeof normalized.id === "string" && typeof normalized.type === "string") {
+    state.eventTypes.set(normalized.id, normalized.type);
+  }
+  validateSourceKind(state, rel, normalized);
+  validateTimeSemantics(state, rel, normalized);
+  validateIntervalSemantics(state, rel, normalized);
+  validateStatusDetailSemantics(state, rel, normalized);
 }
 
 async function validateTimeline(
@@ -262,19 +693,21 @@ async function validateTimeline(
             `subject '${ev.subject}' does not match chart.yaml subject '${state.expectedSubject}' (invariant 6: patient isolation)`,
           );
         }
-        if (
-          typeof ev.effective_at === "string" &&
-          !ev.effective_at.startsWith(day)
-        ) {
+        const effectiveStart = eventStartIso(ev);
+        if (typeof effectiveStart === "string" && !effectiveStart.startsWith(day)) {
           warn(
             state,
             where,
-            `effective_at '${ev.effective_at}' does not start with day directory prefix '${day}'`,
+            `event start '${effectiveStart}' does not start with day directory prefix '${day}'`,
           );
         }
         // Invariant 7 (session transparency): warn if author id looks like a
         // session template sentinel that leaked into agent-authored events.
         checkAuthorSentinel(state, where, ev?.author);
+        validateSourceKind(state, where, ev);
+        validateTimeSemantics(state, where, ev);
+        validateIntervalSemantics(state, where, ev);
+        validateStatusDetailSemantics(state, where, ev);
         if (ev.type === "communication") {
           const ref = ev?.data?.note_ref;
           if (typeof ref === "string") state.communicationNoteRefs.add(ref);
@@ -390,11 +823,13 @@ async function checkReferentialIntegrity(state: State) {
   // events: pass 1 collects envelopes so we can enforce invariants 8/10
   // after `state.allIds` and `state.eventTypes` are fully populated.
   const envelopes: Array<{ where: string; ev: any }> = [];
+  const envelopesById = new Map<string, any>();
   for (const evPath of await globPerDayFile(state.patientRoot, "events.ndjson")) {
     try {
       for await (const [lineno, ev] of iterNdjson(evPath)) {
         const where = `${path.relative(state.patientRoot, evPath)}:${lineno}`;
         envelopes.push({ where, ev });
+        if (typeof ev?.id === "string") envelopesById.set(ev.id, ev);
       }
     } catch {
       // schema-level error already reported
@@ -418,25 +853,45 @@ async function checkReferentialIntegrity(state: State) {
       }
     }
 
-    // Invariant 10: fulfillment typing.
+    validateStatusTransitions(state, where, ev, envelopesById);
+    validateIntervalClosure(state, where, ev, envelopesById);
+
+    // Invariant 10 / ADR 003: fulfillment typing.
+    if ((links.fulfills ?? []).length && ev.type !== "action") {
+      ruleErr(
+        state,
+        where,
+        "V-FULFILL-01",
+        `links.fulfills is only permitted on action events, not type '${ev.type ?? "unknown"}' (invariant 10: fulfillment typing)`,
+      );
+    }
     for (const target of links.fulfills ?? []) {
       if (typeof target !== "string") {
-        err(state, where, "links.fulfills: non-string target");
+        ruleErr(state, where, "V-FULFILL-01", "links.fulfills: non-string target");
         continue;
       }
       if (!state.allIds.has(target)) {
-        err(state, where, `links.fulfills: unknown target id '${target}' (invariant 6: cross-patient links rejected)`);
+        ruleErr(
+          state,
+          where,
+          "V-FULFILL-01",
+          `links.fulfills: unknown target id '${target}' (invariant 6: cross-patient links rejected)`,
+        );
         continue;
       }
       const ttype = state.eventTypes.get(target);
       if (ttype !== "intent") {
-        err(
+        ruleErr(
           state,
           where,
+          "V-FULFILL-01",
           `links.fulfills: target '${target}' is type '${ttype ?? "unknown"}'; must be 'intent' (invariant 10: fulfillment typing)`,
         );
       }
     }
+
+    validateAcquisitionAction(state, where, ev, envelopesById);
+    validateResultObservationFulfillment(state, where, ev, envelopesById);
 
     for (const target of links.addresses ?? []) {
       if (typeof target !== "string") {
@@ -517,6 +972,147 @@ async function checkReferentialIntegrity(state: State) {
       }
     }
   }
+}
+
+function validateStatusTransitions(
+  state: State,
+  where: string,
+  ev: any,
+  envelopesById: Map<string, any>,
+) {
+  const rule = getStatusRule(ev);
+  if (!rule) return;
+  const nextDetail = ev?.data?.status_detail;
+  if (typeof nextDetail !== "string") return;
+  for (const target of ev?.links?.supersedes ?? []) {
+    if (typeof target !== "string") continue;
+    if ((ev?.links?.corrects ?? []).includes(target)) continue;
+    const prior = envelopesById.get(target);
+    if (!prior) continue;
+    if (prior?.type !== ev?.type || prior?.subtype !== ev?.subtype) continue;
+    const priorDetail = prior?.data?.status_detail;
+    if (typeof priorDetail !== "string") continue;
+    const allowedNext = rule.transitions[priorDetail];
+    if (allowedNext && !allowedNext.includes(nextDetail)) {
+      ruleErr(
+        state,
+        where,
+        "V-STATUS-03",
+        `${ev.type}:${ev.subtype ?? "*"} may not transition data.status_detail '${priorDetail}' -> '${nextDetail}' via supersedes`,
+      );
+    }
+  }
+}
+
+function validateIntervalClosure(
+  state: State,
+  where: string,
+  ev: any,
+  envelopesById: Map<string, any>,
+) {
+  if (ev?.effective_period) return;
+  for (const target of ev?.links?.supersedes ?? []) {
+    if (typeof target !== "string") continue;
+    const prior = envelopesById.get(target);
+    if (!prior?.effective_period) continue;
+    ruleErr(
+      state,
+      where,
+      "V-INTERVAL-04",
+      `point event '${ev.id ?? "unknown"}' may not supersede interval '${target}' to close it; closure must be via a new interval event`,
+    );
+  }
+}
+
+function validateAcquisitionAction(
+  state: State,
+  where: string,
+  ev: any,
+  envelopesById: Map<string, any>,
+) {
+  if (ev?.type !== "action" || !ACQUISITION_ACTION_SUBTYPES.has(String(ev?.subtype ?? ""))) {
+    return;
+  }
+  const origin = ev?.data?.origin;
+  const rationale = ev?.data?.rationale_text;
+  if (origin === "ad_hoc" || origin === "standing_protocol") {
+    if (typeof rationale !== "string" || rationale.trim().length === 0) {
+      ruleErr(
+        state,
+        where,
+        "V-FULFILL-02",
+        `acquisition action with data.origin '${origin}' must populate data.rationale_text`,
+      );
+    }
+    return;
+  }
+
+  const fulfills = (ev?.links?.fulfills ?? []).filter((target: unknown) => typeof target === "string");
+  if (fulfills.length === 0) {
+    ruleErr(
+      state,
+      where,
+      "V-FULFILL-02",
+      `action subtype '${ev.subtype}' must carry links.fulfills to intent.order or intent.monitoring_plan unless data.origin is ad_hoc or standing_protocol`,
+    );
+    return;
+  }
+  const hasAllowedTarget = fulfills.some((target: string) => {
+    const intent = envelopesById.get(target);
+    return intent?.type === "intent" &&
+      (intent?.subtype === "order" || intent?.subtype === "monitoring_plan");
+  });
+  if (!hasAllowedTarget) {
+    ruleErr(
+      state,
+      where,
+      "V-FULFILL-02",
+      `action subtype '${ev.subtype}' must fulfill at least one intent.order or intent.monitoring_plan`,
+    );
+  }
+}
+
+function validateResultObservationFulfillment(
+  state: State,
+  where: string,
+  ev: any,
+  envelopesById: Map<string, any>,
+) {
+  if (ev?.type !== "observation" || !RESULT_OBSERVATION_SUBTYPES.has(String(ev?.subtype ?? ""))) {
+    return;
+  }
+  if (supportsAcquisitionAction(ev?.links?.supports ?? [], envelopesById)) return;
+  if (ev?.data?.origin === "ad_hoc") return;
+  ruleErr(
+    state,
+    where,
+    "V-FULFILL-03",
+    `observation subtype '${ev.subtype}' must support an acquisition action unless data.origin is 'ad_hoc'`,
+  );
+}
+
+function supportsAcquisitionAction(
+  supports: unknown[],
+  envelopesById: Map<string, any>,
+): boolean {
+  for (const raw of supports) {
+    if (typeof raw === "string") {
+      const target = envelopesById.get(raw);
+      if (target?.type === "action" && ACQUISITION_ACTION_SUBTYPES.has(String(target?.subtype ?? ""))) {
+        return true;
+      }
+      continue;
+    }
+    if (!raw || typeof raw !== "object") continue;
+    const kind = (raw as any).kind;
+    const id = (raw as any).id;
+    if (kind !== "event" || typeof id !== "string") continue;
+    const target = envelopesById.get(id);
+    if (target?.type === "action" && ACQUISITION_ACTION_SUBTYPES.has(String(target?.subtype ?? ""))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function findEventEnvelope(

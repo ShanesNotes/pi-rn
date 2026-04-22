@@ -10,10 +10,13 @@
 //   vitals        latest valid sample per metric (no supersession — vitals don't
 //                 supersede; later samples are just newer)
 //
-// `asOf` defaults to the chart's latest effective_at (sim-time semantics).
+// `asOf` defaults to the chart's latest event start (sim-time semantics).
 
 import { iterNdjson, globPerDayFile } from "../fs-util.js";
-import { parseIso } from "../time.js";
+import {
+  eventCoversAsOf,
+  eventStartIso,
+} from "../time.js";
 import { patientRoot } from "../types.js";
 import {
   isCorrected,
@@ -73,8 +76,7 @@ function collectConstraints(ctx: ReturnType<typeof loadContext> extends Promise<
     if (ev.type !== "constraint_set") continue;
     if (!(ev.status === "active" || ev.status === "final")) continue;
     if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
-    const t = parseIso(ev.effective_at);
-    if (!t || t.getTime() > ctx.asOfMs) continue;
+    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
     out.push(ev);
   }
   out.sort((a, b) => a.id.localeCompare(b.id));
@@ -88,11 +90,13 @@ function collectProblems(ctx: ReturnType<typeof loadContext> extends Promise<inf
     if (ev.subtype !== "problem") continue;
     if (ev.status !== "active") continue;
     if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
-    const t = parseIso(ev.effective_at);
-    if (!t || t.getTime() > ctx.asOfMs) continue;
+    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
     out.push(ev);
   }
-  out.sort((a, b) => a.effective_at.localeCompare(b.effective_at));
+  out.sort((a, b) =>
+    (eventStartIso(a) ?? "").localeCompare(eventStartIso(b) ?? "") ||
+    a.id.localeCompare(b.id),
+  );
   return out;
 }
 

@@ -42,7 +42,7 @@ test("trend includes event-recorded observations for the same metric", async () 
     effective_at: "2026-04-18T08:30:00-05:00",
     recorded_at: "2026-04-18T08:30:30-05:00",
     author: { id: "x", role: "rn" },
-    source: { kind: "lab_instrument" },
+    source: { kind: "lab_analyzer" },
     certainty: "observed",
     status: "final",
     data: { name: "lactate", value: 3.2, unit: "mmol/L" },
@@ -56,7 +56,7 @@ test("trend includes event-recorded observations for the same metric", async () 
   });
   assert.equal(points.length, 1);
   assert.equal(points[0].value, 3.2);
-  assert.equal(points[0].source, "lab_instrument");
+  assert.equal(points[0].source, "lab_analyzer");
 });
 
 test("trend source filter narrows to one source", async () => {

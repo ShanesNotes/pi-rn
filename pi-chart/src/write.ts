@@ -33,7 +33,12 @@ import {
 } from "./fs-util.js";
 import { resolveArtifactPath } from "./artifacts.js";
 import { ajvErrorsTo, loadValidator, normalizeForSchema } from "./schema.js";
-import { loadChartMeta, nowIsoForChart, nowIsoSeconds } from "./time.js";
+import {
+  eventStartIso,
+  loadChartMeta,
+  nowIsoForChart,
+  nowIsoSeconds,
+} from "./time.js";
 import { tryLoadSessionAuthor } from "./session.js";
 import { patientRoot } from "./types.js";
 import type {
@@ -44,12 +49,12 @@ import type {
   NoteFrontmatter,
   NoteFrontmatterInput,
   PatientScope,
+  Source,
 } from "./types.js";
 
 const REQUIRED_BASE = [
   "type",
   "subject",
-  "effective_at",
   "author",
   "source",
   "status",
@@ -121,6 +126,20 @@ function checkProvenance(ev: EventInput | EventEnvelope): void {
         `clinical event (${ev.type}) missing required fields: ${cMissing.join(", ")}`,
       );
     }
+  }
+  const hasEffectiveAt = typeof (ev as any).effective_at === "string";
+  const hasEffectivePeriod =
+    !!(ev as any).effective_period &&
+    typeof (ev as any).effective_period === "object";
+  if (!hasEffectiveAt && !hasEffectivePeriod) {
+    throw new Error(
+      "event missing required temporal field: provide exactly one of effective_at or effective_period",
+    );
+  }
+  if (hasEffectiveAt && hasEffectivePeriod) {
+    throw new Error(
+      "event has conflicting temporal fields: effective_at and effective_period are mutually exclusive",
+    );
   }
 }
 
@@ -372,9 +391,15 @@ async function finalizeEventForWrite(
   const explicitId = typeof ev.id === "string" && (ev.id as string).length > 0;
   if (!ev.recorded_at) ev.recorded_at = await nowIsoForChart(patientDir);
   if (!ev.id) {
+    const effectiveStart = eventStartIso(ev as EventInput);
+    if (!effectiveStart) {
+      throw new Error(
+        "event missing required temporal field: provide exactly one of effective_at or effective_period",
+      );
+    }
     ev.id = await nextEventId({
       scope,
-      effectiveAt: ev.effective_at as string,
+      effectiveStart,
     });
   }
   checkProvenance(ev as EventInput);
@@ -392,7 +417,13 @@ async function finalizeEventForWrite(
   }
   await assertEventIntegrityAtWrite(finalized, patientDir, existingTargets, opts);
 
-  const dayDir = dayDirFromIso(patientDir, finalized.effective_at);
+  const effectiveStart = eventStartIso(finalized);
+  if (!effectiveStart) {
+    throw new Error(
+      "event missing required temporal field after schema validation",
+    );
+  }
+  const dayDir = dayDirFromIso(patientDir, effectiveStart);
   return {
     event: finalized,
     dayDir,
@@ -495,10 +526,10 @@ async function rollbackNoteOrThrow(
 /** Probe `<patientRoot>/timeline/<day>/events.ndjson` for max NN given ymdHm. */
 export async function nextEventId(opts: {
   scope: PatientScope;
-  effectiveAt?: string;
+  effectiveStart?: string;
 }): Promise<string> {
   const patientDir = patientRoot(opts.scope);
-  const eff = opts.effectiveAt ?? (await nowIsoForChart(patientDir));
+  const eff = opts.effectiveStart ?? (await nowIsoForChart(patientDir));
   const ymdHm = ymdHmFromIso(eff);
   const dayPath = dayDirFromIso(patientDir, eff);
   const eventsPath = path.join(dayPath, "events.ndjson");
@@ -591,6 +622,7 @@ export async function writeArtifactRef(opts: {
   description: string;
   encounterId: string;
   subject: string;
+  source: Source;
   effectiveAt?: string;
   scope: PatientScope;
   author?: Author;
@@ -603,7 +635,7 @@ export async function writeArtifactRef(opts: {
     encounter_id: opts.encounterId,
     effective_at: opts.effectiveAt ?? (await nowIsoForChart(patientDir)),
     author: opts.author ?? { id: "pi-agent", role: "rn_agent" },
-    source: { kind: "artifact_ingest" },
+    source: opts.source,
     certainty: "observed" as const,
     status: "final" as const,
     data: {

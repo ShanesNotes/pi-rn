@@ -50,7 +50,7 @@ test("readActiveConstraints returns null structured when block absent", async ()
   const scope = await freshChart();
   await fs.writeFile(
     path.join(patientRoot(scope), "constraints.md"),
-    "---\nid: x\ntype: constraint_set\nsubject: patient_001\nstatus: active\nauthor: {id: x, role: rn}\nsource: {kind: x}\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\n---\n\n# narrative only\n",
+    "---\nid: x\ntype: constraint_set\nsubject: patient_001\nstatus: active\nauthor: {id: x, role: rn}\nsource: {kind: manual_scenario}\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\n---\n\n# narrative only\n",
   );
   const out = await readActiveConstraints(scope);
   assert.equal(out.structured, null);
@@ -82,7 +82,7 @@ test("readRecentEvents enforces inclusive bounds and excludes future/invalid tim
     subject: "patient_001",
     encounter_id: "enc_001",
     author: { id: "x", role: "rn" },
-    source: { kind: "k" },
+    source: { kind: "manual_scenario" },
     certainty: "observed" as const,
     status: "final" as const,
     data: { name: "n", value: 1 },
@@ -151,7 +151,7 @@ test("readRecentEvents sim-time default uses appended event time", async () => {
       encounter_id: "enc_001",
       effective_at: "2026-04-18T08:00:00-05:00",
       author: { id: "x", role: "rn" },
-      source: { kind: "k" },
+      source: { kind: "manual_scenario" },
       certainty: "observed",
       status: "final",
       data: { name: "n", value: 1 },

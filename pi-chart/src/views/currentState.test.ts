@@ -24,7 +24,7 @@ function ev(
     effective_at: at,
     recorded_at: at,
     author: { id: "x", role: "rn" },
-    source: { kind: "k" },
+    source: { kind: "manual_scenario" },
     certainty: "observed",
     status,
     data: { summary: "placeholder" },

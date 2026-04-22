@@ -27,6 +27,43 @@ test("known-good clinical event validates", async () => {
   assert.equal(v(goodEvent), true);
 });
 
+test("interval-shaped event validates with effective_period", async () => {
+  const v = await loadValidator(FIXTURE_ROOT, "event.schema.json");
+  const ok = {
+    ...goodEvent,
+    subtype: "care_plan",
+    type: "intent",
+    certainty: "planned",
+    data: { goal: "monitor closely" },
+    links: { supports: [] },
+    effective_period: {
+      start: "2026-04-18T08:15:00-05:00",
+      end: "2026-04-18T10:15:00-05:00",
+    },
+  } as any;
+  delete ok.effective_at;
+  assert.equal(v(ok), true);
+});
+
+test("event with both effective_at and effective_period fails XOR schema", async () => {
+  const v = await loadValidator(FIXTURE_ROOT, "event.schema.json");
+  const bad = {
+    ...goodEvent,
+    effective_period: {
+      start: "2026-04-18T08:15:00-05:00",
+      end: "2026-04-18T10:15:00-05:00",
+    },
+  } as any;
+  assert.equal(v(bad), false);
+});
+
+test("event with neither effective_at nor effective_period fails XOR schema", async () => {
+  const v = await loadValidator(FIXTURE_ROOT, "event.schema.json");
+  const bad = { ...goodEvent } as any;
+  delete bad.effective_at;
+  assert.equal(v(bad), false);
+});
+
 test("clinical event missing encounter_id fails conditional schema", async () => {
   const v = await loadValidator(FIXTURE_ROOT, "event.schema.json");
   const bad = { ...goodEvent } as any;

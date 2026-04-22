@@ -20,7 +20,7 @@ function obs(id: string, at: string, extras: Record<string, unknown> = {}) {
     effective_at: at,
     recorded_at: at,
     author: { id: "x", role: "rn" },
-    source: { kind: "k" },
+    source: { kind: "manual_scenario" },
     certainty: "observed",
     status: "final",
     data: { name: "spo2", value: 91 },

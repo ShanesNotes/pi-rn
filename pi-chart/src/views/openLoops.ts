@@ -24,6 +24,7 @@ import {
   isVisibleAsOf,
   loadContext,
 } from "./active.js";
+import { eventCoversAsOf, eventStartIso } from "../time.js";
 import type {
   ActiveContext,
 } from "./active.js";
@@ -46,6 +47,7 @@ export async function openLoops(params: OpenLoopsParams): Promise<OpenLoop[]> {
     // An intent authored after `asOf` is not yet visible; skip it so
     // callers can time-travel without seeing future loops.
     if (!isVisibleAsOf(intent, ctx)) continue;
+    if (!eventCoversAsOf(intent, asOfMs)) continue;
     // Intents whose lifecycle has closed out via status never appear.
     if (
       intent.status === "final" ||
@@ -79,7 +81,7 @@ export async function openLoops(params: OpenLoopsParams): Promise<OpenLoop[]> {
   }
 
   out.sort((a, b) =>
-    a.intent.effective_at.localeCompare(b.intent.effective_at) ||
+    (eventStartIso(a.intent) ?? "").localeCompare(eventStartIso(b.intent) ?? "") ||
     a.intent.id.localeCompare(b.intent.id),
   );
   return out;

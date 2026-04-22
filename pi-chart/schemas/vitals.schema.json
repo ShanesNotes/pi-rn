@@ -19,7 +19,7 @@
       "properties": {
         "kind": {
           "type": "string",
-          "description": "Provenance channel, e.g. monitor_extension, lab_instrument, point_of_care_device."
+          "description": "Provenance channel, e.g. monitor_extension, lab_analyzer, poc_device."
         },
         "ref": {
           "type": "string",

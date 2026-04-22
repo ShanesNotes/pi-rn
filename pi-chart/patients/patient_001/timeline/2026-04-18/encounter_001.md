@@ -9,7 +9,7 @@ author:
   id: admitting_md
   role: md
 source:
-  kind: admission_order
+  kind: admission_intake
   ref: admission_2026-04-18
 location: medicine_ward_3a
 visit_type: inpatient

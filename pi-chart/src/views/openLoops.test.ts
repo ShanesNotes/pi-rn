@@ -20,7 +20,7 @@ function intent(
     effective_at: at,
     recorded_at: at,
     author: { id: "x", role: "rn_agent" },
-    source: { kind: "agent_reasoning" },
+    source: { kind: "agent_inference" },
     certainty: "planned",
     status: "active",
     data: { goal: "watch" },

@@ -82,6 +82,11 @@ export interface Source {
   ref?: string;
 }
 
+export interface EffectivePeriod {
+  start: string;
+  end?: string;
+}
+
 /**
  * Canonical evidence reference union. Bare strings in `links.supports`
  * are still accepted on the wire (back-compat: event/note ids; vitals://
@@ -111,14 +116,12 @@ export interface Links {
   addresses?: string[];
 }
 
-/** Base envelope for all events (clinical + structural). */
-export interface EventEnvelope {
+interface EventEnvelopeBase {
   id: string;
   type: EventType;
   subtype?: string;
   subject: string;
   encounter_id?: string;
-  effective_at: string;
   recorded_at: string;
   author: Author;
   source: Source;
@@ -128,14 +131,21 @@ export interface EventEnvelope {
   links?: Links;
 }
 
+export type EventEnvelope =
+  & EventEnvelopeBase
+  & (
+    | { effective_at: string; effective_period?: never }
+    | { effective_at?: never; effective_period: EffectivePeriod }
+  );
+
 /** Clinical-event refinement: encounter_id, certainty, data, links required. */
-export interface ClinicalEvent extends EventEnvelope {
+export type ClinicalEvent = EventEnvelope & {
   type: ClinicalType;
   encounter_id: string;
   certainty: Certainty;
   data: Record<string, unknown>;
   links: Links;
-}
+};
 
 /** Input shape for appendEvent — id + recorded_at filled in if absent. */
 export type EventInput = Omit<EventEnvelope, "id" | "recorded_at"> & {
@@ -242,7 +252,7 @@ export interface TimelineEntry {
   id: string;
   type: ClinicalType;
   subtype?: string;
-  effective_at: string;
+  effective_start: string;
   author: Author;
   summary: string;
   raw: EventEnvelope;

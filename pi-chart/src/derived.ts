@@ -13,7 +13,12 @@ import {
   ensureDir,
   readTextIfExists,
 } from "./fs-util.js";
-import { latestEffectiveAt, parseIso } from "./time.js";
+import {
+  eventStartDate,
+  eventStartIso,
+  latestEffectiveAt,
+  parseIso,
+} from "./time.js";
 import { iterNdjson, globPerDayFile } from "./fs-util.js";
 import { patientRoot } from "./types.js";
 import { currentState } from "./views/currentState.js";
@@ -89,7 +94,7 @@ function buildCurrent(
   lines.push("## Recent assessments (latest 5)\n");
   for (const ev of assessments) {
     const summary = (ev.data as any)?.summary ?? "";
-    lines.push(`- \`${ev.id}\` (${ev.effective_at}) — ${summary}`);
+    lines.push(`- \`${ev.id}\` (${eventStartIso(ev) ?? "unknown"}) — ${summary}`);
   }
   lines.push("");
   return lines.join("\n");
@@ -200,8 +205,8 @@ async function findOriginalIsoForLatest(
 ): Promise<string | null> {
   for (const p of await globPerDayFile(patientDir, "events.ndjson")) {
     for await (const [, ev] of iterNdjson(p)) {
-      const t = parseIso(ev?.effective_at);
-      if (t && t.getTime() === best.getTime()) return String(ev.effective_at);
+      const t = eventStartDate(ev as EventEnvelope);
+      if (t && t.getTime() === best.getTime()) return eventStartIso(ev as EventEnvelope);
     }
   }
   for (const p of await globPerDayFile(patientDir, "vitals.jsonl")) {

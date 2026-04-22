@@ -16,11 +16,11 @@ async function buildV01Fixture(): Promise<string> {
   );
   await fs.writeFile(
     path.join(dir, "patient.md"),
-    "---\nid: patient_001\ntype: subject\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n\n# Baseline\n",
+    "---\nid: patient_001\ntype: subject\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n\n# Baseline\n",
   );
   await fs.writeFile(
     path.join(dir, "constraints.md"),
-    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n\n# Constraints\n",
+    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n\n# Constraints\n",
   );
   await fs.mkdir(path.join(dir, "timeline/2026-04-18"), { recursive: true });
   await fs.writeFile(
@@ -150,11 +150,11 @@ test("migrate converges a stale session template left by an earlier buggy run", 
   );
   await fs.writeFile(
     path.join(root, "patient.md"),
-    "---\nid: patient_mimic_10000032\ntype: subject\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n",
+    "---\nid: patient_mimic_10000032\ntype: subject\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n",
   );
   await fs.writeFile(
     path.join(root, "constraints.md"),
-    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n",
+    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n",
   );
   await fs.mkdir(path.join(root, "timeline/2026-04-18"), { recursive: true });
   await fs.cp(path.join(REPO_ROOT, "schemas"), path.join(root, "schemas"), {
@@ -188,11 +188,11 @@ test("migrate preserves a session template that points at another on-disk patien
   );
   await fs.writeFile(
     path.join(root, "patient.md"),
-    "---\nid: patient_001\ntype: subject\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n",
+    "---\nid: patient_001\ntype: subject\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n",
   );
   await fs.writeFile(
     path.join(root, "constraints.md"),
-    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n",
+    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_001\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n",
   );
   await fs.mkdir(path.join(root, "timeline/2026-04-18"), { recursive: true });
   await fs.cp(path.join(REPO_ROOT, "schemas"), path.join(root, "schemas"), {
@@ -230,11 +230,11 @@ test("migrate writes the session template pointing at the actual patient id", as
   );
   await fs.writeFile(
     path.join(root, "patient.md"),
-    "---\nid: patient_mimic_10000032\ntype: subject\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n\n# Baseline\n",
+    "---\nid: patient_mimic_10000032\ntype: subject\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n\n# Baseline\n",
   );
   await fs.writeFile(
     path.join(root, "constraints.md"),
-    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: intake}\nstatus: active\n---\n",
+    "---\nid: cst_001\ntype: constraint_set\nsubject: patient_mimic_10000032\neffective_at: '2026-04-18T06:00:00-05:00'\nrecorded_at: '2026-04-18T06:00:00-05:00'\nauthor: {id: x, role: rn}\nsource: {kind: admission_intake}\nstatus: active\n---\n",
   );
   await fs.mkdir(path.join(root, "timeline/2026-04-18"), { recursive: true });
   await fs.cp(path.join(REPO_ROOT, "schemas"), path.join(root, "schemas"), {

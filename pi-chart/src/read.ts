@@ -1,7 +1,7 @@
 // Read-side tool surface. Pure queries over canonical chart files.
 //
 // Default time semantics: when callers don't supply `asOf`, the read API
-// uses the latest event's `effective_at` (sim-time semantics) instead of
+// uses the latest event start (sim-time semantics) instead of
 // wall-clock now. Otherwise simulations look "not recent" simply because
 // real-world time has advanced since the encounter was authored.
 //
@@ -18,6 +18,7 @@ import {
   readTextIfExists,
 } from "./fs-util.js";
 import {
+  eventStartDate,
   latestEffectiveAt as _latestEffectiveAt,
   parseIso,
 } from "./time.js";
@@ -94,7 +95,7 @@ export async function readRecentEvents(
   for (const p of await globPerDayFile(pr, "events.ndjson")) {
     for await (const [, ev] of iterNdjson(p)) {
       if (typeSet && !typeSet.has(ev.type)) continue;
-      const t = parseIso(ev.effective_at);
+      const t = eventStartDate(ev as EventEnvelope);
       if (!t) continue;
       if (t < cutoff || t > asOf) continue;
       results.push(ev as EventEnvelope);

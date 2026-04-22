@@ -12,7 +12,10 @@ import {
   parseFrontmatter,
   readTextIfExists,
 } from "../fs-util.js";
-import { chartClock, parseIso } from "../time.js";
+import {
+  chartClock,
+  eventStartDate,
+} from "../time.js";
 import { patientRoot } from "../types.js";
 import type { EventEnvelope, PatientScope } from "../types.js";
 
@@ -98,12 +101,23 @@ function toEnvelope(fm: Record<string, unknown> | null): EventEnvelope | null {
   if (typeof (fm as any).type !== "string") return null;
   // js-yaml materializes ISO timestamps as Date; coerce back to strings
   // so downstream comparisons and JSON.stringify behave uniformly with
-  // the NDJSON path.
-  const normalized: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(fm)) {
-    normalized[k] = v instanceof Date ? v.toISOString() : v;
-  }
+  // the NDJSON path. Nested temporal fields such as
+  // `effective_period.start` need the same normalization.
+  const normalized = normalizeDates(fm) as Record<string, unknown>;
   return normalized as unknown as EventEnvelope;
+}
+
+function normalizeDates(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(normalizeDates);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, inner] of Object.entries(value)) {
+      out[key] = normalizeDates(inner);
+    }
+    return out;
+  }
+  return value;
 }
 
 export function indexSupersession(events: EventEnvelope[]): SupersessionIndex {
@@ -159,7 +173,7 @@ export async function resolveAsOfMs(
 
 /** The event is visible in the chart as of `ctx.asOfMs`. */
 export function isVisibleAsOf(ev: EventEnvelope, ctx: ActiveContext): boolean {
-  const t = parseIso(ev.effective_at);
+  const t = eventStartDate(ev);
   if (!t) return false;
   return t.getTime() <= ctx.asOfMs;
 }

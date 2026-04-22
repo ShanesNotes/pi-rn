@@ -8,6 +8,7 @@
 
 import { iterNdjson, globPerDayFile } from "../fs-util.js";
 import { patientRoot } from "../types.js";
+import { eventEndIso, eventStartIso } from "../time.js";
 import type { TrendParams, TrendPoint } from "../types.js";
 
 export async function trend(params: TrendParams): Promise<TrendPoint[]> {
@@ -41,22 +42,32 @@ export async function trend(params: TrendParams): Promise<TrendPoint[]> {
       if (params.encounterId && ev?.encounter_id !== params.encounterId) continue;
       const name = ev?.data?.name;
       if (name !== params.metric) continue;
-      const t = Date.parse(ev?.effective_at ?? "");
-      if (!Number.isFinite(t) || t < fromMs || t > toMs) continue;
       const source = formatSource(ev?.source);
       if (params.source && source !== params.source) continue;
-      points.push({
-        sampled_at: ev.effective_at,
-        value: ev.data?.value,
-        unit: ev.data?.unit,
-        source,
-        context: ev.data?.context,
-      });
+      for (const sampledAt of eventPointInstants(ev)) {
+        const t = Date.parse(sampledAt);
+        if (!Number.isFinite(t) || t < fromMs || t > toMs) continue;
+        points.push({
+          sampled_at: sampledAt,
+          value: ev.data?.value,
+          unit: ev.data?.unit,
+          source,
+          context: ev.data?.context,
+        });
+      }
     }
   }
 
   points.sort((a, b) => a.sampled_at.localeCompare(b.sampled_at));
   return points;
+}
+
+function eventPointInstants(ev: Record<string, any>): string[] {
+  const start = eventStartIso(ev);
+  if (!start) return [];
+  const end = eventEndIso(ev);
+  if (end && end !== start) return [start, end];
+  return [start];
 }
 
 function formatSource(src: unknown): string {
