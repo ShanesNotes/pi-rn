@@ -1,0 +1,46 @@
+{
+  "scenario": "hemorrhagic_shock",
+  "reference_source": {
+    "engine": "Pulse Physiology Engine",
+    "version": "v4.3.1 (released January 2025; docs generated 2026-02-01, build 10710baa2)",
+    "scenario_file": "HemorrhageClass2Saline (also informed by HemorrhageClass1Femoral and HemorrhageClass2Blood)",
+    "validation_page": "https://pulse.kitware.com/md__hemorrhage__class2_saline.html",
+    "extraction_date": "2026-04-18",
+    "extraction_method": "published-text (validation tables from Pulse methodology pages)",
+    "notes": "Pulse publishes per-segment validation values rather than dense timepoint series. We map Pulse's Segment 1 (acute Class-2 hemorrhage, 140 mL/min for 590s) and Segment 3 (after 500 mL saline IV at 100 mL/min) onto our scenario's deterioration peak (t~350) and post-bolus recovery (t~500). Our scenario is a stronger hemorrhage (severity 0.5 then 0.75 with two 1L crystalloid boluses) so divergence is informative. Temperature and SpO2 from Pulse Class-1 Femoral baseline (37.1 C, 97.0 percent) — Pulse Class-2 Saline reports 37.2 C and 96.5 percent at hemorrhage peak. Pulse models healthy baseline patient at HR 72 bpm; we use a clinically typical 76 bpm baseline."
+  },
+  "tolerance": {
+    "default_pct": 15,
+    "by_vital": {
+      "spo2": { "abs": 2 },
+      "temp_c": { "abs": 0.3 }
+    }
+  },
+  "checkpoints": [
+    {
+      "t": 30,
+      "phase": "baseline",
+      "expect": { "hr": 72, "bp_sys": 114, "bp_dia": 74, "rr": 12, "spo2": 97, "temp_c": 37.1 }
+    },
+    {
+      "t": 200,
+      "phase": "early_hemorrhage_compensated",
+      "expect": { "hr": 93, "bp_sys": 107, "bp_dia": 79, "rr": 12.4, "spo2": 97, "temp_c": 37.1 }
+    },
+    {
+      "t": 350,
+      "phase": "peak_hemorrhage_pre_resus",
+      "expect": { "hr": 112, "bp_sys": 98.5, "bp_dia": 77.6, "rr": 12.8, "spo2": 96.5, "temp_c": 37.2 }
+    },
+    {
+      "t": 500,
+      "phase": "post_first_bolus",
+      "expect": { "hr": 100, "bp_sys": 105, "bp_dia": 78, "rr": 12.8, "spo2": 96.5, "temp_c": 37.2 }
+    },
+    {
+      "t": 720,
+      "phase": "post_resuscitation",
+      "expect": { "hr": 93.5, "bp_sys": 112, "bp_dia": 76, "rr": 12.8, "spo2": 97, "temp_c": 37.1 }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "hemorrhagic_shock",
+  "description": "Venous hemorrhage (moderate → severe), then two 1L LR boluses. Healthy StandardMale baseline.",
+  "state_file": "./states/StandardMale@0s.pbb",
+  "duration_s": 900,
+  "timeline": [
+    { "t": 60,  "action": { "type": "hemorrhage",  "params": { "compartment": "VenaCava", "severity": 0.50 } } },
+    { "t": 240, "action": { "type": "hemorrhage",  "params": { "compartment": "VenaCava", "severity": 0.75 } } },
+    { "t": 360, "action": { "type": "fluid_bolus", "params": { "fluid": "LactatedRingers", "volume_ml": 1000, "rate_ml_min": 500 } } },
+    { "t": 540, "action": { "type": "fluid_bolus", "params": { "fluid": "LactatedRingers", "volume_ml": 1000, "rate_ml_min": 500 } } }
+  ],
+  "checkpoints": [
+    { "t": 30,  "phase": "baseline",   "expect": { "hr": [60,  85],  "map": [80, 100], "bp_sys": [110, 140], "lactate_mmol_l": [0.5, 2.0] } },
+    { "t": 200, "phase": "moderate",   "expect": { "hr": [80, 115], "map": [55,  85], "bp_sys": [85,  120], "lactate_mmol_l": [1.0, 3.5] } },
+    { "t": 340, "phase": "severe",     "expect": { "hr": [95, 140], "map": [40,  70], "bp_sys": [70,  100], "lactate_mmol_l": [2.0, 6.0] } },
+    { "t": 500, "phase": "post_bolus1","expect": { "hr": [80, 125], "map": [55,  85], "bp_sys": [85,  115], "lactate_mmol_l": [1.5, 5.0] } },
+    { "t": 720, "phase": "post_bolus2","expect": { "hr": [80, 120], "map": [60,  90], "bp_sys": [90,  120], "lactate_mmol_l": [1.0, 4.5] } }
+  ]
+}

@@ -1,1 +1,67 @@
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Editor / IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Tool / marker artifacts
+.codex
 .omx/
+
+# AI assistant session state
+.claude/
+.claude-*
+CLAUDE.local.md
+*.local.md
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+*.egg
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# Env / secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# pi-chart transient state
+pi-chart/sessions/current.yaml
+
+# Derived outputs (regenerable via npm run rebuild)
+pi-chart/patients/*/_derived/*.md
+!pi-chart/patients/*/_derived/README.md
+pi-chart/_derived/*.md
+!pi-chart/_derived/README.md
+
+# pi-sim transient state
+pi-sim/session-log/

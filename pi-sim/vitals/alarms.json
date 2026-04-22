@@ -1,0 +1,14 @@
+{
+  "hr":              { "low": 50,   "high": 120  },
+  "map":             { "low": 65,   "high": 110  },
+  "bp_sys":          { "low": 90,   "high": 160  },
+  "bp_dia":          { "low": 50,   "high": 100  },
+  "rr":              { "low": 10,   "high": 24   },
+  "spo2":            { "low": 92,   "high": 100  },
+  "temp_c":          { "low": 36.0, "high": 38.5 },
+  "etco2_mmHg":      { "low": 30,   "high": 45   },
+  "pao2_mmHg":       { "low": 75,   "high": 110  },
+  "paco2_mmHg":      { "low": 32,   "high": 48   },
+  "lactate_mmol_l":  { "low": 0,    "high": 2.0  },
+  "ph":              { "low": 7.30, "high": 7.48 }
+}

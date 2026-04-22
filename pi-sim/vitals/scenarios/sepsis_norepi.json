@@ -1,0 +1,15 @@
+{
+  "name": "sepsis_norepi",
+  "description": "Patient starts already-septic (sepsis = Pulse init-only condition, severity 0.70). Norepinephrine drip starts at t=480s.",
+  "state_file": "./state/sepsis_0.70.json",
+  "state_bake": { "command": "docker compose -f pulse/docker-compose.yml exec pulse python3 /workspace/shim/bake_states.py --out /workspace/state --sepsis-severity 0.70" },
+  "duration_s": 900,
+  "timeline": [
+    { "t": 480, "action": { "type": "norepinephrine", "params": { "rate_mcg_kg_min": 0.12, "weight_kg": 77, "concentration_mg_per_ml": 0.016 } } }
+  ],
+  "checkpoints": [
+    { "t": 30,  "phase": "septic_pre_pressor",  "expect": { "hr": [95, 130],  "map": [55, 75], "bp_sys": [85, 110], "rr": [20, 32], "temp_c": [37.8, 39.2], "lactate_mmol_l": [2.0, 5.0] } },
+    { "t": 400, "phase": "septic_worsening",    "expect": { "hr": [100, 140], "map": [50, 72], "bp_sys": [82, 108], "rr": [22, 34], "temp_c": [38.0, 39.5], "lactate_mmol_l": [2.5, 6.0] } },
+    { "t": 700, "phase": "pressor_support",     "expect": { "hr": [95, 130],  "map": [62, 85], "bp_sys": [95, 120], "rr": [20, 34], "temp_c": [38.0, 39.5], "lactate_mmol_l": [2.0, 5.5] } }
+  ]
+}

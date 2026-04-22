@@ -1,0 +1,11 @@
+{
+  "name": "standard_male_baseline",
+  "description": "Default scenario — StandardMale at rest, no actions. Used when monitor is launched without --scenario.",
+  "state_file": "./states/StandardMale@0s.pbb",
+  "duration_s": 600,
+  "timeline": [],
+  "checkpoints": [
+    { "t": 60,  "phase": "baseline", "expect": { "hr": [60, 85], "map": [80, 100], "bp_sys": [105, 135], "rr": [10, 18], "spo2": [95, 100], "temp_c": [36.5, 37.5] } },
+    { "t": 300, "phase": "baseline", "expect": { "hr": [60, 85], "map": [80, 100], "bp_sys": [105, 135], "rr": [10, 18], "spo2": [95, 100], "temp_c": [36.5, 37.5] } }
+  ]
+}

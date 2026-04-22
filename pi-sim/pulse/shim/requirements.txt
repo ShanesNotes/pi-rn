@@ -1,0 +1,1 @@
+# stdlib-only shim runtime; no external pip packages required at container start

@@ -1,0 +1,20 @@
+{
+  "scenario": "sepsis_norepi",
+  "reference_source": {
+    "engine": "Pulse Physiology Engine",
+    "version": "v4.3.1 (released January 2025; docs generated 2026-02-01, build 10710baa2)",
+    "scenario_file": "SESepsis condition exists (severity 0..1) but no published end-to-end sepsis-with-vasopressor validation scenario; Norepinephrine PK validated separately in Drugs Methodology Table 9",
+    "validation_page": "https://pulse.kitware.com/_drugs_methodology.html",
+    "extraction_date": "2026-04-18",
+    "extraction_method": "no-validation-curve-found",
+    "notes": "Pulse v4.3.1 documentation does NOT publish a quantitative validation trajectory for sepsis or sepsis+vasopressor. Sources checked: cardiovascular_methodology (no sepsis in Table 3), nervous_methodology (no sepsis), endocrine_methodology (acute stress only), system_methodology (combined effects scenarios are airway/anesthesia/trauma — no sepsis), blood_chemistry_methodology (no sepsis), drugs_methodology (norepinephrine PK only, healthy patient). The SESepsis class exists (https://pulse.kitware.com/_s_e_sepsis_8h_source.html) with a 0..1 severity property, but no validation report. External published evaluation exists (MIMIC-III digital-twin assessment, SIAM 2024 article) but was a critique of Pulse rather than a Pulse-published reference curve. Checkpoints intentionally empty — validator handles this gracefully (status=skipped). To populate, would need either (a) a manual Pulse run of a sepsis+norepi scenario exporting CSV, or (b) MIMIC sepsis cohort medians from a credentialed PhysioNet pull."
+  },
+  "tolerance": {
+    "default_pct": 15,
+    "by_vital": {
+      "spo2": { "abs": 2 },
+      "temp_c": { "abs": 0.3 }
+    }
+  },
+  "checkpoints": []
+}

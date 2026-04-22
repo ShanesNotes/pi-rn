@@ -1,0 +1,33 @@
+services:
+  pulse:
+    image: kitware/pulse:4.3.1
+    container_name: pi-sim-pulse
+    working_dir: /workspace
+    # kitware/pulse:4.3.1 ships the Pulse Python API but not the web framework
+    # stack this repo originally scaffolded around. The shim now uses only the
+    # Python standard library plus a tiny local pandas compatibility module, so
+    # startup does not depend on network package installs.
+    command: >
+      bash -c "
+        cd /workspace/shim &&
+        exec python3 app.py
+      "
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./shim:/workspace/shim:ro
+      - pulse_state:/workspace/state
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request as u; u.urlopen('http://127.0.0.1:8765/health', timeout=2).read()\" || exit 1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  pulse_state:

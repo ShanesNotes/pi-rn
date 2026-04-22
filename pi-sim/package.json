@@ -1,0 +1,24 @@
+{
+  "name": "pi-sim",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Bedside-monitor backed by the Kitware Pulse Physiology Engine (via Docker sidecar). Exposes file-based monitor outputs for an external clinician workspace.",
+  "type": "module",
+  "scripts": {
+    "monitor": "tsx scripts/monitor.ts",
+    "monitor:shock": "tsx scripts/monitor.ts --scenario vitals/scenarios/hemorrhagic_shock.json",
+    "monitor:sepsis": "tsx scripts/monitor.ts --scenario vitals/scenarios/sepsis_norepi.json",
+    "monitor:ui": "python3 monitor-ui/app.py",
+    "validate": "tsx scripts/validate.ts",
+    "pulse:up": "docker compose -f pulse/docker-compose.yml up -d",
+    "pulse:down": "docker compose -f pulse/docker-compose.yml down",
+    "pulse:logs": "docker compose -f pulse/docker-compose.yml logs -f pulse",
+    "pulse:health": "curl -fsS http://localhost:8765/health",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^6.0.3"
+  }
+}
