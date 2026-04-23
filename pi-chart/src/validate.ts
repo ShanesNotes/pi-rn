@@ -27,7 +27,13 @@ import {
   isVitalsUri,
   parseEvidenceRef,
 } from "./evidence.js";
-import { eventStartIso, parseIso, loadChartMeta } from "./time.js";
+import {
+  eventCoversAsOf,
+  eventStartIso,
+  eventStartMs,
+  loadChartMeta,
+  parseIso,
+} from "./time.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope, ReportEntry, ValidationReport } from "./types.js";
 
@@ -924,15 +930,17 @@ async function checkReferentialIntegrity(state: State) {
         ttype === "assessment" &&
         typeof targetEv?.subtype === "string" &&
         targetEv.subtype === "problem";
-      const isIntent = ttype === "intent";
-      if (!isProblem && !isIntent) {
+      if (!isProblem) {
         err(
           state,
           where,
-          `links.addresses: target '${target}' must be an assessment/problem or an intent (invariant 10: fulfillment typing)`,
+          `links.addresses: target '${target}' must be an assessment/problem (invariant 10: fulfillment typing)`,
         );
       }
     }
+
+    validateContradictsRules(state, where, ev, envelopes, envelopesById);
+    validateResolvesRules(state, where, ev, envelopes, envelopesById);
 
     if (ev.type === "communication") {
       const ref = ev?.data?.note_ref;
@@ -1111,6 +1119,112 @@ async function validateTransformRules(
   }
 }
 
+function validateContradictsRules(
+  state: State,
+  where: string,
+  ev: any,
+  envelopes: Array<{ where: string; ev: any }>,
+  envelopesById: Map<string, any>,
+) {
+  const contradicts = Array.isArray(ev?.links?.contradicts) ? ev.links.contradicts : [];
+  if (contradicts.length === 0) return;
+
+  const corrects = new Set(
+    Array.isArray(ev?.links?.corrects)
+      ? ev.links.corrects.filter((target: unknown): target is string => typeof target === "string")
+      : [],
+  );
+  const sourceRecordedAt = Date.parse(String(ev?.recorded_at ?? ""));
+
+  for (const raw of contradicts) {
+    const targetRef = contradictsTargetRef(raw);
+    if (!targetRef) continue;
+
+    const target = envelopesById.get(targetRef);
+    if (!target) {
+      ruleErr(
+        state,
+        where,
+        "V-CONTRA-01",
+        `contradicts.ref out-of-patient or nonexistent: ${targetRef}.`,
+      );
+      continue;
+    }
+
+    if (corrects.has(targetRef)) {
+      ruleErr(
+        state,
+        where,
+        "V-CONTRA-02",
+        `contradicts and corrects target same event: ${targetRef}.`,
+      );
+    }
+
+    const targetRecordedAt = Date.parse(String(target?.recorded_at ?? ""));
+    if (!Number.isFinite(sourceRecordedAt) || !Number.isFinite(targetRecordedAt) || targetRecordedAt >= sourceRecordedAt) {
+      ruleErr(
+        state,
+        where,
+        "V-CONTRA-03",
+        `contradicts.ref newer than source event: ${targetRef}.`,
+      );
+    }
+
+    for (const superseding of envelopes) {
+      const supersedes = Array.isArray(superseding.ev?.links?.supersedes) ? superseding.ev.links.supersedes : [];
+      if (!supersedes.includes(targetRef)) continue;
+      const supersedingRecordedAt = Date.parse(String(superseding.ev?.recorded_at ?? ""));
+      if (Number.isFinite(sourceRecordedAt) && Number.isFinite(supersedingRecordedAt) && supersedingRecordedAt < sourceRecordedAt) {
+        continue;
+      }
+      if (hasContradictionBackReference(superseding.ev, ev?.id) || hasResolveTarget(superseding.ev, ev?.id)) continue;
+      ruleWarn(
+        state,
+        superseding.where,
+        "V-CONTRA-04",
+        `event ${superseding.ev?.id ?? "unknown"} supersedes contradicted event ${targetRef} without contradicts or resolves pointing at ${String(ev?.id ?? "unknown")}.`,
+      );
+    }
+  }
+}
+
+function validateResolvesRules(
+  state: State,
+  where: string,
+  ev: any,
+  envelopes: Array<{ where: string; ev: any }>,
+  envelopesById: Map<string, any>,
+) {
+  const resolves = Array.isArray(ev?.links?.resolves) ? ev.links.resolves : [];
+  if (resolves.length === 0) return;
+
+  const rejectResolveTarget = (target: string) =>
+    ruleErr(
+      state,
+      where,
+      "V-RESOLVES-01",
+      `resolves target is neither an open loop nor a contradiction-bearing event: ${target}.`,
+    );
+
+  const anchorMs = Date.parse(String(ev?.recorded_at ?? ""));
+  for (const target of resolves) {
+    if (typeof target !== "string") continue;
+
+    const targetEvent = envelopesById.get(target);
+    if (!targetEvent || !isVisibleAtAnchor(targetEvent, anchorMs)) {
+      rejectResolveTarget(target);
+      continue;
+    }
+
+    if (hasContradictsEntries(targetEvent)) continue;
+    if (isResolvableIntent(targetEvent, envelopes, anchorMs)) continue;
+    if (isUnacknowledgedCommunication(targetEvent, envelopes, anchorMs)) continue;
+    if (isActiveAlertPlaceholder(targetEvent)) continue;
+
+    rejectResolveTarget(target);
+  }
+}
+
 async function validateTransformInputRef(
   state: State,
   where: string,
@@ -1209,6 +1323,109 @@ function hasEncounterBearingVitalsRef(ref: string): boolean {
   if (url.protocol !== "vitals:") return false;
   const encounterId = url.host || url.pathname.replace(/^\//, "");
   return encounterId.length > 0 && encounterId !== "window";
+}
+
+function contradictsTargetRef(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  return typeof (raw as { ref?: unknown }).ref === "string" ? (raw as { ref: string }).ref : null;
+}
+
+function hasContradictionBackReference(ev: any, targetId: unknown): boolean {
+  if (typeof targetId !== "string") return false;
+  const contradicts = Array.isArray(ev?.links?.contradicts) ? ev.links.contradicts : [];
+  return contradicts.some((raw: unknown) => contradictsTargetRef(raw) === targetId);
+}
+
+function hasResolveTarget(ev: any, targetId: unknown): boolean {
+  if (typeof targetId !== "string") return false;
+  const resolves = Array.isArray(ev?.links?.resolves) ? ev.links.resolves : [];
+  return resolves.includes(targetId);
+}
+
+function hasContradictsEntries(ev: any): boolean {
+  return Array.isArray(ev?.links?.contradicts) && ev.links.contradicts.length > 0;
+}
+
+function isVisibleAtAnchor(ev: any, anchorMs: number): boolean {
+  if (!Number.isFinite(anchorMs)) return false;
+  const recordedAt = Date.parse(String(ev?.recorded_at ?? ""));
+  if (!Number.isFinite(recordedAt) || recordedAt > anchorMs) return false;
+  const start = eventStartMs(ev);
+  if (start === null || start > anchorMs) return false;
+  return eventCoversAsOf(ev, anchorMs);
+}
+
+function isReplacedAtAnchor(
+  targetId: string,
+  envelopes: Array<{ where: string; ev: any }>,
+  anchorMs: number,
+): boolean {
+  for (const { ev } of envelopes) {
+    if (!isVisibleAtAnchor(ev, anchorMs)) continue;
+    const supersedes = Array.isArray(ev?.links?.supersedes) ? ev.links.supersedes : [];
+    if (supersedes.includes(targetId)) return true;
+    const corrects = Array.isArray(ev?.links?.corrects) ? ev.links.corrects : [];
+    if (corrects.includes(targetId)) return true;
+  }
+  return false;
+}
+
+function isResolvableIntent(
+  target: any,
+  envelopes: Array<{ where: string; ev: any }>,
+  anchorMs: number,
+): boolean {
+  if (target?.type !== "intent") return false;
+  if (!isVisibleAtAnchor(target, anchorMs)) return false;
+  if (isReplacedAtAnchor(String(target.id ?? ""), envelopes, anchorMs)) return false;
+  if (
+    target.status === "final" ||
+    target.status === "superseded" ||
+    target.status === "entered_in_error"
+  ) {
+    return false;
+  }
+
+  const fulfillments = envelopes
+    .map(({ ev }) => ev)
+    .filter((candidate) => fulfillsTarget(candidate, target.id))
+    .filter((candidate) => isVisibleAtAnchor(candidate, anchorMs))
+    .filter((candidate) => !isReplacedAtAnchor(String(candidate.id ?? ""), envelopes, anchorMs));
+
+  if (fulfillments.some((candidate) => candidate.status === "final")) return false;
+  if (fulfillments.some(isFailureFulfillment)) return false;
+  if (fulfillments.some((candidate) => candidate.status === "active")) return false;
+
+  return true;
+}
+
+function fulfillsTarget(ev: any, targetId: unknown): boolean {
+  if (typeof targetId !== "string") return false;
+  const fulfills = Array.isArray(ev?.links?.fulfills) ? ev.links.fulfills : [];
+  return fulfills.includes(targetId);
+}
+
+function isFailureFulfillment(ev: any): boolean {
+  if (ev?.status === "entered_in_error") return true;
+  const outcome = ev?.data?.outcome;
+  return typeof outcome === "string" && /^(failed|failure|refused|aborted)$/i.test(outcome);
+}
+
+function isUnacknowledgedCommunication(
+  target: any,
+  envelopes: Array<{ where: string; ev: any }>,
+  anchorMs: number,
+): boolean {
+  return target?.type === "communication" &&
+    target?.data?.status_detail === "sent" &&
+    !isReplacedAtAnchor(String(target.id ?? ""), envelopes, anchorMs);
+}
+
+function isActiveAlertPlaceholder(target: any): boolean {
+  return target?.type === "observation" &&
+    target?.subtype === "alert" &&
+    target?.status === "active" &&
+    target?.data?.status_detail === undefined;
 }
 
 function validateDerivedFromChain(

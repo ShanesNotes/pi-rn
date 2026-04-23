@@ -37,6 +37,13 @@ async function writePatientTimelineEvents(scope: PatientScope, events: any[]): P
   );
 }
 
+async function appendTimelineEvents(scope: PatientScope, ...events: any[]): Promise<void> {
+  await fs.appendFile(
+    patientTimelineEvents(scope),
+    events.map((event) => JSON.stringify(event)).join("\n") + "\n",
+  );
+}
+
 async function mutateSeedAssessment(
   scope: PatientScope,
   mutate: (assessment: any, events: any[]) => void,
@@ -103,6 +110,33 @@ function phase3Transform(
     activity,
     tool: "phase3-test",
     input_refs,
+  };
+}
+
+function phase4Event(overrides: Record<string, any> = {}) {
+  const base = {
+    id: "evt_phase4_base",
+    type: "observation",
+    subtype: "patient_report",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    author: { id: "phase4", role: "rn_agent" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "phase4", value: "ok" },
+    links: { supports: [], supersedes: [] },
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    author: overrides.author ?? base.author,
+    source: overrides.source ?? base.source,
+    data: overrides.data ?? base.data,
+    links: { ...base.links, ...(overrides.links ?? {}) },
   };
 }
 
@@ -560,6 +594,606 @@ test("Phase 3 keeps links.supports encounterless vitals valid while transform.in
   assert(!r.errors.some((e) => /assessment links\.supports/.test(e.message)), JSON.stringify(r.errors, null, 2));
 });
 
+test("V-CONTRA-01 rejects contradicts refs outside the patient-local event index", async () => {
+  const scope = await copyFixture();
+  const badMissing = phase4Event({
+    id: "evt_contra_missing",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_nonexistent", basis: "missing" }] },
+  });
+  const badOtherPatient = phase4Event({
+    id: "evt_contra_other_patient",
+    recorded_at: "2026-04-18T09:05:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_other_patient_01", basis: "other patient" }] },
+  });
+  await appendTimelineEvents(scope, badMissing, badOtherPatient);
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-CONTRA-01: contradicts.ref out-of-patient or nonexistent: evt_nonexistent."), JSON.stringify(r.errors, null, 2));
+  assert(r.errors.some((e) => e.message === "V-CONTRA-01: contradicts.ref out-of-patient or nonexistent: evt_other_patient_01."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-CONTRA-01 stays silent for same-patient contradicts targets", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, phase4Event({
+    id: "evt_contra_valid",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_20260418T0815_01", basis: "same patient" }] },
+  }));
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-CONTRA-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-CONTRA-02 rejects overlapping contradicts and corrects targets only", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, phase4Event({
+    id: "evt_contra_overlap",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: {
+      supports: [],
+      contradicts: [
+        { ref: "evt_20260418T0815_01", basis: "overlap" },
+        { ref: "evt_20260418T0820_01", basis: "disjoint" },
+      ],
+      corrects: ["evt_20260418T0815_01"],
+    },
+  }));
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-CONTRA-02: contradicts and corrects target same event: evt_20260418T0815_01."), JSON.stringify(r.errors, null, 2));
+  assert(!r.errors.some((e) => e.message === "V-CONTRA-02: contradicts and corrects target same event: evt_20260418T0820_01."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-CONTRA-03 enforces strictly earlier recorded_at on contradicts targets", async () => {
+  const scope = await copyFixture();
+  const earlier = phase4Event({
+    id: "evt_contra_earlier_target",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+  });
+  const equal = phase4Event({
+    id: "evt_contra_equal_target",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+  });
+  const later = phase4Event({
+    id: "evt_contra_later_target",
+    recorded_at: "2026-04-18T09:10:00-05:00",
+  });
+  const source = phase4Event({
+    id: "evt_contra_source",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: {
+      supports: [],
+      contradicts: [
+        { ref: "evt_contra_earlier_target", basis: "earlier ok" },
+        { ref: "evt_contra_equal_target", basis: "equal bad" },
+        { ref: "evt_contra_later_target", basis: "later bad" },
+      ],
+    },
+  });
+  await appendTimelineEvents(scope, earlier, equal, later, source);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message === "V-CONTRA-03: contradicts.ref newer than source event: evt_contra_earlier_target."), JSON.stringify(r.errors, null, 2));
+  assert(r.errors.some((e) => e.message === "V-CONTRA-03: contradicts.ref newer than source event: evt_contra_equal_target."), JSON.stringify(r.errors, null, 2));
+  assert(r.errors.some((e) => e.message === "V-CONTRA-03: contradicts.ref newer than source event: evt_contra_later_target."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-CONTRA-04 warns when a supersessor omits resolves or contradicts back-references", async () => {
+  const scope = await copyFixture();
+  const contradicted = phase4Event({
+    id: "evt_contra_warn_target",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+  });
+  const contradictor = phase4Event({
+    id: "evt_contra_warn_source",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_contra_warn_target", basis: "warn chain" }] },
+  });
+  const superseding = phase4Event({
+    id: "evt_contra_warn_supersessor",
+    recorded_at: "2026-04-18T09:10:00-05:00",
+    links: { supports: [], supersedes: ["evt_contra_warn_target"] },
+  });
+  await appendTimelineEvents(scope, contradicted, contradictor, superseding);
+  const r = await validateChart(scope);
+  assert(r.warnings.some((w) => w.message === "V-CONTRA-04: event evt_contra_warn_supersessor supersedes contradicted event evt_contra_warn_target without contradicts or resolves pointing at evt_contra_warn_source."), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-CONTRA-04 stays silent when a supersessor resolves the contradictor", async () => {
+  const scope = await copyFixture();
+  const contradicted = phase4Event({
+    id: "evt_contra_resolve_target",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+  });
+  const contradictor = phase4Event({
+    id: "evt_contra_resolve_source",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_contra_resolve_target", basis: "resolved chain" }] },
+  });
+  const superseding = phase4Event({
+    id: "evt_contra_resolve_supersessor",
+    recorded_at: "2026-04-18T09:10:00-05:00",
+    links: {
+      supports: [],
+      supersedes: ["evt_contra_resolve_target"],
+      resolves: ["evt_contra_resolve_source"],
+    },
+  });
+  await appendTimelineEvents(scope, contradicted, contradictor, superseding);
+  const r = await validateChart(scope);
+  assert(!r.warnings.some((w) => w.message.startsWith("V-CONTRA-04:")), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-CONTRA-04 stays silent when a supersessor contradicts the contradictor", async () => {
+  const scope = await copyFixture();
+  const contradicted = phase4Event({
+    id: "evt_contra_backref_target",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+  });
+  const contradictor = phase4Event({
+    id: "evt_contra_backref_source",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_contra_backref_target", basis: "backref chain" }] },
+  });
+  const superseding = phase4Event({
+    id: "evt_contra_backref_supersessor",
+    recorded_at: "2026-04-18T09:10:00-05:00",
+    links: {
+      supports: [],
+      supersedes: ["evt_contra_backref_target"],
+      contradicts: [{ ref: "evt_contra_backref_source", basis: "follow-on contradiction" }],
+    },
+  });
+  await appendTimelineEvents(scope, contradicted, contradictor, superseding);
+  const r = await validateChart(scope);
+  assert(!r.warnings.some((w) => w.message.startsWith("V-CONTRA-04:")), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-CONTRA-04 stays silent when the supersessor predates the contradiction", async () => {
+  const scope = await copyFixture();
+  const contradicted = phase4Event({
+    id: "evt_contra_early_superseded_target",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+  });
+  const superseding = phase4Event({
+    id: "evt_contra_early_supersessor",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    links: { supports: [], supersedes: ["evt_contra_early_superseded_target"] },
+  });
+  const contradictor = phase4Event({
+    id: "evt_contra_early_source",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], contradicts: [{ ref: "evt_contra_early_superseded_target", basis: "late contradiction" }] },
+  });
+  await appendTimelineEvents(scope, contradicted, superseding, contradictor);
+  const r = await validateChart(scope);
+  assert(!r.warnings.some((w) => w.message.startsWith("V-CONTRA-04:")), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-RESOLVES-01 stays silent for a pending intent target", async () => {
+  const scope = await copyFixture();
+  const intent = phase4Event({
+    id: "evt_resolve_pending_intent",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { goal: "pending", due_by: "2026-04-18T10:00:00-05:00" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_pending",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_pending_intent"] },
+  });
+  await appendTimelineEvents(scope, intent, resolver);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 stays silent for an overdue intent target", async () => {
+  const scope = await copyFixture();
+  const intent = phase4Event({
+    id: "evt_resolve_overdue_intent",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T08:30:00-05:00",
+    recorded_at: "2026-04-18T08:30:00-05:00",
+    data: { goal: "overdue", due_by: "2026-04-18T08:45:00-05:00" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_overdue",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_overdue_intent"] },
+  });
+  await appendTimelineEvents(scope, intent, resolver);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 rejects future intents at the resolver anchor", async () => {
+  const scope = await copyFixture();
+  const intent = phase4Event({
+    id: "evt_resolve_future_intent",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    data: { goal: "future", due_by: "2026-04-18T10:30:00-05:00" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_future",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_future_intent"] },
+  });
+  await appendTimelineEvents(scope, intent, resolver);
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_future_intent."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 rejects in-progress intents", async () => {
+  const scope = await copyFixture();
+  const intent = phase4Event({
+    id: "evt_resolve_in_progress_intent",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T08:40:00-05:00",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+    data: { goal: "in progress", due_by: "2026-04-18T10:00:00-05:00" },
+  });
+  const activeFulfillment = phase4Event({
+    id: "evt_resolve_in_progress_action",
+    type: "action",
+    subtype: "notification",
+    certainty: "performed",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { action: "follow up" },
+    links: { supports: [], fulfills: ["evt_resolve_in_progress_intent"] },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_in_progress",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_in_progress_intent"] },
+  });
+  await appendTimelineEvents(scope, intent, activeFulfillment, resolver);
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_in_progress_intent."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 ignores backdated fulfillments authored after the resolver anchor", async () => {
+  const scope = await copyFixture();
+  const intent = phase4Event({
+    id: "evt_resolve_backdated_intent",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T08:40:00-05:00",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+    data: { goal: "backdated fulfillment", due_by: "2026-04-18T10:00:00-05:00" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_backdated_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_backdated_intent"] },
+  });
+  const activeFulfillment = phase4Event({
+    id: "evt_resolve_backdated_action",
+    type: "action",
+    subtype: "notification",
+    certainty: "performed",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    data: { action: "late authored" },
+    links: { supports: [], fulfills: ["evt_resolve_backdated_intent"] },
+  });
+  await appendTimelineEvents(scope, intent, resolver, activeFulfillment);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 rejects terminally closed intents", async () => {
+  for (const detail of ["completed", "cancelled", "failed"] as const) {
+    const scope = await copyFixture();
+    const intent = phase4Event({
+      id: `evt_resolve_${detail}_intent`,
+      type: "intent",
+      subtype: "care_plan",
+      certainty: "planned",
+      status: "final",
+      effective_at: "2026-04-18T08:40:00-05:00",
+      recorded_at: "2026-04-18T08:40:00-05:00",
+      data: { goal: detail, due_by: "2026-04-18T10:00:00-05:00", status_detail: detail },
+    });
+    const resolver = phase4Event({
+      id: `evt_resolve_${detail}`,
+      recorded_at: "2026-04-18T09:00:00-05:00",
+      links: { supports: [], resolves: [`evt_resolve_${detail}_intent`] },
+    });
+    await appendTimelineEvents(scope, intent, resolver);
+    const r = await validateChart(scope);
+    assert(r.errors.some((e) => e.message === `V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_${detail}_intent.`), `${detail}\n${JSON.stringify(r.errors, null, 2)}`);
+  }
+});
+
+test("V-RESOLVES-01 stays silent for unacknowledged communications", async () => {
+  const scope = await copyFixture();
+  const target = phase4Event({
+    id: "evt_resolve_sent_comm",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { audience: "covering_md", summary: "sent", status_detail: "sent" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_sent_comm_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_sent_comm"] },
+  });
+  await appendTimelineEvents(scope, target, resolver);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 stays silent when a communication replacement lands after the resolver anchor", async () => {
+  const scope = await copyFixture();
+  const target = phase4Event({
+    id: "evt_resolve_comm_late_target",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { audience: "covering_md", summary: "sent", status_detail: "sent" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_comm_late_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_comm_late_target"] },
+  });
+  const replacement = phase4Event({
+    id: "evt_resolve_comm_late_replacement",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    data: { audience: "covering_md", summary: "ack", status_detail: "acknowledged" },
+    links: { supports: [], supersedes: ["evt_resolve_comm_late_target"] },
+  });
+  await appendTimelineEvents(scope, target, resolver, replacement);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 ignores backdated communication replacements authored after the resolver anchor", async () => {
+  const scope = await copyFixture();
+  const target = phase4Event({
+    id: "evt_resolve_comm_backdated_target",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { audience: "covering_md", summary: "sent", status_detail: "sent" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_comm_backdated_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_comm_backdated_target"] },
+  });
+  const replacement = phase4Event({
+    id: "evt_resolve_comm_backdated_replacement",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:45:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    data: { audience: "covering_md", summary: "ack", status_detail: "acknowledged" },
+    links: { supports: [], supersedes: ["evt_resolve_comm_backdated_target"] },
+  });
+  await appendTimelineEvents(scope, target, resolver, replacement);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 rejects communications replaced before the resolver anchor", async () => {
+  const scope = await copyFixture();
+  const target = phase4Event({
+    id: "evt_resolve_comm_early_target",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { audience: "covering_md", summary: "sent", status_detail: "sent" },
+  });
+  const replacement = phase4Event({
+    id: "evt_resolve_comm_early_replacement",
+    type: "communication",
+    subtype: "sbar",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:55:00-05:00",
+    recorded_at: "2026-04-18T08:55:00-05:00",
+    data: { audience: "covering_md", summary: "ack", status_detail: "acknowledged" },
+    links: { supports: [], supersedes: ["evt_resolve_comm_early_target"] },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_comm_early_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_comm_early_target"] },
+  });
+  await appendTimelineEvents(scope, target, replacement, resolver);
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_comm_early_target."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 rejects acknowledged timeout and failed communication targets", async () => {
+  for (const detail of ["acknowledged", "timeout", "failed"] as const) {
+    const scope = await copyFixture();
+    const target = phase4Event({
+      id: `evt_resolve_comm_${detail}`,
+      type: "communication",
+      subtype: "sbar",
+      certainty: "performed",
+      status: "final",
+      effective_at: "2026-04-18T08:50:00-05:00",
+      recorded_at: "2026-04-18T08:50:00-05:00",
+      data: { audience: "covering_md", summary: detail, status_detail: detail },
+    });
+    const resolver = phase4Event({
+      id: `evt_resolve_comm_${detail}_resolver`,
+      recorded_at: "2026-04-18T09:00:00-05:00",
+      links: { supports: [], resolves: [`evt_resolve_comm_${detail}`] },
+    });
+    await appendTimelineEvents(scope, target, resolver);
+    const r = await validateChart(scope);
+    assert(r.errors.some((e) => e.message === `V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_comm_${detail}.`), `${detail}\n${JSON.stringify(r.errors, null, 2)}`);
+  }
+});
+
+test("V-RESOLVES-01 stays silent for the active-alert placeholder shape", async () => {
+  const scope = await copyFixture();
+  const alert = phase4Event({
+    id: "evt_resolve_active_alert",
+    type: "observation",
+    subtype: "alert",
+    certainty: "observed",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { name: "high_rr_alert", value: "active" },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_active_alert_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_active_alert"] },
+  });
+  await appendTimelineEvents(scope, alert, resolver);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 stays silent for contradiction-bearing event targets", async () => {
+  const scope = await copyFixture();
+  const contradicted = phase4Event({
+    id: "evt_resolve_contradicted",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+  });
+  const contradiction = phase4Event({
+    id: "evt_resolve_contradiction",
+    type: "assessment",
+    subtype: "problem",
+    certainty: "inferred",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { summary: "contradiction target", status_detail: "active" },
+    links: {
+      supports: ["evt_20260418T0815_01"],
+      contradicts: [{ ref: "evt_resolve_contradicted", basis: "disagreement" }],
+    },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_contradiction_resolver",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_contradiction"] },
+  });
+  await appendTimelineEvents(scope, contradicted, contradiction, resolver);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-RESOLVES-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-RESOLVES-01 rejects vanilla observations and assessments without contradictions", async () => {
+  const scope = await copyFixture();
+  const plainAssessment = phase4Event({
+    id: "evt_resolve_plain_assessment",
+    type: "assessment",
+    subtype: "problem",
+    certainty: "inferred",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { summary: "plain problem", status_detail: "active" },
+    links: { supports: ["evt_20260418T0815_01"] },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_plain_targets",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_20260418T0815_01", "evt_resolve_plain_assessment"] },
+  });
+  await appendTimelineEvents(scope, plainAssessment, resolver);
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_20260418T0815_01."), JSON.stringify(r.errors, null, 2));
+  assert(r.errors.some((e) => e.message === "V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_plain_assessment."), JSON.stringify(r.errors, null, 2));
+});
+
+test("invariant 10: links.addresses targeting an assessment/problem stays valid", async () => {
+  const scope = await copyFixture();
+  const problem = phase4Event({
+    id: "evt_addresses_problem",
+    type: "assessment",
+    subtype: "problem",
+    certainty: "inferred",
+    status: "active",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { summary: "problem", status_detail: "active" },
+    links: { supports: ["evt_20260418T0815_01"] },
+  });
+  const intent = phase4Event({
+    id: "evt_addresses_problem_intent",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    data: { goal: "treat problem", due_by: "2026-04-18T10:00:00-05:00" },
+    links: { supports: [], addresses: ["evt_addresses_problem"] },
+  });
+  await appendTimelineEvents(scope, problem, intent);
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => /links\.addresses: target/.test(e.message)), JSON.stringify(r.errors, null, 2));
+});
+
+test("invariant 10: links.addresses targeting an intent is rejected with tightened wording", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, phase4Event({
+    id: "evt_addresses_intent_source",
+    type: "intent",
+    subtype: "care_plan",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T10:00:00-05:00",
+    recorded_at: "2026-04-18T10:00:00-05:00",
+    data: { goal: "watch", due_by: "2026-04-18T11:00:00-05:00" },
+    links: { supports: [], addresses: ["evt_20260418T0830_02"] },
+  }));
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => e.message === "links.addresses: target 'evt_20260418T0830_02' must be an assessment/problem (invariant 10: fulfillment typing)"),
+    JSON.stringify(r.errors, null, 2),
+  );
+  assert(!r.errors.some((e) => /or an intent/.test(e.message)), JSON.stringify(r.errors, null, 2));
+});
+
 test("V-STATUS-02 rejects final order with non-terminal status_detail", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);
@@ -954,9 +1588,10 @@ test("invariant 10: links.addresses targeting an arbitrary observation is reject
   await fs.appendFile(evPath, JSON.stringify(badIntent) + "\n");
   const r = await validateChart(scope);
   assert(
-    r.errors.some((e) => /invariant 10/.test(e.message) && /assessment\/problem or an intent/.test(e.message)),
+    r.errors.some((e) => e.message === `links.addresses: target '${observationId}' must be an assessment/problem (invariant 10: fulfillment typing)`),
     JSON.stringify(r.errors, null, 2),
   );
+  assert(!r.errors.some((e) => /or an intent/.test(e.message)), JSON.stringify(r.errors, null, 2));
 });
 
 test("links.supports accepts a legacy structured vitals EvidenceRef", async () => {
