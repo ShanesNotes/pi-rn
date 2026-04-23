@@ -84,6 +84,14 @@ const SOURCE_KIND_CANONICAL = new Set([
   "manual_scenario",
 ]);
 
+// Import-family source.kind values per DESIGN §1.1.
+// Subset of SOURCE_KIND_CANONICAL consumed by V-TRANSFORM-01.
+// manual_scenario is intentionally excluded: it is fixture provenance, not machine import provenance.
+const IMPORT_SOURCE_KINDS = new Set<string>([
+  "synthea_import",
+  "mimic_iv_import",
+]);
+
 const DEPRECATED_SOURCE_KIND_MIGRATIONS: Readonly<Record<string, string>> = {
   agent_reasoning: "agent_inference",
 };
@@ -847,6 +855,7 @@ async function checkReferentialIntegrity(state: State) {
     const supports: unknown[] = links.supports ?? [];
     await checkSupportsTargets(state, where, supports);
     validateEvidenceRules(state, where, ev, supports);
+    await validateTransformRules(state, where, ev);
 
     for (const fname of ["supersedes", "corrects"] as const) {
       for (const target of links[fname] ?? []) {
@@ -1075,6 +1084,131 @@ function validateEvidenceRules(
       `multiple role:primary entries in supports (found ${primaryCount}); split into separate assessments.`,
     );
   }
+}
+
+async function validateTransformRules(
+  state: State,
+  where: string,
+  ev: any,
+) {
+  const transform = ev?.transform;
+  if (!transform || typeof transform !== "object" || Array.isArray(transform)) return;
+
+  const activity = transform.activity;
+  const sourceKind = typeof ev?.source?.kind === "string" ? ev.source.kind : "unknown";
+  if ((activity === "import" || activity === "normalize") && !IMPORT_SOURCE_KINDS.has(sourceKind)) {
+    ruleErr(
+      state,
+      where,
+      "V-TRANSFORM-01",
+      `transform.activity=${activity} requires import-family source.kind; got source.kind=${sourceKind}.`,
+    );
+  }
+
+  const inputRefs: unknown[] = Array.isArray(transform.input_refs) ? transform.input_refs : [];
+  for (const [index, raw] of inputRefs.entries()) {
+    await validateTransformInputRef(state, where, raw, index);
+  }
+}
+
+async function validateTransformInputRef(
+  state: State,
+  where: string,
+  raw: unknown,
+  index: number,
+) {
+  const unresolved = (kind: string, ref: string) =>
+    ruleErr(
+      state,
+      where,
+      "V-TRANSFORM-02",
+      `transform.input_refs[${index}] does not resolve: ${kind}:${ref}`,
+    );
+
+  const parsed = parseEvidenceRef(raw);
+  if (!parsed) {
+    unresolved(transformInputKind(raw), transformInputRef(raw));
+    return;
+  }
+
+  if (parsed.kind === "external") {
+    if (!hasRecognizedExternalScheme(parsed.ref)) {
+      ruleErr(
+        state,
+        where,
+        "V-TRANSFORM-02",
+        `transform.input_refs[${index}] has unrecognized external scheme: ${parsed.ref}`,
+      );
+    }
+    return;
+  }
+
+  if (parsed.kind === "vitals_window") {
+    if (!hasEncounterBearingVitalsRef(parsed.ref)) {
+      unresolved(parsed.kind, parsed.ref);
+      return;
+    }
+    const window = expandVitalsWindowRef(parsed);
+    if (!window || Date.parse(window.from) > Date.parse(window.to)) {
+      unresolved(parsed.kind, parsed.ref);
+      return;
+    }
+    const has = await vitalsWindowHasSamples(state.patientRoot, window);
+    if (!has) {
+      unresolved(parsed.kind, parsed.ref);
+    }
+    return;
+  }
+
+  if (!state.allIds.has(parsed.ref)) {
+    unresolved(parsed.kind, parsed.ref);
+    return;
+  }
+
+  if (parsed.kind === "note" && !state.noteIds.has(parsed.ref)) {
+    unresolved(parsed.kind, parsed.ref);
+    return;
+  }
+
+  if (parsed.kind === "artifact") {
+    const ttype = state.eventTypes.get(parsed.ref);
+    if (ttype && ttype !== "artifact_ref") {
+      unresolved(parsed.kind, parsed.ref);
+    }
+  }
+}
+
+function transformInputKind(raw: unknown): string {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return typeof raw === "string" && isVitalsUri(raw) ? "vitals_window" : "unknown";
+  }
+  const ref = raw as Record<string, unknown>;
+  return typeof ref.kind === "string" ? ref.kind : "unknown";
+}
+
+function transformInputRef(raw: unknown): string {
+  if (typeof raw === "string") return raw;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return "[invalid]";
+  const ref = raw as Record<string, unknown>;
+  if (typeof ref.ref === "string") return ref.ref;
+  if (typeof ref.id === "string") return ref.id;
+  return "[missing]";
+}
+
+function hasRecognizedExternalScheme(ref: string): boolean {
+  return ref.startsWith("synthea://") || ref.startsWith("mimic://");
+}
+
+function hasEncounterBearingVitalsRef(ref: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(ref);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "vitals:") return false;
+  const encounterId = url.host || url.pathname.replace(/^\//, "");
+  return encounterId.length > 0 && encounterId !== "window";
 }
 
 function validateDerivedFromChain(

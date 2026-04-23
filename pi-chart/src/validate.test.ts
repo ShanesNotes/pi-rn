@@ -46,6 +46,18 @@ async function mutateSeedAssessment(
   await writePatientTimelineEvents(scope, events);
 }
 
+async function mutateTimelineEvent(
+  scope: PatientScope,
+  eventId: string,
+  mutate: (event: any, events: any[]) => void,
+): Promise<void> {
+  const events = await readPatientTimelineEvents(scope);
+  const event = events.find((candidate) => candidate.id === eventId);
+  assert(event, `missing event ${eventId}`);
+  mutate(event, events);
+  await writePatientTimelineEvents(scope, events);
+}
+
 function canonicalVitalsWindowSupport() {
   return {
     kind: "vitals_window",
@@ -69,6 +81,29 @@ function buildDerivedFromExternalChain(maxDepth: number, prefix: string): Record
     };
   }
   return head ? [head] : [];
+}
+
+function encounterlessLegacyVitalsWindowRef() {
+  return {
+    kind: "vitals_window",
+    ref: "vitals://window?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:45:00-05:00",
+    selection: {
+      metric: "spo2",
+      from: "2026-04-18T08:00:00-05:00",
+      to: "2026-04-18T08:45:00-05:00",
+    },
+  };
+}
+
+function phase3Transform(
+  activity: "import" | "normalize" | "extract" | "summarize" | "infer" | "transcribe",
+  input_refs: unknown[],
+) {
+  return {
+    activity,
+    tool: "phase3-test",
+    input_refs,
+  };
 }
 
 test("baseline fixture validates green", async () => {
@@ -403,6 +438,126 @@ test("V-EVIDENCE-03 stays silent for empty derived_from arrays", async () => {
   });
   const r = await validateChart(scope);
   assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-01 rejects import activity with non-import source kind", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "clinician_chart_action";
+    assessment.transform = phase3Transform("import", [{ kind: "event", ref: "evt_20260418T0815_01" }]);
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-TRANSFORM-01: transform.activity=import requires import-family source.kind; got source.kind=clinician_chart_action."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-01 rejects normalize activity with non-import source kind", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.source.kind = "agent_inference";
+    event.transform = phase3Transform("normalize", [{ kind: "event", ref: "evt_20260418T0820_01" }]);
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-TRANSFORM-01: transform.activity=normalize requires import-family source.kind; got source.kind=agent_inference."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-01 stays silent for import activity with synthea_import source kind", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.source.kind = "synthea_import";
+    event.source.generator_version = "1.0.0";
+    event.source.seed = "phase3";
+    event.source.original_time = "2026-04-18T08:15:00-05:00";
+    event.source.rebase_delta_ms = 0;
+    event.transform = phase3Transform("import", [{ kind: "event", ref: "evt_20260418T0820_01" }]);
+  });
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-01:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-01 stays silent for non-import transform activities", async () => {
+  for (const activity of ["infer", "summarize", "extract", "transcribe"] as const) {
+    const scope = await copyFixture();
+    await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+      event.source.kind = "clinician_chart_action";
+      event.transform = phase3Transform(activity, [{ kind: "event", ref: "evt_20260418T0820_01" }]);
+    });
+    const r = await validateChart(scope);
+    assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-01:")), `${activity}\n${JSON.stringify(r.errors, null, 2)}`);
+  }
+});
+
+test("V-TRANSFORM rules stay silent when no transform block is present", async () => {
+  const scope = await copyFixture();
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-01:") || e.message.startsWith("V-TRANSFORM-02:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-02 rejects unresolved event input refs", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.transform = phase3Transform("infer", [{ kind: "event", ref: "evt_nonexistent" }]);
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-TRANSFORM-02: transform.input_refs[0] does not resolve: event:evt_nonexistent"), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-02 rejects unrecognized external schemes", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.transform = phase3Transform("infer", [{ kind: "external", ref: "ftp://unknown" }]);
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-TRANSFORM-02: transform.input_refs[0] has unrecognized external scheme: ftp://unknown"), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-02 stays silent for existing event input refs", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.transform = phase3Transform("infer", [{ kind: "event", ref: "evt_20260418T0820_01" }]);
+  });
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-02:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-02 stays silent for approved external schemes", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.transform = phase3Transform("infer", [{ kind: "external", ref: "synthea://enc_abc?resource=Observation/obs_71" }]);
+  });
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-02:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-02 stays silent for valid encounter-bearing vitals_window refs", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.transform = phase3Transform("infer", [canonicalVitalsWindowSupport()]);
+  });
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-02:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-TRANSFORM-02 stays silent for empty input_refs", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0815_01", (event) => {
+    event.transform = phase3Transform("infer", []);
+  });
+  const r = await validateChart(scope);
+  assert(!r.errors.some((e) => e.message.startsWith("V-TRANSFORM-02:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("Phase 3 keeps links.supports encounterless vitals valid while transform.input_refs rejects the same URI shape", async () => {
+  const scope = await copyFixture();
+  const encounterless = encounterlessLegacyVitalsWindowRef();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [encounterless];
+    assessment.transform = phase3Transform("infer", [encounterless]);
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === `V-TRANSFORM-02: transform.input_refs[0] does not resolve: vitals_window:${encounterless.ref}`), JSON.stringify(r.errors, null, 2));
+  assert(!r.errors.some((e) => /links\.supports\[kind=vitals_window\]/.test(e.message)), JSON.stringify(r.errors, null, 2));
+  assert(!r.errors.some((e) => /assessment links\.supports/.test(e.message)), JSON.stringify(r.errors, null, 2));
 });
 
 test("V-STATUS-02 rejects final order with non-terminal status_detail", async () => {
