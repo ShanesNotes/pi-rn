@@ -9,7 +9,11 @@
 
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { parseEvidenceRef, isVitalsUri } from "../evidence.js";
+import {
+  expandVitalsWindowRef,
+  isVitalsUri,
+  parseEvidenceRef,
+} from "../evidence.js";
 import { resolveArtifactPath } from "../artifacts.js";
 import { loadContext, supersededPriors } from "./active.js";
 import { trend } from "./trend.js";
@@ -23,9 +27,9 @@ import type {
   EventEnvelope,
   EvidenceChainParams,
   EvidenceNode,
-  EvidenceRef,
   NarrativeEntry,
 } from "../types.js";
+import type { NormalizedEvidenceRef } from "../evidence.js";
 
 export async function evidenceChain(
   params: EvidenceChainParams,
@@ -56,7 +60,7 @@ async function resolveEvent(
     const next = new Set(seen);
     next.add(ev.id);
     for (const raw of ev.links?.supports ?? []) {
-      const ref = parseEvidenceRef(raw as string | EvidenceRef);
+      const ref = parseEvidenceRef(raw);
       if (!ref) continue;
       const node = await resolveRef(
         ref,
@@ -78,7 +82,7 @@ async function resolveEvent(
 }
 
 async function resolveRef(
-  ref: EvidenceRef,
+  ref: NormalizedEvidenceRef,
   ctx: ActiveContext,
   params: EvidenceChainParams,
   notesById: Map<string, NarrativeEntry>,
@@ -87,30 +91,38 @@ async function resolveRef(
 ): Promise<EvidenceNode | null> {
   switch (ref.kind) {
     case "event": {
-      const next = ctx.byId.get(ref.id);
+      const next = ctx.byId.get(ref.ref);
       if (!next) return null;
       return resolveEvent(next, ctx, params, notesById, depthRemaining, seen);
     }
     case "note": {
-      const note = notesById.get(ref.id);
+      const note = notesById.get(ref.ref);
       if (!note) return null;
       return { kind: "note", note };
     }
-    case "vitals": {
+    case "vitals_window": {
+      const window = expandVitalsWindowRef(ref);
+      if (!window) return null;
       const points = await trend({
         scope: params.scope,
-        metric: ref.metric,
-        from: ref.from,
-        to: ref.to,
-        encounterId: ref.encounterId,
+        metric: window.metric,
+        from: window.from,
+        to: window.to,
+        encounterId: window.encounterId,
       });
-      return { kind: "vitals", metric: ref.metric, points };
+      // Phase 1 intentionally keeps the output EvidenceNode vocabulary stable:
+      // input refs normalize to `vitals_window`, while emitted view nodes stay
+      // `{ kind: "vitals", metric, points }` until a later view phase changes
+      // the output contract deliberately.
+      return { kind: "vitals", metric: window.metric, points };
     }
     case "artifact": {
-      const artifact = await resolveArtifact(ref.id, ctx, params);
+      const artifact = await resolveArtifact(ref.ref, ctx, params);
       if (!artifact) return null;
       return { kind: "artifact", artifact };
     }
+    case "external":
+      return null;
   }
 }
 

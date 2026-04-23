@@ -816,6 +816,140 @@ test("appendEvent rejects addresses targets that are not problems or intents", a
   );
 });
 
+test("appendEvent accepts canonical local EvidenceRef objects", async () => {
+  const scope = await tmpChart();
+  const observationId = await appendEvent(
+    {
+      type: "observation",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T08:00:00-05:00",
+      author: { id: "x", role: "rn" },
+      source: { kind: "manual_scenario" },
+      certainty: "observed",
+      status: "final",
+      data: { name: "spo2", value: 95 },
+      links: { supports: [] },
+    },
+    scope,
+  );
+  const artifactId = await writeArtifactRef({
+    artifactPath: "artifacts/cxr.pdf",
+    kind: "pdf",
+    description: "report",
+    encounterId: "enc_001",
+    subject: "patient_001",
+    source: { kind: "manual_scenario" },
+    scope,
+  });
+  const { notePath } = await writeCommunicationNote({
+    frontmatter: {
+      type: "communication",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      author: { id: "x", role: "rn_agent" },
+      source: { kind: "manual_scenario" },
+      status: "final",
+    } as any,
+    body: "support note",
+    scope,
+    slug: "support",
+  });
+  const [frontmatter] = parseFrontmatter(await fs.readFile(notePath, "utf8"));
+  const noteId = frontmatter?.id;
+  assert.equal(typeof noteId, "string");
+
+  const assessmentId = await appendEvent(
+    {
+      type: "assessment",
+      subtype: "impression",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T08:15:00-05:00",
+      author: { id: "x", role: "rn_agent" },
+      source: { kind: "agent_inference" },
+      certainty: "inferred",
+      status: "active",
+      data: { summary: "supported assessment" },
+      links: {
+        supports: [
+          { kind: "event", ref: observationId },
+          { kind: "note", ref: noteId as string },
+          { kind: "artifact", ref: artifactId },
+        ],
+      },
+    },
+    scope,
+  );
+
+  const events = await readEvents(scope);
+  const assessment = events.find((ev) => ev.id === assessmentId);
+  assert.deepEqual(assessment?.links?.supports, [
+    { kind: "event", ref: observationId },
+    { kind: "note", ref: noteId },
+    { kind: "artifact", ref: artifactId },
+  ]);
+});
+
+test("appendEvent accepts legacy and canonical non-local EvidenceRef variants", async () => {
+  const scope = await tmpChart();
+  const assessmentId = await appendEvent(
+    {
+      type: "assessment",
+      subtype: "trend",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T08:20:00-05:00",
+      author: { id: "x", role: "rn_agent" },
+      source: { kind: "agent_inference" },
+      certainty: "inferred",
+      status: "active",
+      data: { summary: "mixed support forms" },
+      links: {
+        supports: [
+          {
+            kind: "vitals",
+            metric: "spo2",
+            from: "2026-04-18T08:00:00-05:00",
+            to: "2026-04-18T08:10:00-05:00",
+            encounterId: "enc_001",
+          } as any,
+          {
+            kind: "vitals_window",
+            ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:10:00-05:00",
+            selection: {
+              metric: "spo2",
+              from: "2026-04-18T08:00:00-05:00",
+              to: "2026-04-18T08:10:00-05:00",
+              encounterId: "enc_001",
+            },
+          },
+          { kind: "external", ref: "synthea://enc_001?resource=Observation/obs_71" },
+        ],
+      },
+    },
+    scope,
+  );
+
+  const events = await readEvents(scope);
+  const assessment = events.find((ev) => ev.id === assessmentId);
+  assert.equal(assessment?.links?.supports.length, 3);
+  assert.deepEqual(assessment?.links?.supports[1], {
+    kind: "vitals_window",
+    ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:10:00-05:00",
+    selection: {
+      metric: "spo2",
+      from: "2026-04-18T08:00:00-05:00",
+      to: "2026-04-18T08:10:00-05:00",
+      encounterId: "enc_001",
+    },
+  });
+  assert.deepEqual(assessment?.links?.supports[2], {
+    kind: "external",
+    ref: "synthea://enc_001?resource=Observation/obs_71",
+  });
+});
+
 test("writeArtifactRef normalizes in-scope paths and rejects escapes", async () => {
   const scope = await tmpChart();
   const normalizedId = await writeArtifactRef({

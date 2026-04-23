@@ -1,8 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { promises as fs } from "node:fs";
-import os from "node:os";
 import { loadValidator } from "./schema.js";
 
 const FIXTURE_ROOT = path.resolve(import.meta.dirname, "..");
@@ -25,6 +23,45 @@ const goodEvent = {
 test("known-good clinical event validates", async () => {
   const v = await loadValidator(FIXTURE_ROOT, "event.schema.json");
   assert.equal(v(goodEvent), true);
+});
+
+test("canonical EvidenceRef plus transform/resolves/contradicts validate", async () => {
+  const v = await loadValidator(FIXTURE_ROOT, "event.schema.json");
+  const ok = {
+    ...goodEvent,
+    type: "assessment",
+    certainty: "inferred",
+    data: { summary: "derived assessment" },
+    links: {
+      supports: [
+        {
+          kind: "event",
+          ref: "evt_20260418T0815_01",
+          role: "primary",
+          basis: "same-patient source event",
+          derived_from: [
+            {
+              kind: "external",
+              ref: "synthea://enc_001?resource=Observation/obs_71",
+            },
+          ],
+        },
+      ],
+      resolves: ["evt_open_loop_01"],
+      contradicts: [{ ref: "evt_prior_claim_01", basis: "conflicting evidence" }],
+    },
+    transform: {
+      activity: "infer",
+      tool: "agent-inference-engine",
+      input_refs: [
+        {
+          kind: "external",
+          ref: "synthea://enc_001?resource=Observation/obs_71",
+        },
+      ],
+    },
+  };
+  assert.equal(v(ok), true, JSON.stringify(v.errors, null, 2));
 });
 
 test("interval-shaped event validates with effective_period", async () => {

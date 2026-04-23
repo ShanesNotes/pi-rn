@@ -328,30 +328,31 @@ async function assertEventIntegrityAtWrite(
   }
 
   for (const raw of links.supports ?? []) {
-    const ref = parseEvidenceRef(raw as string);
+    const ref = parseEvidenceRef(raw);
     if (!ref) {
       throw new Error("links.supports: malformed evidence reference");
     }
     switch (ref.kind) {
       case "event":
-        assertKnownTargetId(targets, ref.id, "links.supports");
+        assertKnownTargetId(targets, ref.ref, "links.supports");
         break;
       case "note":
-        assertKnownTargetId(targets, ref.id, "links.supports");
-        if (!targets.noteIds.has(ref.id)) {
-          throw new Error(`links.supports: target '${ref.id}' is not a note`);
+        assertKnownTargetId(targets, ref.ref, "links.supports");
+        if (!targets.noteIds.has(ref.ref)) {
+          throw new Error(`links.supports: target '${ref.ref}' is not a note`);
         }
         break;
       case "artifact":
         assertTargetType(
           targets,
-          ref.id,
+          ref.ref,
           "links.supports",
           (target) => target.type === "artifact_ref",
-          `target '${ref.id}' must be an artifact_ref`,
+          `target '${ref.ref}' must be an artifact_ref`,
         );
         break;
-      case "vitals":
+      case "vitals_window":
+      case "external":
         break;
     }
   }

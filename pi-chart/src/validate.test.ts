@@ -601,7 +601,7 @@ test("invariant 10: links.addresses targeting an arbitrary observation is reject
   );
 });
 
-test("links.supports accepts a structured vitals EvidenceRef", async () => {
+test("links.supports accepts a legacy structured vitals EvidenceRef", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);
   const lines = (await fs.readFile(evPath, "utf8")).trim().split("\n");
@@ -622,6 +622,69 @@ test("links.supports accepts a structured vitals EvidenceRef", async () => {
   await fs.writeFile(evPath, lines.join("\n") + "\n");
   const r = await validateChart(scope);
   assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
+test("legacy structured vitals without encounterId remain valid", async () => {
+  const scope = await copyFixture();
+  const evPath = patientTimelineEvents(scope);
+  const lines = (await fs.readFile(evPath, "utf8")).trim().split("\n");
+  const assessment = JSON.parse(lines[2]);
+  assessment.links.supports = [
+    ...assessment.links.supports.filter((s: unknown) => typeof s === "string"),
+    {
+      kind: "vitals",
+      metric: "spo2",
+      from: "2026-04-18T08:00:00-05:00",
+      to: "2026-04-18T08:45:00-05:00",
+    },
+  ];
+  lines[2] = JSON.stringify(assessment);
+  await fs.writeFile(evPath, lines.join("\n") + "\n");
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
+test("links.supports accepts a canonical vitals_window EvidenceRef", async () => {
+  const scope = await copyFixture();
+  const evPath = patientTimelineEvents(scope);
+  const lines = (await fs.readFile(evPath, "utf8")).trim().split("\n");
+  const assessment = JSON.parse(lines[2]);
+  assessment.links.supports = [
+    ...assessment.links.supports.filter((s: unknown) => typeof s === "string"),
+    {
+      kind: "vitals_window",
+      ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:45:00-05:00",
+      selection: {
+        metric: "spo2",
+        from: "2026-04-18T08:00:00-05:00",
+        to: "2026-04-18T08:45:00-05:00",
+        encounterId: "enc_001",
+      },
+    },
+  ];
+  lines[2] = JSON.stringify(assessment);
+  await fs.writeFile(evPath, lines.join("\n") + "\n");
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
+test("external EvidenceRef is structurally accepted but does not satisfy assessment evidence", async () => {
+  const scope = await copyFixture();
+  const evPath = patientTimelineEvents(scope);
+  const lines = (await fs.readFile(evPath, "utf8")).trim().split("\n");
+  const assessment = JSON.parse(lines[2]);
+  assessment.links.supports = [
+    {
+      kind: "external",
+      ref: "synthea://enc_001?resource=Observation/obs_71",
+      role: "context",
+    },
+  ];
+  lines[2] = JSON.stringify(assessment);
+  await fs.writeFile(evPath, lines.join("\n") + "\n");
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => /assessment.*links\.supports/.test(e.message)));
+  assert(!r.errors.some((e) => /unknown target id|malformed structured EvidenceRef|unknown kind/.test(e.message)));
 });
 
 test("artifact_ref absolute path is rejected", async () => {

@@ -88,22 +88,54 @@ export interface EffectivePeriod {
 }
 
 /**
- * Canonical evidence reference union. Bare strings in `links.supports`
+ * Canonical evidence reference shape. Bare strings in `links.supports`
  * are still accepted on the wire (back-compat: event/note ids; vitals://
- * URIs) and parse into one of these kinds. Writers may emit either form;
- * readers normalize via `parseEvidenceRef`.
+ * URIs); readers normalize them via `parseEvidenceRef`.
  */
-export type EvidenceRef =
-  | { kind: "event"; id: string }
-  | {
-      kind: "vitals";
-      metric: string;
-      from: string;            // ISO 8601
-      to: string;              // ISO 8601
-      encounterId?: string;
-    }
-  | { kind: "note"; id: string }
-  | { kind: "artifact"; id: string };
+export type EvidenceRole =
+  | "primary"
+  | "context"
+  | "counterevidence"
+  | "trigger"
+  | "confirmatory";
+
+export type EvidenceKind =
+  | "event"
+  | "vitals_window"
+  | "note"
+  | "artifact"
+  | "external"
+  | "vitals";
+
+export interface EvidenceRef {
+  ref: string;
+  kind: EvidenceKind;
+  role?: EvidenceRole;
+  basis?: string;
+  selection?: Record<string, unknown>;
+  derived_from?: EvidenceRef[];
+}
+
+export interface ContradictsLink {
+  ref: string;
+  basis: string;
+}
+
+export type TransformActivity =
+  | "import"
+  | "normalize"
+  | "extract"
+  | "summarize"
+  | "infer"
+  | "transcribe";
+
+export interface TransformBlock {
+  activity: TransformActivity;
+  tool: string;
+  version?: string;
+  run_id?: string;
+  input_refs?: EvidenceRef[];
+}
 
 export interface Links {
   /** Evidence this claim rests on. Mix of bare ids, vitals:// URIs, or EvidenceRef objects. */
@@ -112,11 +144,13 @@ export interface Links {
   corrects?: string[];
   /** Action/outcome → intent; validator enforces intent typing. */
   fulfills?: string[];
-  /** Intent/action → problem (or intent). Validator enforces target typing. */
+  /** Intent/action → problem; validator enforces target typing. */
   addresses?: string[];
+  resolves?: string[];
+  contradicts?: ContradictsLink[];
 }
 
-interface EventEnvelopeBase {
+export interface EventEnvelopeBase {
   id: string;
   type: EventType;
   subtype?: string;
@@ -125,6 +159,7 @@ interface EventEnvelopeBase {
   recorded_at: string;
   author: Author;
   source: Source;
+  transform?: TransformBlock;
   certainty?: Certainty;
   status: Status;
   data?: Record<string, unknown>;
@@ -285,6 +320,12 @@ export interface OpenLoopsParams {
   scope: PatientScope;
   asOf?: string;
 }
+
+export type OpenLoopKind =
+  | "pending_intent"
+  | "overdue_intent"
+  | "unacknowledged_communication"
+  | "contested_claim";
 
 export type OpenLoopState = "pending" | "in_progress" | "overdue" | "failed";
 

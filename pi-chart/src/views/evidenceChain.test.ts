@@ -102,6 +102,76 @@ test("vitals ref: chain resolves to trend points", async () => {
   assert(ref.points.length >= 2);
 });
 
+test("canonical vitals_window refs preserve the existing EvidenceNode output shape", async () => {
+  const scope = await makeEmptyPatient();
+  for (let i = 0; i < 3; i++) {
+    await appendRawVital(scope, "2026-04-18", {
+      sampled_at: `2026-04-18T08:${String(i * 5).padStart(2, "0")}:00-05:00`,
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      source: { kind: "monitor_extension" },
+      name: "spo2",
+      value: 94 - i,
+    });
+  }
+
+  const legacyId = "evt_ass_legacy";
+  const canonicalId = "evt_ass_canonical";
+  const baseAssessment = {
+    type: "assessment",
+    subtype: "trend",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:20:00-05:00",
+    recorded_at: "2026-04-18T08:20:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "drop" },
+  };
+
+  await appendRawEvent(scope, "2026-04-18", {
+    id: legacyId,
+    ...baseAssessment,
+    links: {
+      supports: [
+        {
+          kind: "vitals",
+          metric: "spo2",
+          from: "2026-04-18T08:00:00-05:00",
+          to: "2026-04-18T08:15:00-05:00",
+          encounterId: "enc_001",
+        },
+      ],
+    },
+  });
+
+  await appendRawEvent(scope, "2026-04-18", {
+    id: canonicalId,
+    ...baseAssessment,
+    links: {
+      supports: [
+        {
+          kind: "vitals_window",
+          ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:15:00-05:00",
+          selection: {
+            metric: "spo2",
+            from: "2026-04-18T08:00:00-05:00",
+            to: "2026-04-18T08:15:00-05:00",
+            encounterId: "enc_001",
+          },
+        },
+      ],
+    },
+  });
+
+  const legacy = await evidenceChain({ scope, eventId: legacyId });
+  const canonical = await evidenceChain({ scope, eventId: canonicalId });
+  if (legacy.kind !== "event" || canonical.kind !== "event") throw new Error();
+  assert.deepEqual(canonical.supports, legacy.supports);
+});
+
 test("vitals ref preserves encounter scoping across evidenceChain -> trend", async () => {
   const scope = await makeEmptyPatient();
   await appendRawVital(scope, "2026-04-18", {
@@ -186,7 +256,7 @@ test("artifact ref: chain drops escaped paths even if the file exists outside ar
     certainty: "inferred",
     status: "active",
     data: { summary: "consistent with report" },
-    links: { supports: [{ kind: "artifact", id: "evt_art_01" }] },
+    links: { supports: [{ kind: "artifact", ref: "evt_art_01" }] },
   });
   const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
   if (node.kind !== "event") throw new Error();
@@ -228,7 +298,7 @@ test("note ref: chain resolves to NarrativeEntry", async () => {
     status: "active",
     data: { summary: "stable per handoff" },
     links: {
-      supports: [{ kind: "note", id: "note_20260418T0845_sbar" }],
+      supports: [{ kind: "note", ref: "note_20260418T0845_sbar" }],
     },
   });
   const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
@@ -274,7 +344,7 @@ test("artifact ref: chain resolves to ArtifactPointer when file exists", async (
     certainty: "inferred",
     status: "active",
     data: { summary: "consistent with report" },
-    links: { supports: [{ kind: "artifact", id: "evt_art_01" }] },
+    links: { supports: [{ kind: "artifact", ref: "evt_art_01" }] },
   });
   const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
   if (node.kind !== "event") throw new Error();

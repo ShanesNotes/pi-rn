@@ -22,7 +22,11 @@ import {
   parseFrontmatter,
   readTextIfExists,
 } from "./fs-util.js";
-import { parseEvidenceRef, isVitalsUri } from "./evidence.js";
+import {
+  expandVitalsWindowRef,
+  isVitalsUri,
+  parseEvidenceRef,
+} from "./evidence.js";
 import { eventStartIso, parseIso, loadChartMeta } from "./time.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope, ReportEntry, ValidationReport } from "./types.js";
@@ -1096,19 +1100,13 @@ function supportsAcquisitionAction(
   envelopesById: Map<string, any>,
 ): boolean {
   for (const raw of supports) {
-    if (typeof raw === "string") {
-      const target = envelopesById.get(raw);
-      if (target?.type === "action" && ACQUISITION_ACTION_SUBTYPES.has(String(target?.subtype ?? ""))) {
-        return true;
-      }
-      continue;
-    }
-    if (!raw || typeof raw !== "object") continue;
-    const kind = (raw as any).kind;
-    const id = (raw as any).id;
-    if (kind !== "event" || typeof id !== "string") continue;
-    const target = envelopesById.get(id);
-    if (target?.type === "action" && ACQUISITION_ACTION_SUBTYPES.has(String(target?.subtype ?? ""))) {
+    const ref = parseEvidenceRef(raw);
+    if (!ref || ref.kind !== "event") continue;
+    const target = envelopesById.get(ref.ref);
+    if (
+      target?.type === "action" &&
+      ACQUISITION_ACTION_SUBTYPES.has(String(target?.subtype ?? ""))
+    ) {
       return true;
     }
   }
@@ -1211,11 +1209,12 @@ async function resolveSupportsString(
 ) {
   if (isVitalsUri(target)) {
     const ref = parseEvidenceRef(target);
-    if (!ref || ref.kind !== "vitals") {
+    const window = ref ? expandVitalsWindowRef(ref) : null;
+    if (!window) {
       err(state, where, `links.supports: malformed vitals URI '${target}'`);
       return;
     }
-    const has = await vitalsWindowHasSamples(state.patientRoot, ref);
+    const has = await vitalsWindowHasSamples(state.patientRoot, window);
     if (!has) {
       err(state, where, `links.supports: vitals URI '${target}' matches no samples`);
     }
@@ -1231,85 +1230,69 @@ async function resolveSupportsObject(
   where: string,
   raw: Record<string, unknown>,
 ) {
-  const kind = raw.kind;
-  switch (kind) {
+  const inputKind = typeof raw.kind === "string" ? raw.kind : "unknown";
+  const ref = parseEvidenceRef(raw);
+  if (!ref) {
+    err(state, where, `links.supports[kind=${inputKind}]: malformed structured EvidenceRef`);
+    return;
+  }
+
+  switch (ref.kind) {
     case "event":
     case "note":
     case "artifact": {
-      const id = raw.id;
-      if (typeof id !== "string" || id.length === 0) {
-        err(state, where, `links.supports[kind=${kind}]: missing id`);
-        return;
-      }
+      const id = ref.ref;
       if (!state.allIds.has(id)) {
         err(
           state,
           where,
-          `links.supports[kind=${kind}]: unknown target id '${id}' (invariant 6: cross-patient links rejected)`,
+          `links.supports[kind=${inputKind}]: unknown target id '${id}' (invariant 6: cross-patient links rejected)`,
         );
         return;
       }
-      if (kind === "note" && !state.noteIds.has(id)) {
-        err(state, where, `links.supports[kind=note]: id '${id}' is not a note`);
+      if (ref.kind === "note" && !state.noteIds.has(id)) {
+        err(state, where, `links.supports[kind=${inputKind}]: id '${id}' is not a note`);
       }
-      if (kind === "artifact") {
+      if (ref.kind === "artifact") {
         const ttype = state.eventTypes.get(id);
         if (ttype && ttype !== "artifact_ref") {
           err(
             state,
             where,
-            `links.supports[kind=artifact]: id '${id}' is type '${ttype}', expected 'artifact_ref'`,
+            `links.supports[kind=${inputKind}]: id '${id}' is type '${ttype}', expected 'artifact_ref'`,
           );
         }
       }
       return;
     }
-    case "vitals": {
-      const metric = raw.metric;
-      const from = raw.from;
-      const to = raw.to;
-      if (
-        typeof metric !== "string" ||
-        typeof from !== "string" ||
-        typeof to !== "string"
-      ) {
-        err(state, where, "links.supports[kind=vitals]: requires metric, from, to");
+    case "vitals_window": {
+      const window = expandVitalsWindowRef(ref);
+      if (!window) {
+        err(state, where, `links.supports[kind=${inputKind}]: malformed vitals window`);
         return;
       }
-      if (!Number.isFinite(Date.parse(from)) || !Number.isFinite(Date.parse(to))) {
-        err(state, where, "links.supports[kind=vitals]: invalid from/to timestamps");
+      if (Date.parse(window.from) > Date.parse(window.to)) {
+        err(state, where, `links.supports[kind=${inputKind}]: from is after to`);
         return;
       }
-      if (Date.parse(from) > Date.parse(to)) {
-        err(state, where, "links.supports[kind=vitals]: from is after to");
-        return;
-      }
-      const encounterId =
-        typeof raw.encounterId === "string" ? raw.encounterId : undefined;
-      const has = await vitalsWindowHasSamples(state.patientRoot, {
-        kind: "vitals",
-        metric,
-        from,
-        to,
-        ...(encounterId ? { encounterId } : {}),
-      });
+      const has = await vitalsWindowHasSamples(state.patientRoot, window);
       if (!has) {
         err(
           state,
           where,
-          `links.supports[kind=vitals]: metric '${metric}' has no samples in [${from}, ${to}]`,
+          `links.supports[kind=${inputKind}]: metric '${window.metric}' has no samples in [${window.from}, ${window.to}]`,
         );
       }
       return;
     }
-    default:
-      err(state, where, `links.supports: unknown kind '${String(kind)}'`);
+    case "external":
+      return;
   }
 }
 
 async function vitalsWindowHasSamples(
   patientDir: string,
-  ref: Extract<ReturnType<typeof parseEvidenceRef>, { kind: "vitals" }>,
+  ref: { metric: string; from: string; to: string; encounterId?: string },
 ): Promise<boolean> {
   const fromMs = Date.parse(ref.from);
   const toMs = Date.parse(ref.to);
@@ -1331,23 +1314,12 @@ function hasObservationEvidence(
   eventTypes: Map<string, string>,
 ): boolean {
   for (const raw of supports) {
-    if (typeof raw === "string") {
-      if (isVitalsUri(raw)) return true;
-      const t = eventTypes.get(raw);
+    const ref = parseEvidenceRef(raw);
+    if (!ref) continue;
+    if (ref.kind === "vitals_window" || ref.kind === "artifact") return true;
+    if (ref.kind === "event") {
+      const t = eventTypes.get(ref.ref);
       if (t === "observation" || t === "artifact_ref") return true;
-      continue;
-    }
-    if (raw && typeof raw === "object") {
-      const kind = (raw as any).kind;
-      if (kind === "vitals") return true;
-      if (kind === "artifact") return true;
-      if (kind === "event") {
-        const id = (raw as any).id;
-        if (typeof id === "string") {
-          const t = eventTypes.get(id);
-          if (t === "observation" || t === "artifact_ref") return true;
-        }
-      }
     }
   }
   return false;

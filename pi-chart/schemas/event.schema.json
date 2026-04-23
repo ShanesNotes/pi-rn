@@ -13,6 +13,56 @@
     "source",
     "status"
   ],
+  "$defs": {
+    "EvidenceRef": {
+      "description": "Canonical EvidenceRef. Phase 1 also accepts legacy structured refs for back-compat while parser normalization remains in place.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["ref", "kind"],
+          "properties": {
+            "ref": { "type": "string", "minLength": 1 },
+            "kind": {
+              "type": "string",
+              "enum": ["event", "vitals_window", "note", "artifact", "external", "vitals"]
+            },
+            "role": {
+              "type": "string",
+              "enum": ["primary", "context", "counterevidence", "trigger", "confirmatory"]
+            },
+            "basis": { "type": "string", "maxLength": 500 },
+            "selection": { "type": "object" },
+            "derived_from": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/EvidenceRef" }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["event", "note", "artifact"] },
+            "id": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "metric", "from", "to"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["vitals"] },
+            "metric": { "type": "string" },
+            "from": { "type": "string", "format": "date-time" },
+            "to": { "type": "string", "format": "date-time" },
+            "encounterId": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
   "properties": {
     "id": {
       "type": "string",
@@ -98,6 +148,25 @@
         }
       }
     },
+    "transform": {
+      "type": "object",
+      "required": ["activity", "tool"],
+      "properties": {
+        "activity": {
+          "type": "string",
+          "enum": ["import", "normalize", "extract", "summarize", "infer", "transcribe"]
+        },
+        "tool": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "run_id": { "type": "string" },
+        "input_refs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EvidenceRef" }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Activity-centric provenance. Declares the processing path that produced the payload. Distinct from source.kind (who) and author (which identifier)."
+    },
     "certainty": {
       "type": "string",
       "enum": ["observed", "reported", "inferred", "planned", "performed"],
@@ -131,17 +200,7 @@
                 "description": "Bare string form. Either an event/note id (e.g. 'evt_20260418T0815_01' or 'note_20260418T0845_sbar') OR a vitals interval URI of the form 'vitals://<encounter_id>?name=<metric>&from=<iso8601>&to=<iso8601>[&unit=<unit>]'."
               },
               {
-                "type": "object",
-                "required": ["kind"],
-                "properties": {
-                  "kind": { "enum": ["event", "vitals", "note", "artifact"] },
-                  "id": { "type": "string" },
-                  "metric": { "type": "string" },
-                  "from": { "type": "string", "format": "date-time" },
-                  "to": { "type": "string", "format": "date-time" },
-                  "encounterId": { "type": "string" }
-                },
-                "description": "Structured EvidenceRef. Use kind:event/note/artifact for explicit record references and kind:vitals for encounter-scoped trend windows. Kind-specific required fields (id for event/note/artifact; metric/from/to for vitals) are enforced by the validator."
+                "$ref": "#/$defs/EvidenceRef"
               }
             ]
           },
@@ -165,7 +224,25 @@
         "addresses": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "IDs of problems (or, when chained via an intent, the intent itself) this claim addresses. Validator enforces target types."
+          "description": "Problem-targeting targets only. IDs of assessment/problem events this claim addresses. Validator enforces target typing; loop-closing uses links.resolves in later phases."
+        },
+        "resolves": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Open-loop-closing or contradiction-resolution target ids. Validator target typing lands in a later ADR 015 phase."
+        },
+        "contradicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ref", "basis"],
+            "properties": {
+              "ref": { "type": "string", "minLength": 1 },
+              "basis": { "type": "string", "minLength": 1, "maxLength": 500 }
+            },
+            "additionalProperties": false
+          },
+          "description": "Structural disagreement with a prior peer claim. Direction and resolution semantics are enforced in later ADR 015 phases."
         }
       }
     }
