@@ -353,3 +353,40 @@ When the video annotates a UI region, a **white rounded rectangle** with the fie
 | Two-layer outline color | full-lane outline color tracks dominant-alarm priority (red, amber, cyan) |
 | Yellow blink animation | extend earlier M02 spec: alternates `#F8EF1F` ↔ `#8B8C1A` at 1Hz |
 
+---
+
+# Module 10 Summary — "QRS Morphology and Lead Selection"
+
+**Source:** training video #10 (`XzDNhomB4nU`), 720p, 183s. **Full detail:** [`m10/SYNTHESIS.md`](m10/SYNTHESIS.md). 3-model synthesis. **Canonical reference for Phase 2 waveform widget.**
+
+## Key findings
+
+- **ECG row anatomy** (consensus): lead label top-left + mode marker `M` + fixed `1mV` calibration bar near start-of-trace + scrolling green trace + `Sinus Rhythm` label upper-right.
+- **Two ECG rows** = primary (top) + secondary (second). Lead changes update one row only.
+- **Sweep direction = TWO MODES** (resolved disagreement): erase-bar (default) and scrolling (`Dynamic Waves` mode, `*` suffix indicates non-default profile). Implement both, profile-switchable.
+- **Lead context menu** (cross-module M03 + M10): tap row → beige modal `~#D6D2C7`, items = Freeze Wave / Primary Lead {current} / Secondary Lead {current} / New Lead Setup / Auto Size / Size Up / Size Down / Annotate Arrhy.
+- **Nested side picker** (cross-module M02 + M10): narrow beige side panel attached right edge of parent modal for enumerated value selection. Reusable for leads / limits / profiles.
+- **Selection halo** = purple gradient (consensus): outer `~#A769D6` glow, darker edge `~#6D4991`. `QGraphicsDropShadowEffect` natural fit.
+- **Multi-lead vs single-lead analysis modes**: independent of selection. Both rows glow = multi-lead (algorithm uses both for HR + arrhythmia). One row glows = single-lead (used when only one has clean signal).
+- **Paced-pulse marker**: small `‖‖` double-bar glyph at pacer-spike position on ECG trace.
+- **Arrhythmia event overlay**: translucent lavender rectangle over QRS region for PAC/PVC events with `Ectopic beat / Premature Atrial Contraction (PAC)` label tag below.
+- **Touch-first interaction model**: purple hand-pointer demonstrates tap interactions throughout. Wire `QGestureRecognizer`, 44pt minimum touch targets.
+- **Footer button label clarity** (claude frame 19): `Start/Stop` → `Start/Stop NBP`; `Stop All` → `Stop All NBP`. New `Quick Admit` button (fast-path admit dialog).
+- **Channel hex palette** (codex measurements): green `~#43FF02`, cyan `~#71D0D6`, yellow `~#E8ED9D`, modal beige `~#D6D2C7`, blue Setup-tile `~#2555D1`, purple selection-glow `~#A769D6`. JPEG-derived; treat as starting point.
+
+## Implications for `monitor-ui/` (Phase 2 critical)
+
+| New pattern | PySide6 hint |
+|---|---|
+| `WaveformWidget` ECG row | label + `M` mode + fixed `1mV` cal bar + scrolling trace + classification label slot |
+| Two-mode sweep | erase-bar (default) and scrolling (Dynamic Waves); profile-switchable; `*` suffix when changed from saved |
+| Dual ECG row architecture | primary + secondary, independently configured |
+| `IntelliVueSidePicker` | reusable side-panel for enumerated value selection (leads, limits, profiles) |
+| Selection halo | `QGraphicsDropShadowEffect` purple gradient |
+| Mode highlighting | one-row vs both-row glow conveys single-lead vs multi-lead analysis mode |
+| Paced-pulse marker | `‖‖` glyph rendered at beat position when `paced=True` |
+| Arrhythmia event overlay | translucent lavender rectangle + label tag |
+| Touch gesture support | `QGestureRecognizer` tap, 44pt min targets |
+| `Quick Admit` button | fast-path subset of Patient Demographics |
+| `Start/Stop NBP` rename | clarify NBP-specific footer buttons |
+
