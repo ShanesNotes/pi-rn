@@ -50,6 +50,7 @@ This file documents the payload conventions for the six clinical types. See
 
   "author": { "id": "pi-agent", "role": "rn_agent", "run_id": "run_..." },
   "source": { "kind": "patient_statement", "ref": "bedside" },   // kind drawn from closed taxonomy in DESIGN §1.1 (ADR 006)
+  "transform": { "activity": "infer", "tool": "agent-inference-engine", "run_id": "run_..." }, // OPTIONAL processing-path provenance (ADR 011)
 
   "certainty": "observed | reported | inferred | planned | performed",
   "status":    "draft | active | final | superseded | entered_in_error",  // graph lifecycle only (ADR 002)
@@ -65,10 +66,24 @@ This file documents the payload conventions for the six clinical types. See
     "supersedes":  ["evt_..."],   // what this replaces (new version); also used to close open intervals + detail transitions
     "corrects":    ["evt_..."],   // narrower than supersedes — flags prior error
     "fulfills":    ["evt_..."],   // SOURCES must be action; TARGETS must be intent (invariant 10, ADR 003)
-    "addresses":   ["evt_..."]    // intent → problem-subtype assessment or parent intent (invariant 10)
+    "addresses":   ["evt_..."],   // intent/action → problem-subtype assessment only (ADR 009)
+    "resolves":    ["evt_..."],   // loop-closing or contradiction-resolution target ids (ADR 009)
+    "contradicts": [{ "ref": "evt_...", "basis": "..." }] // later-written structural disagreement (ADR 009)
   }
 }
 ```
+
+Link semantics:
+
+| Link | Payload | Meaning |
+|---|---|---|
+| `supports` | `Array<string \| EvidenceRef>` | Reasoning support for the current claim. Bare ids / URIs stay valid; structured refs are canonical. |
+| `supersedes` | `string[]` | Replaces a prior claim while keeping the old claim in the audit trail. |
+| `corrects` | `string[]` | Narrows `supersedes` to "the prior claim was wrong / entered in error." |
+| `fulfills` | `string[]` | `action` → `intent` closure only (ADR 003). |
+| `addresses` | `string[]` | Problem-targeting only: intent/action → `assessment.problem` (ADR 009). |
+| `resolves` | `string[]` | Loop-closing or contradiction-resolution targets (ADR 009). |
+| `contradicts` | `Array<{ref, basis}>` | Later-written peer-claim tension with a prior event; both claims remain until resolved (ADR 009). |
 
 ---
 
@@ -296,17 +311,36 @@ They don't mean the same thing and they can vary independently.
 `EvidenceRef` objects:
 
 ```ts
-type EvidenceRef =
-  | { kind: "event"; id: string }
-  | { kind: "note"; id: string }
-  | { kind: "artifact"; id: string }
-  | { kind: "vitals"; metric: string; from: string; to: string; encounterId?: string };
+type EvidenceRole =
+  | "primary"
+  | "context"
+  | "counterevidence"
+  | "trigger"
+  | "confirmatory";
+
+interface EvidenceRef {
+  ref: string; // event/note/artifact id, vitals:// URI, or external URI
+  kind: "event" | "note" | "artifact" | "vitals_window" | "external" | "vitals";
+  role?: EvidenceRole;
+  basis?: string;
+  selection?: Record<string, unknown>;
+  derived_from?: EvidenceRef[];
+}
 ```
+
+Bare strings remain valid on the wire. The object form is the canonical
+shape for structured authoring and is reused by `transform.input_refs[]`
+(ADR 011). `kind: "vitals"` is a one-release deprecated alias for
+`kind: "vitals_window"`. `role` distinguishes how the ref is being used,
+`basis` carries a short rationale specific to that ref, `selection`
+captures per-kind window/aggregation params, and `derived_from` records
+how the ref itself was produced. `derived_from` is provenance for the ref,
+not an alias for the current claim's `supports[]`.
 
 Per-row vitals samples don't carry ids, so the URI/object forms let
 assessments refer to trends without forcing every sample to be addressable.
-Structured note/artifact refs are the canonical way to cite narrative notes
-and artifact events inside `links.supports[]`.
+Structured note/artifact/external refs are the canonical way to cite
+narrative notes, artifact events, and imported resources.
 
 URI grammar:
 
@@ -327,12 +361,13 @@ window. An empty window is a validation error.
 The validator also enforces the assessment-evidence rule: every
 `assessment` event's `links.supports[]` must include at least one
 `observation` event, vitals window (`vitals://` shorthand or structured
-`{ kind: "vitals", ... }`), or `artifact_ref` event. Structured `note` refs
-may appear for context, but they do not satisfy invariant 5 by themselves.
-Pure unsupported inference is rejected. Assessments cannot cite other
-assessments as support — the validator (`hasObservationEvidence` in
-`src/validate.ts`) narrows bare-id support targets to `observation` and
-`artifact_ref`.
+`{ kind: "vitals_window", ref: "vitals://...", selection?: ... }`, with
+legacy `kind: "vitals"` accepted for one release), or `artifact_ref`
+event. Structured `note` refs may appear for context, but they do not
+satisfy invariant 5 by themselves. Pure unsupported inference is rejected.
+Assessments cannot cite other assessments as support — the validator
+(`hasObservationEvidence` in `src/validate.ts`) narrows bare-id support
+targets to `observation` and `artifact_ref`.
 
 ---
 

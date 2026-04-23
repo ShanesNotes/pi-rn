@@ -55,11 +55,13 @@ There is no "MIMIC mode" and no "live mode." There is a MIMIC writer and
 a pi-sim writer; both emit envelopes. The chart sees envelopes. This is
 the core invariant and it is not broken by any downstream feature.
 
-### Envelope disciplines (post ADRs 002–006, 2026-04-20)
+### Envelope disciplines (post ADRs 002–011, 2026-04-22)
 
-The six clinical types, five link types, and six view primitives are
-unchanged. ADRs 002–006 refine *how* envelope fields are disciplined
-without expanding the primitive grammar:
+The six clinical types and six view primitives remain. ADRs 002–011
+refine the envelope grammar with seven link surfaces
+(`supports`, `supersedes`, `corrects`, `fulfills`, `addresses`,
+`resolves`, `contradicts`) plus an optional `transform` provenance
+block:
 
 - **Envelope `status` remains graph-lifecycle.** Domain lifecycle
   (`preliminary`, `on_hold`, `failed`, `declined`, `cancelled`, etc.)
@@ -82,10 +84,23 @@ without expanding the primitive grammar:
 - **Closed `source.kind` taxonomy.** Enumerated in §1.1 below;
   validator warn-on-unknown, promotes to error in the next minor.
   `agent_reasoning` collapses into `agent_inference` (ADR 006).
+- **Link taxonomy expands and narrows.** `addresses` is now
+  problem-targeting only; `resolves` closes open loops and contradiction
+  chains; `contradicts` records later-written structural disagreement
+  with a prior peer claim (ADR 009).
+- **`EvidenceRef` has one canonical shape.** Structured refs use
+  `{ ref, kind, role?, basis?, selection?, derived_from? }`; `kind`
+  adds `vitals_window` and `external`, with `vitals` retained as a
+  one-release alias. Bare-string support refs remain valid on the wire
+  (ADR 010).
+- **Optional `transform` provenance.** `transform: { activity, tool,
+  version?, run_id?, input_refs? }` records processing-path provenance
+  without changing `source.kind` semantics. `transform.input_refs`
+  reuses the `EvidenceRef` definition (ADR 011).
 
-These disciplines do not change the §0 primitives. They remove
-ambiguity so the type/link/view grammar carries more semantic load
-without growing.
+These disciplines keep the §0 claim-stream model intact. They remove
+ambiguity and add envelope precision so the type/link/view grammar can
+carry more semantic load without introducing a second data model.
 
 ### 1.1 `source.kind` registry
 
@@ -256,8 +271,8 @@ These make pi-chart an EHR rather than a chart:
 2. **No cross-patient writes.** An event's `subject` must match the
    directory it is being written into.
 3. **No cross-patient links.** `links.supports` / `supersedes` /
-   `corrects` / `fulfills` / `addresses` only resolve within the same
-   patient directory.
+   `corrects` / `fulfills` / `addresses` / `resolves` /
+   `contradicts[].ref` only resolve within the same patient directory.
 4. **Per-patient `_derived/`.** Each patient has their own disposable
    views. Deleting one patient's `_derived/` has no effect on any other.
 5. **Per-patient ids are locally unique; globally they are
@@ -759,6 +774,15 @@ MIMIC-IV deidentifies timestamps via subject-level date shifting. That
 shift is inside MIMIC's data; pi-chart's rebase is on top. Both must be
 recoverable from the envelope.
 
+ADR 011 adds a second provenance axis for imports: `source.kind` names
+the import family, while `transform` records the processing path that
+materialized the event in pi-chart. Imported events SHOULD pair the
+structured `source` object below with
+`transform: { activity: "import", tool, version?, run_id?, input_refs? }`.
+`source` remains the authoritative home for corpus ids/timestamps;
+`transform` records how the import ran. Historical v0.2 imports are not
+backfilled when the field is absent.
+
 Use a structured `source` object for every MIMIC-imported event:
 
 ```jsonc
@@ -867,27 +891,35 @@ needed — the seam is implicit in `source.kind` changing from
 Append-only stays a v0.1 invariant. This section specifies how views
 interpret the append-only log as coherent current state.
 
-### 6.1 Link taxonomy (v0.2)
+### 6.1 Link taxonomy (post ADR 009 docs gate)
 
 ```jsonc
 "links": {
   "supports":   [EvidenceRef, ...],   // reasoning support (§4.5)
   "supersedes": [eventId, ...],       // replaces prior claim
   "corrects":   [eventId, ...],       // flags prior claim as error
-  "fulfills":   [eventId, ...],       // action→intent, outcome→intent
-  "addresses":  [eventId, ...]        // intent→problem, action→problem
+  "fulfills":   [eventId, ...],       // action→intent only
+  "addresses":  [eventId, ...],       // intent/action→problem assessment only
+  "resolves":   [eventId, ...],       // loop-closing or contradiction resolution
+  "contradicts": [{ ref, basis }]     // later-written structural disagreement
 }
 ```
 
 - `supports` items may be `EvidenceRef` objects or bare id strings (§4.5).
-- `supersedes`, `corrects`, `fulfills`, `addresses` are always arrays of
-  event-id strings referencing events within the same patient.
+- `supersedes`, `corrects`, `fulfills`, `addresses`, and `resolves` are
+  arrays of event-id strings referencing events within the same patient.
+- `contradicts` is an array of `{ref, basis}` objects. The later-written
+  event carries the link; the earlier event gains only a read-time
+  `contradicted_by` decoration in views.
 - **`fulfills` sources are `action` events.** Observations and
   assessments do not carry `links.fulfills`; their relation to an
   upstream intent is indirect — expressed as `supports` on an
   intermediate acquisition action (`specimen_collection`,
   `imaging_acquired`, `procedure_performed`, `measurement`). See
   ADR 003.
+- **`addresses` is problem-targeting only.** Loop-closing semantics move
+  to `resolves`, which targets open-loop or contradiction-bearing
+  events. `contradicts` requires a short non-empty `basis`.
 
 ### 6.2 Writing corrections
 
@@ -932,7 +964,11 @@ entered-in-error." Views distinguish them.
 - `fulfills` **sources** must be events of type `action`; **targets**
   must be events of type `intent` (ADR 003).
 - `addresses` targets must be events of type `assessment` with subtype
-  `problem`, or of type `intent` (when an action addresses an order).
+  `problem` (ADR 009).
+- `resolves` targets must be open-loop-kind events or events that carry
+  a `contradicts` link (ADR 009).
+- `contradicts` entries must target earlier same-patient events and
+  carry a non-empty `basis` rationale (ADR 009).
 - **Acquisition actions required for data-producing orders** (ADR 003).
   An `intent.subtype = order` that produces a result is closed by an
   `action` with subtype in `{specimen_collection, imaging_acquired,
@@ -989,15 +1025,18 @@ message naming its number.
 1. Every claim has `source`, exactly one of (`effective_at` | `effective_period`) (ADR 005), `recorded_at`, `author`, `status`. Optional `data.status_detail` admits a per-subtype enum (ADR 002).
 2. pi-chart is append-oriented; no mutation of prior claims. `status_detail` and `effective_period.end` transitions use supersession, not in-place mutation.
 3. Derived files are not authoritative and may be hand-marked as such.
-4. No orphan claims — every `links.*` target exists within the same patient.
+4. No orphan claims — every `links.*` target, every `links.contradicts[*].ref`, and every patient-local `transform.input_refs[*]` entry exists within the same patient when its kind expects local resolution.
 5. Assessments must link to supporting observation / vitals / artifact evidence; missing support is a validator error. Bare-id support targets are narrowed to `observation` and `artifact_ref` (enforced by `hasObservationEvidence` in `validate.ts`); assessments cannot cite other assessments as support.
 6. **Patient isolation**: writes match `patients/<id>/chart.yaml.subject`; cross-patient links rejected.
 7. **Session transparency**: `author` is captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity**: no circular supersession; at most one supersessor per event.
 9. **Import provenance**: imported events (e.g. `source.kind: synthea_import`, `source.kind: mimic_iv_import`) carry origin ids + timestamps (corpus-specific: e.g. `subject_id`, `hadm_id`, `row_id`, `original_time`, `rebase_delta_ms`) structurally on `source` — not only in `source.ref`.
-10. **Fulfillment typing** (ADR 003): `links.fulfills` **sources** must be `action` events; **targets** must be `intent` events. Observations and assessments do not carry `fulfills` — they relate to an intent indirectly via an intermediate acquisition `action` (`specimen_collection`, `imaging_acquired`, `procedure_performed`, `measurement`). `links.addresses` targets must be problem-subtype assessments or intents (§6.4).
+10. **Fulfillment and closure typing** (ADRs 003, 009): `links.fulfills` **sources** must be `action` events; **targets** must be `intent` events. Observations and assessments do not carry `fulfills` — they relate to an intent indirectly via an intermediate acquisition `action` (`specimen_collection`, `imaging_acquired`, `procedure_performed`, `measurement`). `links.addresses` targets must be problem-subtype assessments; `links.resolves` targets must be open-loop-kind or contradiction-bearing events (§6.4).
 11. **Temporal shape** (ADR 005): exactly one of `effective_at` / `effective_period` per event. `effective_period` is allow-listed per `(type, subtype)` (CLAIM-TYPES). `recorded_at ≥ effective_at` except for future-dated `intent` events carrying `data.due_by` or `effective_period.start`.
 12. **`source.kind` taxonomy** (ADR 006): closed canonical list enumerated in §1.1. Validator warns on unknown kind in v0.2; errors in v0.3. `agent_reasoning` accepted with deprecation notice, migrates to `agent_inference`.
+13. **EvidenceRef discipline** (ADR 010): structured refs use the unified `{ref, kind, role?, basis?, selection?, derived_from?}` shape. At most one `role: primary` may appear per `supports[]` array, and `derived_from` provenance chains are acyclic and depth-bounded.
+14. **Transform coherence** (ADR 011): when `transform` is present, `transform.activity` and `source.kind` must be coherent. `transform.input_refs` resolves under the same semantics as `links.supports`, but records tool inputs rather than the author's stated evidence.
+15. **Contradiction direction** (ADR 009): the later-written event carries `links.contradicts` and supplies a non-empty `basis`; contradiction resolution happens via a later `resolves` link, not by mutating or silently deleting the original tension.
 
 ---
 

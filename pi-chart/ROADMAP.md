@@ -82,6 +82,18 @@ cleanup.
 | 005  | Interval primitive `effective_period`   | accepted 2026-04-21 | event.schema.json `oneOf` + `effective_period`; types/read/write/view interval-awareness; V-INTERVAL-01/02/03/04 (stop-event rejection); derived rebuild |
 | 006  | Closed `source.kind` taxonomy           | accepted 2026-04-21 | DESIGN §1.1 registry (amended with runtime agent kinds); V-SRC-01/02/03 (warn in v0.2); writer/source-kind cleanup; seed + repo-owned test/example normalization |
 
+## Tier 1 substrate ADRs — 2026-04-22 acceptance pass
+
+Three additive substrate ADRs were accepted on 2026-04-22 and batched
+under ADR 015 for phased implementation. Phase 0 is the docs gate in
+this commit; schema/runtime/validator/view phases remain pending.
+
+| ADR  | Topic                                           | Status | Implementation status |
+|------|-------------------------------------------------|--------|-----------------------|
+| 009  | `contradicts` link + `addresses` → `resolves`   | accepted 2026-04-22 | ADR 015 batch; Phase 0 docs gate landed 2026-04-22, code phases pending |
+| 010  | Typed `EvidenceRef` with roles                  | accepted 2026-04-22 | ADR 015 batch; Phase 0 docs gate landed 2026-04-22, code phases pending |
+| 011  | `transform` block provenance                    | accepted 2026-04-22 | ADR 015 batch; Phase 0 docs gate landed 2026-04-22, code phases pending |
+
 ## Deferred primitives (named now, decided later)
 
 From autoresearch `report.md` — additive layers that do **not** pressure
