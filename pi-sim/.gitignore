@@ -4,3 +4,6 @@ node_modules/
 .omx/
 __pycache__/
 *.py[cod]
+monitor-ui/refs/source/
+monitor-ui/refs/frames/
+monitor-ui/refs/m*/passes/
