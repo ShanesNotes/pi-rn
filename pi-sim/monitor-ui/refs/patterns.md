@@ -321,3 +321,35 @@ When the video annotates a UI region, a **white rounded rectangle** with the fie
 | Active vs Review dialogs | separate widgets — `AlarmMessagesDialog` and `ReviewAlarmsDialog` |
 | INOP wiring | when input is technical (`ECG Leads Off`, `ABP Artifact`, `Batt Empty`), emit INOP severity → cyan/yellow/red INOP fill + `!` prefix |
 
+---
+
+# Module 20 Summary — "Acknowledge, Adjust and Pause Alarms"
+
+**Source:** training video #20 (`6KnZfIxokzk`), 720p, 182s. **Full detail:** [`m20/SYNTHESIS.md`](m20/SYNTHESIS.md). 3-model synthesis.
+
+**Caveat — title is misleading.** Despite naming, this video is taxonomy-only: no Acknowledge press, pause countdown, or limit-adjust dialog visible in any frame. Pairs with M02 which has the action UI.
+
+## Key findings (delta to M02)
+
+- **3-slot banner zone confirmed** — top-bar reserves three parallel positions for simultaneous alarms: cyan INOP (left), yellow patient (center), red patient (right). All three can render together; renderer must not collapse.
+- **Hex color estimates** [codex]: cyan `~#28DDD8`, yellow `~#F8EF1F`, red `~#EF1414`. Olive blink-phase yellow `~#8B8C1A`. Verify against Philips palette for pixel-accurate work.
+- **Yellow blink phase confirmed cross-module** — same alarm, same pill, alternates bright/dim at ~1Hz. Second independent observation (after M02). Treat as canonical animation pattern.
+- **Two-layer banner confirmed cross-module** — full-lane outline (amber in m20, red in m02) is independent of the three pills. Color likely tracks dominant-alarm priority.
+- **Yellow sub-types** [claude from training overlays]: `**` Long = alarm limit violations (sustained); `*` Short = arrhythmia events (transient). Both audible. Distinction is duration class, drives downstream routing not visuals.
+- **INOP sub-types**:
+  - By audibility: **Hard INOP** = banner + audio; **Soft INOP** = banner only (silent).
+  - By severity: `!!!` red, `!!` yellow, no-prefix cyan.
+- **Banner silence badge** [gemini, frame `m20_007`]: red-X over speaker icon inline in banner pill = audible alarm for that parameter is silenced. Distinct from per-tile crossed-bell badge.
+- **Banner pill secondary indicator** [claude-only, unresolved]: small red rectangle at right edge of yellow pill — possible queue-depth or delayed-record cue. Re-examine in M26.
+
+## Implications for `monitor-ui/` (delta)
+
+| New pattern | PySide6 hint |
+|---|---|
+| 3-slot banner zone | `QHBoxLayout` with `inop_slot` / `yellow_slot` / `red_slot`, each holds 0..1 `BannerPill` |
+| Hard vs Soft INOP | `audible: bool` on alarm event; Hard triggers audio dispatch, Soft is visual-only |
+| Long vs Short yellow | `subtype: Literal['limit','arrhythmia']` for routing; same visual treatment |
+| Banner silence badge | optional inline red-X-over-speaker on `BannerPill`, separate widget from per-tile badge |
+| Two-layer outline color | full-lane outline color tracks dominant-alarm priority (red, amber, cyan) |
+| Yellow blink animation | extend earlier M02 spec: alternates `#F8EF1F` ↔ `#8B8C1A` at 1Hz |
+
