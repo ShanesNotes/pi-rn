@@ -390,3 +390,63 @@ When the video annotates a UI region, a **white rounded rectangle** with the fie
 | `Quick Admit` button | fast-path subset of Patient Demographics |
 | `Start/Stop NBP` rename | clarify NBP-specific footer buttons |
 
+---
+
+# Module 26 Summary — "Navigate the IntelliVue X3"
+
+**Source:** training video #26 (`JmAc_1Y9Ync`), 720p, 246s. **Full detail:** [`m26/SYNTHESIS.md`](m26/SYNTHESIS.md). 3-model synthesis. **Form-factor reference**.
+
+## Critical reframing
+
+X3 is a **form-factor variant** of IntelliVue, not a separate product. Portable handheld with right-side carry handle, smaller display. **Different navigation chrome but same underlying widget vocabulary** (Setup-X dialogs, banner zones, numeric tiles, beige modal, channel palette all preserved).
+
+Add `FormFactor.X3` to `MonitorConfig` parallel to `FormFactor.MX_SERIES`.
+
+## What changes on X3 vs MX
+
+| Aspect | MX-series | X3 |
+|---|---|---|
+| Footer | horizontal `QToolBar`, 10-15 buttons, `«»` overflow | **3-button vertical rail on LEFT inside display** |
+| Action menu | inline footer | **`SmartKeys` 3×6 grid overlay** (18 buttons) launched by `Keys` rail button |
+| Setup-X dialogs | centered modal | **split-screen: live preview LEFT, settings RIGHT** |
+| Default waveforms | 4-6 rows | **3 rows** (II/Pleth/Resp) |
+| ST analysis column | 8 rows | **2 rows** (ST-I, ST-V5) |
+| `DEMO` indicator | centered pill | small text label in info bar |
+| Device ID | `IVPM`, `MX700-1` | `X3-1`, `X3-4` |
+
+## Cross-form-factor consistency (preserved)
+
+- Same beige modal surface `~#D6D2C7`
+- Same 3-slot banner zone (cyan/yellow/red)
+- Same channel palette (green/cyan/red/yellow)
+- Same Setup-X field schemas (same fields, different presentation)
+- Same 6-tier alarm taxonomy
+- Same arrhythmia classification slot
+- Same touch-first interaction model
+
+## Key X3-specific findings
+
+- **Vertical 3-button rail** on left: Acknowledge `△✓` / Screen `□` / Keys `⋮⋮`. Idle `#595959`, focus glow `#77BEB6`, selected `#2940AE`.
+- **SmartKeys grid** (3×6, 18 buttons) replaces overflow toolbar entirely. `Main Setup` lives as bottom-right grid cell.
+- **Split-screen Setup-X dialogs**: live numeric/waveform preview left + scrollable settings list right. Smart adaptation for small screen.
+- **Change Screen modal** with left action column (Previous Screen / Auto Rotation / Lock Touch) + right preset list (3/4/5 Waves A-C / Overlapping).
+- **Lock Touch flow**: disables input, grays rail, shows bottom yellow `Confirm` bar with right-anchored Confirm button. Re-enable requires Confirm tap.
+- **Orientation detection**: portrait + handle-down triggers yellow `This device orientation is not supported` pill.
+- **Companion Mode** [codex-only]: X3 can dock with MX host. Boot screen shows blue `Companion Mode` + `No Alarm Display` bars. Defer for v1 simulator.
+- **Banner auto-dismiss** [codex]: 3-slot banner row visible early then gone in later home-screen frames — banners auto-clear after handling.
+
+## Implications for `monitor-ui/` (delta)
+
+| New pattern | PySide6 hint |
+|---|---|
+| `FormFactor` enum in `MonitorConfig` | drives footer chrome, default waveform count, Setup-X layout |
+| `X3VerticalRail` widget | 3-button vertical `QToolBar` on left, idle/focus/selected color states |
+| `SmartKeysOverlay` | 3×6 `QGridLayout` modal, icon-over-text `QToolButton`, X close, anchored to content area right of rail |
+| `X3SetupDialog(QSplitter)` | left = live preview widget for parameter, right = `IntelliVueModal` settings list. Reuse MX-series field schemas |
+| `ChangeScreenDialog` | two-pane: left action column + right preset list. Rail `Screen` tile stays selected while open |
+| `Auto Rotation` toggle + orientation handler | re-layout on `screen-orientation-changed` if enabled |
+| `Lock Touch` state machine | disable touch, gray rail, render Confirm bar. Re-enable on Confirm tap |
+| Orientation overlay | yellow pill if portrait + handle-down detected |
+| Compact info bar variant | DEMO as text label, drop centered pill when `form_factor=X3` |
+| Configurable ST lead list | `STAnalysisWidget(leads=[...])` so X3 can use 2 rows, MX can use 8 |
+
