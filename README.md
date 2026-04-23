@@ -2,21 +2,15 @@
 
 clinical agent system.
 
-## Layout
-
-```text
-pi-agent/   containerized Pi agent workspace
-pi-chart/   chart/EHR backend surface
-pi-sim/     hidden patient simulation backend
-```
-
 ## Intent
 
 - `pi-agent/` agent harness
 - `pi-chart/` agent-native clinical memory substrate
 - `pi-sim/` clinical monitor simulation
 
-Start simple: build boundaries first, then grow each subsystem deliberately.
+<img width="2102" height="1102" alt="image" src="https://github.com/user-attachments/assets/cda47c4e-a186-4d9e-89d0-2f0dc096d8d1" />
+
+
 
 
 
