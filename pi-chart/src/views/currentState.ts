@@ -25,12 +25,16 @@ import {
   resolveAsOfMs,
 } from "./active.js";
 import type {
+  ContestedRuntimeEntry,
   CurrentState,
   CurrentStateParams,
   EventEnvelope,
   TrendPoint,
 } from "../types.js";
-import { openLoops } from "./openLoops.js";
+import {
+  contestedRuntimeEntries,
+  openLoops,
+} from "./openLoops.js";
 
 export async function currentState(params: CurrentStateParams): Promise<CurrentState> {
   // Resolve asOf once — default "now" is chart-clock now (sim or wall)
@@ -39,15 +43,37 @@ export async function currentState(params: CurrentStateParams): Promise<CurrentS
   const asOfMs = await resolveAsOfMs(params.scope, params.asOf);
   const asOf = new Date(asOfMs).toISOString();
   const ctx = await loadContext(params.scope, asOf);
+  const contested = contestedRuntimeEntries(ctx);
+  const contestedByAxis = {
+    constraints: selectContested(contested, "constraints"),
+    problems: selectContested(contested, "problems"),
+    intents: selectContested(contested, "intents"),
+    observations: selectContested(contested, "observations"),
+  };
 
   switch (params.axis) {
     case "constraints":
-      return { axis: "constraints", items: collectConstraints(ctx) };
+      return {
+        axis: "constraints",
+        items: collectConstraints(ctx),
+        contested: contestedByAxis.constraints,
+      };
     case "problems":
-      return { axis: "problems", items: collectProblems(ctx) };
+      return {
+        axis: "problems",
+        items: collectProblems(ctx),
+        contested: contestedByAxis.problems,
+      };
     case "intents": {
       const loops = await openLoops({ scope: params.scope, asOf });
-      return { axis: "intents", items: loops };
+      return {
+        axis: "intents",
+        items: loops.filter(
+          (loop): loop is Exclude<typeof loop, { kind: "contested_claim" }> =>
+            !("kind" in loop) || loop.kind !== "contested_claim",
+        ),
+        contested: contestedByAxis.intents,
+      };
     }
     case "vitals":
       return {
@@ -57,14 +83,28 @@ export async function currentState(params: CurrentStateParams): Promise<CurrentS
     case "all": {
       const constraints = collectConstraints(ctx);
       const problems = collectProblems(ctx);
-      const intents = await openLoops({ scope: params.scope, asOf });
+      const intents = await openLoops({
+        scope: params.scope,
+        asOf,
+      });
       const vitals = await collectLatestVitals(params, asOf);
+      const observations = collectObservations(ctx);
       return {
         axis: "all",
         constraints,
         problems,
-        intents,
+        intents: intents.filter(
+          (loop): loop is Exclude<typeof loop, { kind: "contested_claim" }> =>
+            !("kind" in loop) || loop.kind !== "contested_claim",
+        ),
         vitals,
+        observations,
+        contested: {
+          constraints: contestedByAxis.constraints,
+          problems: contestedByAxis.problems,
+          intents: contestedByAxis.intents,
+          observations: contestedByAxis.observations,
+        },
       };
     }
   }
@@ -98,6 +138,30 @@ function collectProblems(ctx: ReturnType<typeof loadContext> extends Promise<inf
     a.id.localeCompare(b.id),
   );
   return out;
+}
+
+function collectObservations(
+  ctx: ReturnType<typeof loadContext> extends Promise<infer T> ? T : never,
+): EventEnvelope[] {
+  const out: EventEnvelope[] = [];
+  for (const ev of ctx.events) {
+    if (ev.type !== "observation") continue;
+    if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
+    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
+    out.push(ev);
+  }
+  out.sort((a, b) =>
+    (eventStartIso(a) ?? "").localeCompare(eventStartIso(b) ?? "") ||
+    a.id.localeCompare(b.id),
+  );
+  return out;
+}
+
+function selectContested(
+  entries: ContestedRuntimeEntry[],
+  axis: ContestedRuntimeEntry["axis"],
+): ContestedRuntimeEntry[] {
+  return entries.filter((entry) => entry.axis === axis);
 }
 
 /** Latest sample per metric as of `asOf`. No supersession — vitals aren't claims. */

@@ -320,10 +320,8 @@ async function assertEventIntegrityAtWrite(
       targets,
       targetId,
       "links.addresses",
-      (target) =>
-        target.type === "intent" ||
-        (target.type === "assessment" && target.subtype === "problem"),
-      `target '${targetId}' must be an assessment/problem or intent`,
+      (target) => target.type === "assessment" && target.subtype === "problem",
+      `target '${targetId}' must be an assessment/problem (invariant 10: fulfillment typing)`,
     );
   }
 

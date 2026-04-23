@@ -1,9 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
+import { promises as fs } from "node:fs";
 import {
   makeEmptyPatient,
   appendRawEvent,
+  patientDir,
 } from "../test-helpers/fixture.js";
+import { validateChart } from "../validate.js";
+import { currentState } from "./currentState.js";
 import { openLoops } from "./openLoops.js";
 
 function intent(
@@ -51,6 +56,36 @@ function action(
     links: { supports: [], fulfills },
     ...extras,
   };
+}
+
+async function seedStructuralMarkdown(scope: Awaited<ReturnType<typeof makeEmptyPatient>>): Promise<void> {
+  const root = patientDir(scope);
+  await fs.writeFile(
+    path.join(root, "patient.md"),
+    "---\n" +
+      "id: patient_001\n" +
+      "type: subject\n" +
+      "subject: patient_001\n" +
+      "status: active\n" +
+      "effective_at: '2026-04-18T06:00:00-05:00'\n" +
+      "recorded_at: '2026-04-18T06:00:00-05:00'\n" +
+      "author: {id: x, role: rn}\n" +
+      "source: {kind: admission_intake}\n" +
+      "---\n",
+  );
+  await fs.writeFile(
+    path.join(root, "constraints.md"),
+    "---\n" +
+      "id: cst_001\n" +
+      "type: constraint_set\n" +
+      "subject: patient_001\n" +
+      "status: active\n" +
+      "effective_at: '2026-04-18T06:00:00-05:00'\n" +
+      "recorded_at: '2026-04-18T06:00:00-05:00'\n" +
+      "author: {id: x, role: rn}\n" +
+      "source: {kind: admission_intake}\n" +
+      "---\n",
+  );
 }
 
 test("pending: intent with no fulfillments and no due_by", async () => {
@@ -173,4 +208,117 @@ test("default asOf uses chart-clock now so past-due intents become overdue witho
   const entry = loops.find((l) => l.intent.id === "evt_intent_01");
   assert(entry, "expected the intent to appear in openLoops output");
   assert.equal(entry!.state, "overdue");
+});
+
+test("contested_claim emits after the default threshold", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_old", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_new", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_intent_old", basis: "new evidence" }],
+    },
+  }));
+  const loops = await openLoops({ scope, asOf: "2026-04-18T09:15:00-05:00" });
+  const contested = loops.find((loop) => (loop as any).kind === "contested_claim") as (typeof loops)[number] & {
+    kind?: string;
+    events?: [string, string];
+    basis?: string;
+    age_seconds?: number;
+    threshold_seconds?: number;
+    severity?: string;
+  };
+  assert(contested, "expected contested_claim entry");
+  assert.equal(contested.kind, "contested_claim");
+  assert.deepEqual(contested.events, ["evt_intent_old", "evt_intent_new"]);
+  assert.equal(contested.basis, "new evidence");
+  assert.equal(contested.threshold_seconds, 3600);
+  assert.equal(contested.severity, "medium");
+  assert.equal(contested.intent.id, "evt_intent_new");
+  assert.equal(contested.state, "pending");
+  assert.deepEqual(contested.fulfillments, []);
+  assert.deepEqual(contested.addressesProblems, []);
+  assert((contested.age_seconds ?? 0) >= 3900);
+});
+
+test("medium contested_claim entries sort after overdue intents", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_overdue", "2026-04-18T08:00:00-05:00", {
+    data: { goal: "check lab", due_by: "2026-04-18T08:30:00-05:00" },
+  }));
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_old", "2026-04-18T08:05:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_new", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_intent_old", basis: "new evidence" }],
+    },
+  }));
+  const loops = await openLoops({ scope, asOf: "2026-04-18T09:15:00-05:00" });
+  const order = loops.map((loop) =>
+    (loop as any).kind === "contested_claim"
+      ? `contested:${(loop as any).events.join("->")}`
+      : `intent:${loop.intent.id}`,
+  );
+  assert.deepEqual(order.slice(0, 2), [
+    "intent:evt_overdue",
+    "contested:evt_intent_old->evt_intent_new",
+  ]);
+});
+
+test("resolver event clears contested_claim and currentState contested data while validator stays green", async () => {
+  const scope = await makeEmptyPatient();
+  await seedStructuralMarkdown(scope);
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_old", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_new", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_intent_old", basis: "new evidence" }],
+    },
+  }));
+
+  const beforeValidation = await validateChart(scope);
+  assert.equal(beforeValidation.ok, true, JSON.stringify(beforeValidation, null, 2));
+
+  const beforeState = await currentState({
+    scope,
+    axis: "intents",
+    asOf: "2026-04-18T09:15:00-05:00",
+  }) as Awaited<ReturnType<typeof currentState>> & {
+    contested?: Array<{ events: [string, string]; basis: string; axis: string }>;
+  };
+  if (beforeState.axis !== "intents") throw new Error();
+  assert.deepEqual(beforeState.contested, [
+    {
+      events: ["evt_intent_old", "evt_intent_new"],
+      basis: "new evidence",
+      axis: "intents",
+    },
+  ]);
+
+  const beforeLoops = await openLoops({ scope, asOf: "2026-04-18T09:15:00-05:00" });
+  assert(beforeLoops.some((loop) => (loop as any).kind === "contested_claim"));
+
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_fix", "2026-04-18T09:20:00-05:00", {
+    links: {
+      supports: [],
+      supersedes: ["evt_intent_old"],
+      resolves: ["evt_intent_new"],
+    },
+  }));
+
+  const afterValidation = await validateChart(scope);
+  assert.equal(afterValidation.ok, true, JSON.stringify(afterValidation, null, 2));
+
+  const afterState = await currentState({
+    scope,
+    axis: "intents",
+    asOf: "2026-04-18T09:30:00-05:00",
+  }) as Awaited<ReturnType<typeof currentState>> & {
+    contested?: Array<{ events: [string, string]; basis: string; axis: string }>;
+  };
+  if (afterState.axis !== "intents") throw new Error();
+  assert.deepEqual(afterState.contested, []);
+
+  const afterLoops = await openLoops({ scope, asOf: "2026-04-18T09:30:00-05:00" });
+  assert(!afterLoops.some((loop) => (loop as any).kind === "contested_claim"));
 });

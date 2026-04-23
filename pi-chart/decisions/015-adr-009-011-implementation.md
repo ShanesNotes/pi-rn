@@ -151,6 +151,42 @@ Re-running the migration is a byte-identical no-op after the first run. Failure 
 - **Whether `evidenceChain` depth cap** applies across `contradicts` branches (one budget) or per-branch (two budgets). Current decision: per-branch per ADR 009 §View updates. Revisit if agent traces regularly hit the cap.
 - **Whether v0.2 events with `source.kind: agent_reasoning`** get a fresh warn under V-EVIDENCE-01 if they author inferred assessments with bare-string supports. Current decision: yes — the existing V-SRC-02 deprecation warning and the new V-EVIDENCE-01 warn are independent surfaces; both fire. Operator reviews both at the Batch 2 gate.
 
+## Phase 6 retrospective (2026-04-23)
+
+Post-ship deep review of the view-layer changes landed under Phase 6. Three dispositions captured here rather than in a new ADR.
+
+### Type promotions into `src/types.ts` (was: runtime/type skew)
+
+Phase 6 shipped with four runtime shapes hidden behind `as` casts against the frozen Phase 1–2 types. The review pass promoted them into `src/types.ts` as additive-optional fields so the declared contract matches what consumers actually receive and every cast escape hatch is removed:
+
+- `EvidenceNode` — `role?: EvidenceRole` on all four variants; `contradicts?: EvidenceNode[]` on the `event` variant.
+- `TimelineEntry` — `contradicts_prev_id?: string` and `contradicted_by_next_id?: string`.
+- `CurrentState` — `contested?: ContestedRuntimeEntry[]` on constraints/problems/intents branches; `contested?: { ... per axis ... }` + `observations: EventEnvelope[]` on the `all` branch.
+- New types exported: `ContestedAxis`, `ContestedRuntimeEntry`, `ContestedClaim` (extends `OpenLoop` with the `kind: "contested_claim"` discriminator + threshold/severity fields). `openLoops(...)` return is now `Promise<(OpenLoop | ContestedClaim)[]>`; callers narrow by `"kind" in loop`.
+
+All additions are additive-optional so v0.2 and v0.3 consumers both compile unchanged.
+
+### Narrative role-tag narrowing (M3) — intentional
+
+`src/views/narrative.ts` emits a role-tag prefix only for `primary` and `counterevidence`. `context`, `trigger`, and `confirmatory` are silently dropped. This is intentional: the narrative view targets the human reader, and those three roles belong to the audit trail (evidenceChain / future audit view), not to a shift-change narrative prose stream. The earlier ADR 015 Phase 6 phrasing "role-tag hook when a ref carries role" now reads: "role-tag hook for reader-facing roles (primary, counterevidence); audit-trail roles remain in evidenceChain."
+
+### `_derived/current.md` contested suffix (M4) — extended to all axes
+
+Phase 6 initially rendered the contested suffix for intents and problems only. The review extended the suffix to constraints and observations so the on-disk view mirrors the full `CurrentState.contested` grouping. `buildCurrent` now emits four sections in `current.md` (intents, assessments, constraints, observations), each optionally decorated with `(contested with <id>)`.
+
+### High-severity contested sort bucket — deferred with ADR 008
+
+`openLoopSortBucket` treats `severity === "high"` as bucket 0 and `medium` as bucket 2. `contestedClaimDefaults()` hardcodes `severity: "medium"` in v0.3; the profile override hook that would tune severity is explicitly deferred to ADR 008. Consequence: the high-severity sort branch is dead code in v0.3 and has no dedicated test. Revisit when ADR 008 profile lookup lands — that is also the gate that activates the `threshold_seconds` override.
+
+### Additional surfaces touched in Phase 6
+
+The canonical Phase 6 touch list in this ADR's header names `src/views/*`. Phase 6 also edited:
+
+- `src/derived.ts` — `_derived/current.md` and `_derived/open-intents.md` contested-aware renderers.
+- `src/write.ts` — `links.addresses` target-type check tightened in-place to match V-CONTRA-01/02 wording verbatim (`"must be an assessment/problem (invariant 10: fulfillment typing)"`), closing the validator/write asymmetry at the write boundary.
+
+These are Phase 6 artifacts in practice; the header `Touches` list reflected intent, not final scope.
+
 ## Verification gates (per phase)
 
 Each phase commit must satisfy:

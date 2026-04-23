@@ -291,6 +291,10 @@ export interface TimelineEntry {
   author: Author;
   summary: string;
   raw: EventEnvelope;
+  /** Set when this entry's `links.contradicts` points at an earlier entry in the same timeline window. */
+  contradicts_prev_id?: string;
+  /** Mirror of `contradicts_prev_id`: set on the earlier entry when a later entry contradicts it. */
+  contradicted_by_next_id?: string;
 }
 
 export interface TrendParams {
@@ -337,10 +341,53 @@ export interface OpenLoop {
   addressesProblems: EventEnvelope[];
 }
 
+export type ContestedAxis =
+  | "constraints"
+  | "problems"
+  | "intents"
+  | "observations";
+
+/**
+ * A contested-pair entry surfaced on `currentState(...)`'s per-axis view.
+ * Two envelope ids that stand in `links.contradicts` tension, classified
+ * by the clinical axis they share.
+ */
+export interface ContestedRuntimeEntry {
+  events: [string, string];
+  basis: string;
+  axis: ContestedAxis;
+}
+
+/**
+ * An `openLoops(...)` entry representing a standing `contradicts` edge
+ * that has aged past its threshold. Shares `OpenLoop`'s shape so callers
+ * can iterate both in one pass, but narrowable by `kind === "contested_claim"`.
+ */
+export interface ContestedClaim extends OpenLoop {
+  kind: "contested_claim";
+  events: [string, string];
+  basis: string;
+  age_seconds: number;
+  threshold_seconds: number;
+  severity: "medium" | "high";
+}
+
 export type CurrentState =
-  | { axis: "constraints"; items: EventEnvelope[] }
-  | { axis: "problems"; items: EventEnvelope[] }
-  | { axis: "intents"; items: OpenLoop[] }
+  | {
+      axis: "constraints";
+      items: EventEnvelope[];
+      contested?: ContestedRuntimeEntry[];
+    }
+  | {
+      axis: "problems";
+      items: EventEnvelope[];
+      contested?: ContestedRuntimeEntry[];
+    }
+  | {
+      axis: "intents";
+      items: OpenLoop[];
+      contested?: ContestedRuntimeEntry[];
+    }
   | { axis: "vitals"; items: Record<string, TrendPoint> }
   | {
       axis: "all";
@@ -348,6 +395,13 @@ export type CurrentState =
       problems: EventEnvelope[];
       intents: OpenLoop[];
       vitals: Record<string, TrendPoint>;
+      observations: EventEnvelope[];
+      contested?: {
+        constraints: ContestedRuntimeEntry[];
+        problems: ContestedRuntimeEntry[];
+        intents: ContestedRuntimeEntry[];
+        observations: ContestedRuntimeEntry[];
+      };
     };
 
 export interface NarrativeParams {
@@ -376,10 +430,17 @@ export interface ArtifactPointer {
 }
 
 export type EvidenceNode =
-  | { kind: "event"; event: EventEnvelope; supports: EvidenceNode[]; supersedes: EventEnvelope[] }
-  | { kind: "vitals"; metric: string; points: TrendPoint[] }
-  | { kind: "note"; note: NarrativeEntry }
-  | { kind: "artifact"; artifact: ArtifactPointer };
+  | {
+      kind: "event";
+      event: EventEnvelope;
+      supports: EvidenceNode[];
+      supersedes: EventEnvelope[];
+      role?: EvidenceRole;
+      contradicts?: EvidenceNode[];
+    }
+  | { kind: "vitals"; metric: string; points: TrendPoint[]; role?: EvidenceRole }
+  | { kind: "note"; note: NarrativeEntry; role?: EvidenceRole }
+  | { kind: "artifact"; artifact: ArtifactPointer; role?: EvidenceRole };
 
 export interface EvidenceChainParams {
   scope: PatientScope;

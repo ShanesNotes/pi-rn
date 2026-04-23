@@ -4,6 +4,10 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import { rebuildDerived } from "./derived.js";
+import {
+  makeEmptyPatient,
+  appendRawEvent,
+} from "./test-helpers/fixture.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope } from "./types.js";
 
@@ -66,4 +70,79 @@ test("active-constraints.md does not double the # Constraints heading", async ()
   // Top H1 is "Active constraints" — body should not contain another `# Constraints`.
   const h1Count = text.split("\n").filter((l) => l.startsWith("# ")).length;
   assert.equal(h1Count, 1);
+});
+
+function intent(
+  id: string,
+  at: string,
+  extras: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    type: "intent",
+    subtype: "care_plan",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "planned",
+    status: "active",
+    data: { goal: "watch" },
+    links: { supports: [] },
+    ...extras,
+  };
+}
+
+test("current.md contested annotations clear after resolver and open-intents excludes contested_claim duplicates", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_old", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_new", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_intent_old", basis: "new evidence" }],
+    },
+  }));
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_anchor",
+    type: "observation",
+    subtype: "vital_sign",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:15:00-05:00",
+    recorded_at: "2026-04-18T09:15:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "monitor_extension" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "spo2", value: 95 },
+    links: { supports: [] },
+  });
+  await rebuildDerived(scope);
+  const current = await fs.readFile(
+    path.join(patientRoot(scope), "_derived/current.md"),
+    "utf8",
+  );
+  const openIntents = await fs.readFile(
+    path.join(patientRoot(scope), "_derived/open-intents.md"),
+    "utf8",
+  );
+  assert(current.includes("`evt_intent_old` — watch (contested with `evt_intent_new`)"));
+  assert(current.includes("`evt_intent_new` — watch (contested with `evt_intent_old`)"));
+  assert.equal(openIntents.match(/evt_intent_new/g)?.length ?? 0, 1);
+
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_fix", "2026-04-18T09:20:00-05:00", {
+    links: {
+      supports: [],
+      supersedes: ["evt_intent_old"],
+      resolves: ["evt_intent_new"],
+    },
+  }));
+  await rebuildDerived(scope);
+  const currentAfter = await fs.readFile(
+    path.join(patientRoot(scope), "_derived/current.md"),
+    "utf8",
+  );
+  assert(!currentAfter.includes("contested with"), currentAfter);
 });

@@ -123,3 +123,97 @@ test("all axis composes each panel", async () => {
   assert.deepEqual(s.intents, []);
   assert.deepEqual(s.problems, []);
 });
+
+test("intents axis keeps active items and surfaces contested sibling data", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_intent_old", "intent", "care_plan", "active", "2026-04-18T08:00:00-05:00", {
+    certainty: "planned",
+    data: { goal: "watch lactate" },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_intent_new", "intent", "care_plan", "active", "2026-04-18T08:10:00-05:00", {
+    certainty: "planned",
+    data: { goal: "repeat lactate" },
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_intent_old", basis: "newer reassessment" }],
+    },
+  }));
+  const s = await currentState({
+    scope,
+    axis: "intents",
+    asOf: "2026-04-18T09:30:00-05:00",
+  }) as Awaited<ReturnType<typeof currentState>> & {
+    contested?: Array<{ events: [string, string]; basis: string; axis: string }>;
+  };
+  if (s.axis !== "intents") throw new Error();
+  assert.deepEqual(s.items.map((loop) => loop.intent.id), ["evt_intent_old", "evt_intent_new"]);
+  assert.deepEqual(s.contested, [
+    {
+      events: ["evt_intent_old", "evt_intent_new"],
+      basis: "newer reassessment",
+      axis: "intents",
+    },
+  ]);
+});
+
+test("all axis adds observations plus contested observation pairs", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_obs_old", "observation", "vital_sign", "final", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_obs_new", "observation", "vital_sign", "final", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_obs_old", basis: "repeat sample disagrees" }],
+    },
+  }));
+  const s = await currentState({
+    scope,
+    axis: "all",
+    asOf: "2026-04-18T09:30:00-05:00",
+  }) as Awaited<ReturnType<typeof currentState>> & {
+    observations?: Array<{ id: string }>;
+    contested?: Record<string, Array<{ events: [string, string]; basis: string; axis: string }>>;
+  };
+  if (s.axis !== "all") throw new Error();
+  assert.deepEqual(s.observations?.map((item) => item.id), ["evt_obs_old", "evt_obs_new"]);
+  assert.deepEqual(s.contested?.observations, [
+    {
+      events: ["evt_obs_old", "evt_obs_new"],
+      basis: "repeat sample disagrees",
+      axis: "observations",
+    },
+  ]);
+});
+
+test("supersession clears contested sibling data", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_intent_old", "intent", "care_plan", "active", "2026-04-18T08:00:00-05:00", {
+    certainty: "planned",
+    data: { goal: "watch lactate" },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_intent_new", "intent", "care_plan", "active", "2026-04-18T08:10:00-05:00", {
+    certainty: "planned",
+    data: { goal: "repeat lactate" },
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_intent_old", basis: "newer reassessment" }],
+    },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_intent_fix", "intent", "care_plan", "active", "2026-04-18T08:20:00-05:00", {
+    certainty: "planned",
+    data: { goal: "standardize repeat" },
+    links: {
+      supports: [],
+      supersedes: ["evt_intent_old"],
+      resolves: ["evt_intent_new"],
+    },
+  }));
+  const s = await currentState({
+    scope,
+    axis: "intents",
+    asOf: "2026-04-18T09:30:00-05:00",
+  }) as Awaited<ReturnType<typeof currentState>> & {
+    contested?: Array<{ events: [string, string]; basis: string; axis: string }>;
+  };
+  if (s.axis !== "intents") throw new Error();
+  assert.deepEqual(s.contested, []);
+});

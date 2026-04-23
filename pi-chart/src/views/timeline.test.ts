@@ -95,3 +95,68 @@ test("timeline scopes to encounterId", async () => {
   const list = await timeline({ scope, encounterId: "enc_001" });
   assert.deepEqual(list.map((e) => e.id), ["evt_a"]);
 });
+
+test("timeline pairs contradiction entries symmetrically", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_old", "observation", "vital_sign", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_new", "observation", "vital_sign", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_old", basis: "repeat sample disagrees" }],
+    },
+  }));
+  const list = await timeline({ scope });
+  const older = list.find((entry) => entry.id === "evt_old") as (typeof list)[number] & {
+    contradicted_by_next_id?: string;
+  };
+  const newer = list.find((entry) => entry.id === "evt_new") as (typeof list)[number] & {
+    contradicts_prev_id?: string;
+  };
+  assert.equal(newer.contradicts_prev_id, "evt_old");
+  assert.equal(older.contradicted_by_next_id, "evt_new");
+});
+
+test("timeline pairs transitive contradictions (A↔B, B↔C) at each edge", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_a", "observation", "vital_sign", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_b", "observation", "vital_sign", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_a", basis: "b disputes a" }],
+    },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_c", "observation", "vital_sign", "2026-04-18T08:20:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_b", basis: "c disputes b" }],
+    },
+  }));
+  const list = await timeline({ scope });
+  const a = list.find((entry) => entry.id === "evt_a")!;
+  const b = list.find((entry) => entry.id === "evt_b")!;
+  const c = list.find((entry) => entry.id === "evt_c")!;
+  assert.equal(b.contradicts_prev_id, "evt_a");
+  assert.equal(a.contradicted_by_next_id, "evt_b");
+  assert.equal(c.contradicts_prev_id, "evt_b");
+  assert.equal(b.contradicted_by_next_id, "evt_c");
+});
+
+test("timeline omits contradiction pairing when the counterpart is filtered out", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_old", "observation", "vital_sign", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_new", "observation", "vital_sign", "2026-04-18T08:10:00-05:00", {
+    links: {
+      supports: [],
+      contradicts: [{ ref: "evt_old", basis: "repeat sample disagrees" }],
+    },
+  }));
+  const list = await timeline({
+    scope,
+    from: "2026-04-18T08:05:00-05:00",
+    to: "2026-04-18T08:30:00-05:00",
+  });
+  const newer = list.find((entry) => entry.id === "evt_new") as (typeof list)[number] & {
+    contradicts_prev_id?: string;
+  };
+  assert.equal(newer.contradicts_prev_id, undefined);
+});

@@ -30,6 +30,37 @@ function obs(id: string, at: string, extras: Record<string, unknown> = {}) {
   };
 }
 
+test("role-carrying event supports preserve role on emitted child nodes", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", obs("evt_obs_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_ass_01",
+    type: "assessment",
+    subtype: "impression",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:15:00-05:00",
+    recorded_at: "2026-04-18T08:15:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "hypoxia" },
+    links: {
+      supports: [{ kind: "event", ref: "evt_obs_01", role: "primary" }],
+    },
+  });
+  const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
+  assert.equal(node.kind, "event");
+  if (node.kind !== "event") throw new Error();
+  assert.equal(node.supports.length, 1);
+  const support = node.supports[0] as (typeof node.supports)[number] & {
+    role?: string;
+  };
+  assert.equal(support.kind, "event");
+  assert.equal(support.role, "primary");
+});
+
 test("event ref: chain recurses to supporting observation", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", obs("evt_obs_01", "2026-04-18T08:00:00-05:00"));
@@ -53,6 +84,40 @@ test("event ref: chain recurses to supporting observation", async () => {
   if (node.kind !== "event") throw new Error();
   assert.equal(node.supports.length, 1);
   assert.equal(node.supports[0].kind, "event");
+});
+
+test("contradicts edges produce a dedicated evidence-chain fork", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", obs("evt_obs_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", obs("evt_obs_02", "2026-04-18T08:05:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_ass_01",
+    type: "assessment",
+    subtype: "impression",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:20:00-05:00",
+    recorded_at: "2026-04-18T08:20:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "hypoxia resolving" },
+    links: {
+      supports: [{ kind: "event", ref: "evt_obs_01", role: "context" }],
+      contradicts: [{ ref: "evt_obs_02", basis: "repeat sample disagrees" }],
+    },
+  });
+  const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
+  if (node.kind !== "event") throw new Error();
+  const root = node as typeof node & { contradicts?: typeof node.supports };
+  assert.equal(node.supports.length, 1);
+  assert.equal(node.supports[0].kind, "event");
+  assert.equal(root.contradicts?.length, 1);
+  const contradicted = root.contradicts?.[0];
+  assert.equal(contradicted?.kind, "event");
+  if (!contradicted || contradicted.kind !== "event") throw new Error();
+  assert.equal(contradicted.event.id, "evt_obs_02");
 });
 
 test("vitals ref: chain resolves to trend points", async () => {
@@ -221,6 +286,81 @@ test("vitals ref preserves encounter scoping across evidenceChain -> trend", asy
   assert.equal(ref.kind, "vitals");
   if (ref.kind !== "vitals") throw new Error();
   assert.deepEqual(ref.points.map((point) => point.value), [94]);
+});
+
+test("derived_from cycles on supports stay bounded while the main support still resolves", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", obs("evt_obs_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_ass_01",
+    type: "assessment",
+    subtype: "impression",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:30:00-05:00",
+    recorded_at: "2026-04-18T08:30:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "bounded recursion check" },
+    links: {
+      supports: [
+        {
+          kind: "event",
+          ref: "evt_obs_01",
+          role: "context",
+          derived_from: [
+            {
+              kind: "external",
+              ref: "urn:test:a",
+              derived_from: [
+                {
+                  kind: "external",
+                  ref: "urn:test:b",
+                  derived_from: [{ kind: "external", ref: "urn:test:a" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
+  if (node.kind !== "event") throw new Error();
+  assert.equal(node.supports.length, 1);
+  assert.equal(node.supports[0].kind, "event");
+});
+
+test("external supports remain structurally valid but emit no evidence node", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_ass_01",
+    type: "assessment",
+    subtype: "impression",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:30:00-05:00",
+    recorded_at: "2026-04-18T08:30:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "import corroborated externally" },
+    links: {
+      supports: [
+        {
+          kind: "external",
+          ref: "synthea://enc_abc?resource=Observation/obs_71",
+          role: "context",
+        },
+      ],
+    },
+  });
+  const node = await evidenceChain({ scope, eventId: "evt_ass_01" });
+  if (node.kind !== "event") throw new Error();
+  assert.deepEqual(node.supports, []);
 });
 
 test("artifact ref: chain drops escaped paths even if the file exists outside artifacts", async () => {

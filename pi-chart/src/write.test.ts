@@ -778,7 +778,7 @@ test("appendEvent rejects fulfills targets that are not intents", async () => {
   );
 });
 
-test("appendEvent rejects addresses targets that are not problems or intents", async () => {
+test("appendEvent rejects addresses targets that are not assessment/problem", async () => {
   const scope = await tmpChart();
   const targetId = await appendEvent(
     {
@@ -812,7 +812,45 @@ test("appendEvent rejects addresses targets that are not problems or intents", a
         },
         scope,
       ),
-    /links\.addresses: target '.*' must be an assessment\/problem or intent/,
+    /links\.addresses: target '.*' must be an assessment\/problem \(invariant 10: fulfillment typing\)/,
+  );
+});
+
+test("appendEvent rejects old-shape addresses intent targets with validator-matching wording", async () => {
+  const scope = await tmpChart();
+  const intentId = await appendEvent(
+    {
+      type: "intent",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T08:00:00-05:00",
+      author: { id: "x", role: "rn_agent" },
+      source: { kind: "manual_scenario" },
+      certainty: "planned",
+      status: "active",
+      data: { goal: "watch" },
+      links: { supports: [] },
+    },
+    scope,
+  );
+  await assert.rejects(
+    () =>
+      appendEvent(
+        {
+          type: "intent",
+          subject: "patient_001",
+          encounter_id: "enc_001",
+          effective_at: "2026-04-18T08:05:00-05:00",
+          author: { id: "x", role: "rn_agent" },
+          source: { kind: "manual_scenario" },
+          certainty: "planned",
+          status: "active",
+          data: { goal: "escalate" },
+          links: { supports: [], addresses: [intentId] },
+        },
+        scope,
+      ),
+    /links\.addresses: target '.*' must be an assessment\/problem \(invariant 10: fulfillment typing\)/,
   );
 });
 

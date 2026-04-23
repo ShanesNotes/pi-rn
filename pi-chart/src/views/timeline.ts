@@ -67,6 +67,19 @@ export async function timeline(params: TimelineParams): Promise<TimelineEntry[]>
     a.effective_start.localeCompare(b.effective_start) ||
     a.id.localeCompare(b.id),
   );
+  const byId = new Map<string, TimelineEntry>(out.map((entry) => [entry.id, entry]));
+  for (const entry of out) {
+    for (const link of entry.raw.links?.contradicts ?? []) {
+      const prior = byId.get(link.ref);
+      if (!prior) continue;
+      if (entry.contradicts_prev_id === undefined) {
+        entry.contradicts_prev_id = prior.id;
+      }
+      if (prior.contradicted_by_next_id === undefined) {
+        prior.contradicted_by_next_id = entry.id;
+      }
+    }
+  }
   return out;
 }
 

@@ -27,9 +27,12 @@ import type {
   EventEnvelope,
   EvidenceChainParams,
   EvidenceNode,
+  EvidenceRole,
   NarrativeEntry,
 } from "../types.js";
 import type { NormalizedEvidenceRef } from "../evidence.js";
+
+type EventEvidenceNode = Extract<EvidenceNode, { kind: "event" }>;
 
 export async function evidenceChain(
   params: EvidenceChainParams,
@@ -54,11 +57,13 @@ async function resolveEvent(
   notesById: Map<string, NarrativeEntry>,
   depthRemaining: number,
   seen: Set<string>,
-): Promise<EvidenceNode> {
+): Promise<EventEvidenceNode> {
   const supportsNodes: EvidenceNode[] = [];
+  const contradictsNodes: EvidenceNode[] = [];
   if (depthRemaining !== 0 && !seen.has(ev.id)) {
     const next = new Set(seen);
     next.add(ev.id);
+    const childDepth = depthRemaining < 0 ? depthRemaining : depthRemaining - 1;
     for (const raw of ev.links?.supports ?? []) {
       const ref = parseEvidenceRef(raw);
       if (!ref) continue;
@@ -67,10 +72,23 @@ async function resolveEvent(
         ctx,
         params,
         notesById,
-        depthRemaining < 0 ? depthRemaining : depthRemaining - 1,
+        childDepth,
         next,
       );
       if (node) supportsNodes.push(node);
+    }
+    for (const target of ev.links?.contradicts ?? []) {
+      const contradicted = ctx.byId.get(target.ref);
+      if (!contradicted) continue;
+      const node = await resolveEvent(
+        contradicted,
+        ctx,
+        params,
+        notesById,
+        childDepth,
+        next,
+      );
+      contradictsNodes.push(node);
     }
   }
   return {
@@ -78,6 +96,7 @@ async function resolveEvent(
     event: ev,
     supports: supportsNodes,
     supersedes: supersededPriors(ev, ctx),
+    ...(contradictsNodes.length ? { contradicts: contradictsNodes } : {}),
   };
 }
 
@@ -93,12 +112,15 @@ async function resolveRef(
     case "event": {
       const next = ctx.byId.get(ref.ref);
       if (!next) return null;
-      return resolveEvent(next, ctx, params, notesById, depthRemaining, seen);
+      return withRole(
+        await resolveEvent(next, ctx, params, notesById, depthRemaining, seen),
+        ref.role,
+      );
     }
     case "note": {
       const note = notesById.get(ref.ref);
       if (!note) return null;
-      return { kind: "note", note };
+      return withRole({ kind: "note", note }, ref.role);
     }
     case "vitals_window": {
       const window = expandVitalsWindowRef(ref);
@@ -110,20 +132,26 @@ async function resolveRef(
         to: window.to,
         encounterId: window.encounterId,
       });
-      // Phase 1 intentionally keeps the output EvidenceNode vocabulary stable:
-      // input refs normalize to `vitals_window`, while emitted view nodes stay
-      // `{ kind: "vitals", metric, points }` until a later view phase changes
-      // the output contract deliberately.
-      return { kind: "vitals", metric: window.metric, points };
+      // ADR 010 dual vocabulary: input refs normalize to `vitals_window`,
+      // emitted view nodes stay `{ kind: "vitals", metric, points }`.
+      return withRole(
+        { kind: "vitals", metric: window.metric, points },
+        ref.role,
+      );
     }
     case "artifact": {
       const artifact = await resolveArtifact(ref.ref, ctx, params);
       if (!artifact) return null;
-      return { kind: "artifact", artifact };
+      return withRole({ kind: "artifact", artifact }, ref.role);
     }
     case "external":
       return null;
   }
+}
+
+function withRole<T extends EvidenceNode>(node: T, role?: EvidenceRole): T {
+  if (!role) return node;
+  return { ...node, role };
 }
 
 async function resolveArtifact(
