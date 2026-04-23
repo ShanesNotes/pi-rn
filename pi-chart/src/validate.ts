@@ -128,6 +128,8 @@ const RESULT_OBSERVATION_SUBTYPES = new Set([
   "diagnostic_result",
 ]);
 
+const EVIDENCE_DERIVED_FROM_MAX_DEPTH = 8;
+
 const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
   "intent:order": {
     allowed: ["pending", "active", "on_hold", "cancelled", "completed", "failed", "declined"],
@@ -844,6 +846,7 @@ async function checkReferentialIntegrity(state: State) {
     const links = ev.links ?? {};
     const supports: unknown[] = links.supports ?? [];
     await checkSupportsTargets(state, where, supports);
+    validateEvidenceRules(state, where, ev, supports);
 
     for (const fname of ["supersedes", "corrects"] as const) {
       for (const target of links[fname] ?? []) {
@@ -1025,6 +1028,89 @@ function validateIntervalClosure(
       "V-INTERVAL-04",
       `point event '${ev.id ?? "unknown"}' may not supersede interval '${target}' to close it; closure must be via a new interval event`,
     );
+  }
+}
+
+function validateEvidenceRules(
+  state: State,
+  where: string,
+  ev: any,
+  supports: unknown[],
+) {
+  const sourceKind = typeof ev?.source?.kind === "string" ? ev.source.kind : null;
+  const requiresObjectEvidenceRef =
+    ev?.type === "assessment" &&
+    ev?.certainty === "inferred" &&
+    !!sourceKind &&
+    SOURCE_KIND_CANONICAL.has(sourceKind) &&
+    sourceKind.startsWith("agent_");
+
+  let primaryCount = 0;
+  for (const [index, raw] of supports.entries()) {
+    if (typeof raw === "string") {
+      if (requiresObjectEvidenceRef) {
+        ruleWarn(
+          state,
+          where,
+          "V-EVIDENCE-01",
+          `agent-inferred assessment must use object-form EvidenceRef; got bare string at supports[${index}]: ${raw}.`,
+        );
+      }
+      continue;
+    }
+    if (!raw || typeof raw !== "object") continue;
+
+    const ref = parseEvidenceRef(raw);
+    if (!ref) continue;
+
+    if (ref.role === "primary") primaryCount += 1;
+    validateDerivedFromChain(state, where, ref, 0, new Set<string>());
+  }
+
+  if (primaryCount > 1) {
+    ruleErr(
+      state,
+      where,
+      "V-EVIDENCE-02",
+      `multiple role:primary entries in supports (found ${primaryCount}); split into separate assessments.`,
+    );
+  }
+}
+
+function validateDerivedFromChain(
+  state: State,
+  where: string,
+  ref: ReturnType<typeof parseEvidenceRef>,
+  depth: number,
+  ancestry: Set<string>,
+) {
+  if (!ref) return;
+
+  const identity = `${ref.kind}:${ref.ref}`;
+  if (ancestry.has(identity)) {
+    ruleErr(
+      state,
+      where,
+      "V-EVIDENCE-03",
+      `derived_from cycle detected at ${identity}.`,
+    );
+    return;
+  }
+  if (depth > EVIDENCE_DERIVED_FROM_MAX_DEPTH) {
+    ruleErr(
+      state,
+      where,
+      "V-EVIDENCE-03",
+      `derived_from depth exceeds max ${EVIDENCE_DERIVED_FROM_MAX_DEPTH} at depth ${depth} for ${identity}.`,
+    );
+    return;
+  }
+  if (!ref.derived_from?.length) return;
+
+  const nextAncestry = new Set(ancestry);
+  nextAncestry.add(identity);
+  for (const derived of ref.derived_from) {
+    validateDerivedFromChain(state, where, derived, depth + 1, nextAncestry);
   }
 }
 

@@ -23,6 +23,54 @@ function patientTimelineEvents(scope: PatientScope): string {
   return path.join(patientRoot(scope), "timeline/2026-04-18/events.ndjson");
 }
 
+async function readPatientTimelineEvents(scope: PatientScope): Promise<any[]> {
+  return (await fs.readFile(patientTimelineEvents(scope), "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+}
+
+async function writePatientTimelineEvents(scope: PatientScope, events: any[]): Promise<void> {
+  await fs.writeFile(
+    patientTimelineEvents(scope),
+    events.map((event) => JSON.stringify(event)).join("\n") + "\n",
+  );
+}
+
+async function mutateSeedAssessment(
+  scope: PatientScope,
+  mutate: (assessment: any, events: any[]) => void,
+): Promise<void> {
+  const events = await readPatientTimelineEvents(scope);
+  mutate(events[2], events);
+  await writePatientTimelineEvents(scope, events);
+}
+
+function canonicalVitalsWindowSupport() {
+  return {
+    kind: "vitals_window",
+    ref: "vitals://enc_001?name=heart_rate&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00",
+    selection: {
+      metric: "heart_rate",
+      from: "2026-04-18T08:00:00-05:00",
+      to: "2026-04-18T08:40:00-05:00",
+      encounterId: "enc_001",
+    },
+  };
+}
+
+function buildDerivedFromExternalChain(maxDepth: number, prefix: string): Record<string, unknown>[] {
+  let head: Record<string, unknown> | null = null;
+  for (let depth = maxDepth; depth >= 1; depth -= 1) {
+    head = {
+      kind: "external",
+      ref: `${prefix}-${depth}`,
+      ...(head ? { derived_from: [head] } : {}),
+    };
+  }
+  return head ? [head] : [];
+}
+
 test("baseline fixture validates green", async () => {
   const scope = await copyFixture();
   const r = await validateChart(scope);
@@ -200,6 +248,161 @@ test("assessment with no evidence rejected", async () => {
   await fs.writeFile(evPath, lines.join("\n") + "\n");
   const r = await validateChart(scope);
   assert(r.errors.some((e) => /assessment.*links\.supports/.test(e.message)));
+});
+
+test("V-EVIDENCE-01 warns only for bare-string supports on agent-inferred assessments", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.links.supports = [
+      { kind: "event", ref: "evt_20260418T0815_01", role: "primary" },
+      "evt_20260418T0820_01",
+      { kind: "external", ref: "synthea://enc_001?resource=Observation/obs_71", role: "context" },
+      "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00",
+      canonicalVitalsWindowSupport(),
+    ];
+  });
+  const r = await validateChart(scope);
+  const warnings = r.warnings
+    .filter((w) => w.message.startsWith("V-EVIDENCE-01:"))
+    .map((w) => w.message);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+  assert.deepEqual(warnings, [
+    "V-EVIDENCE-01: agent-inferred assessment must use object-form EvidenceRef; got bare string at supports[1]: evt_20260418T0820_01.",
+    "V-EVIDENCE-01: agent-inferred assessment must use object-form EvidenceRef; got bare string at supports[3]: vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00.",
+  ]);
+});
+
+test("V-EVIDENCE-01 stays silent outside the agent-inferred assessment predicate", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      "evt_20260418T0815_01",
+      "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00",
+    ];
+  });
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+  assert(!r.warnings.some((w) => w.message.startsWith("V-EVIDENCE-01:")), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-EVIDENCE-02 rejects multiple object-form primary supports", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      { kind: "event", ref: "evt_20260418T0815_01", role: "primary" },
+      { kind: "event", ref: "evt_20260418T0820_01", role: "primary" },
+      { kind: "external", ref: "synthea://enc_001?resource=Observation/obs_71", role: "context" },
+    ];
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-EVIDENCE-02: multiple role:primary entries in supports (found 2); split into separate assessments."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-EVIDENCE-02 ignores bare strings and non-primary object supports", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      "evt_20260418T0815_01",
+      { kind: "event", ref: "evt_20260418T0820_01", role: "primary" },
+      { kind: "external", ref: "synthea://enc_001?resource=Observation/obs_71", role: "context" },
+      "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00",
+    ];
+  });
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+  assert(!r.errors.some((e) => e.message.startsWith("V-EVIDENCE-02:")), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-EVIDENCE-03 detects normalized derived_from cycles at depth 2", async () => {
+  const scope = await copyFixture();
+  const vitalsRef = "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00";
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      {
+        kind: "event",
+        ref: "evt_20260418T0815_01",
+        role: "primary",
+        derived_from: [
+          {
+            kind: "vitals",
+            ref: vitalsRef,
+            derived_from: [
+              {
+                kind: "vitals_window",
+                ref: vitalsRef,
+                selection: {
+                  metric: "spo2",
+                  from: "2026-04-18T08:00:00-05:00",
+                  to: "2026-04-18T08:40:00-05:00",
+                  encounterId: "enc_001",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  });
+  const r = await validateChart(scope);
+  assert.deepEqual(
+    r.errors.map((e) => e.message),
+    [`V-EVIDENCE-03: derived_from cycle detected at vitals_window:${vitalsRef}.`],
+  );
+});
+
+test("V-EVIDENCE-03 allows derived_from depth 8", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      {
+        kind: "event",
+        ref: "evt_20260418T0815_01",
+        role: "primary",
+        derived_from: buildDerivedFromExternalChain(8, "urn:test:depth-ok"),
+      },
+    ];
+  });
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
+test("V-EVIDENCE-03 rejects derived_from depth 9", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      {
+        kind: "event",
+        ref: "evt_20260418T0815_01",
+        role: "primary",
+        derived_from: buildDerivedFromExternalChain(9, "urn:test:depth-bad"),
+      },
+    ];
+  });
+  const r = await validateChart(scope);
+  assert(r.errors.some((e) => e.message === "V-EVIDENCE-03: derived_from depth exceeds max 8 at depth 9 for external:urn:test:depth-bad-9."), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-EVIDENCE-03 stays silent for empty derived_from arrays", async () => {
+  const scope = await copyFixture();
+  await mutateSeedAssessment(scope, (assessment) => {
+    assessment.source.kind = "manual_scenario";
+    assessment.links.supports = [
+      {
+        kind: "event",
+        ref: "evt_20260418T0815_01",
+        role: "primary",
+        derived_from: [],
+      },
+    ];
+  });
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
 });
 
 test("V-STATUS-02 rejects final order with non-terminal status_detail", async () => {
