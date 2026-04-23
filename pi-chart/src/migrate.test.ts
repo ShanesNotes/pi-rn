@@ -36,6 +36,7 @@ async function buildV01Fixture(): Promise<string> {
 }
 
 test("migrate moves v0.1 layout under patients/<subject>/", async () => {
+  // v0.2 back-compat: historical migration output intentionally stays on the v0.2 shape.
   const root = await buildV01Fixture();
   const result = await migrateV01ToV02(root);
   assert.equal(result.alreadyMigrated, false);
@@ -102,6 +103,7 @@ test("migrate resumes safely after a partial move", async () => {
 });
 
 test("migrate completes sessions template + legacy removal even when registry already exists", async () => {
+  // v0.2 back-compat: historical migration output; keep the asserted shape as-is.
   // Regression: the old early-exit gate saw a registry + patient chart and
   // short-circuited past the remaining steps. Now every step guards itself.
   const root = await buildV01Fixture();

@@ -16,7 +16,7 @@ async function tmpWorkspace(sessionYaml: string | null): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-session-"));
   await fs.writeFile(
     path.join(dir, "pi-chart.yaml"),
-    "system_version: 0.2.0\nschema_version: 0.2.0\npatients:\n  - id: patient_001\n    directory: patients/patient_001\n",
+    "system_version: 0.2.0\nschema_version: 0.3.0-partial\npatients:\n  - id: patient_001\n    directory: patients/patient_001\n",
   );
   if (sessionYaml !== null) {
     await fs.mkdir(path.join(dir, "sessions"), { recursive: true });
@@ -108,7 +108,7 @@ test("listPatientIds reads patients/ directory as truth, not pi-chart.yaml", asy
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-ls-"));
   await fs.writeFile(
     path.join(dir, "pi-chart.yaml"),
-    "system_version: 0.2.0\nschema_version: 0.2.0\npatients: []\n",
+    "system_version: 0.2.0\nschema_version: 0.3.0-partial\npatients: []\n",
   );
   const pdir = path.join(dir, "patients", "patient_777");
   await fs.mkdir(pdir, { recursive: true });

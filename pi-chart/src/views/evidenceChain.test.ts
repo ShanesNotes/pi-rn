@@ -120,7 +120,7 @@ test("contradicts edges produce a dedicated evidence-chain fork", async () => {
   assert.equal(contradicted.event.id, "evt_obs_02");
 });
 
-test("vitals ref: chain resolves to trend points", async () => {
+test("vitals_window ref: chain resolves to trend points", async () => {
   const scope = await makeEmptyPatient();
   for (let i = 0; i < 3; i++) {
     await appendRawVital(scope, "2026-04-18", {
@@ -148,11 +148,14 @@ test("vitals ref: chain resolves to trend points", async () => {
     links: {
       supports: [
         {
-          kind: "vitals",
-          metric: "spo2",
-          from: "2026-04-18T08:00:00-05:00",
-          to: "2026-04-18T08:15:00-05:00",
-          encounterId: "enc_001",
+          kind: "vitals_window",
+          ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:15:00-05:00",
+          selection: {
+            metric: "spo2",
+            from: "2026-04-18T08:00:00-05:00",
+            to: "2026-04-18T08:15:00-05:00",
+            encounterId: "enc_001",
+          },
         },
       ],
     },
@@ -167,7 +170,8 @@ test("vitals ref: chain resolves to trend points", async () => {
   assert(ref.points.length >= 2);
 });
 
-test("canonical vitals_window refs preserve the existing EvidenceNode output shape", async () => {
+// v0.2 back-compat
+test("v0.2 back-compat: legacy and canonical vitals refs preserve the existing EvidenceNode output shape", async () => {
   const scope = await makeEmptyPatient();
   for (let i = 0; i < 3; i++) {
     await appendRawVital(scope, "2026-04-18", {
@@ -237,7 +241,7 @@ test("canonical vitals_window refs preserve the existing EvidenceNode output sha
   assert.deepEqual(canonical.supports, legacy.supports);
 });
 
-test("vitals ref preserves encounter scoping across evidenceChain -> trend", async () => {
+test("vitals_window ref preserves encounter scoping across evidenceChain -> trend", async () => {
   const scope = await makeEmptyPatient();
   await appendRawVital(scope, "2026-04-18", {
     sampled_at: "2026-04-18T08:00:00-05:00",
@@ -271,11 +275,14 @@ test("vitals ref preserves encounter scoping across evidenceChain -> trend", asy
     links: {
       supports: [
         {
-          kind: "vitals",
-          metric: "spo2",
-          from: "2026-04-18T08:00:00-05:00",
-          to: "2026-04-18T08:10:00-05:00",
-          encounterId: "enc_001",
+          kind: "vitals_window",
+          ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:10:00-05:00",
+          selection: {
+            metric: "spo2",
+            from: "2026-04-18T08:00:00-05:00",
+            to: "2026-04-18T08:10:00-05:00",
+            encounterId: "enc_001",
+          },
         },
       ],
     },

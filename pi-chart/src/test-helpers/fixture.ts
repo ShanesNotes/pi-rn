@@ -1,7 +1,7 @@
 // Shared test-only helpers. Not a test file — the test runner glob is
 // `src/**/*.test.ts`, so this path is invisible to it.
 //
-// Factory for a minimal v0.2 multi-patient chart: pi-chart.yaml, a
+// Factory for a minimal v0.3-partial multi-patient chart: pi-chart.yaml, a
 // patient dir with chart.yaml, and a local copy of schemas/ so AJV
 // picks up the canonical definitions.
 
@@ -23,11 +23,11 @@ export async function makeEmptyPatient(opts?: {
   const subject = opts?.subject ?? patientId;
   await fs.writeFile(
     path.join(dir, "pi-chart.yaml"),
-    `system_version: 0.2.0\nschema_version: 0.2.0\npatients:\n  - id: ${patientId}\n    directory: patients/${patientId}\n`,
+    `system_version: 0.2.0\nschema_version: 0.3.0-partial\npatients:\n  - id: ${patientId}\n    directory: patients/${patientId}\n`,
   );
   const patientDir = path.join(dir, "patients", patientId);
   await fs.mkdir(path.join(patientDir, "timeline"), { recursive: true });
-  const lines = [`subject: ${subject}`, "clock: sim_time"];
+  const lines = [`subject: ${subject}`, "schema_version: 0.3.0-partial", "clock: sim_time"];
   if (opts?.timezone) lines.push(`timezone: ${opts.timezone}`);
   await fs.writeFile(path.join(patientDir, "chart.yaml"), `${lines.join("\n")}\n`);
   await fs.cp(path.join(REPO_ROOT, "schemas"), path.join(dir, "schemas"), {

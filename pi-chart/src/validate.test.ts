@@ -385,7 +385,8 @@ test("V-EVIDENCE-02 ignores bare strings and non-primary object supports", async
   assert(!r.errors.some((e) => e.message.startsWith("V-EVIDENCE-02:")), JSON.stringify(r.errors, null, 2));
 });
 
-test("V-EVIDENCE-03 detects normalized derived_from cycles at depth 2", async () => {
+// v0.2 back-compat
+test("v0.2 back-compat: V-EVIDENCE-03 detects normalized derived_from cycles at depth 2", async () => {
   const scope = await copyFixture();
   const vitalsRef = "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:40:00-05:00";
   await mutateSeedAssessment(scope, (assessment) => {
@@ -1594,7 +1595,8 @@ test("invariant 10: links.addresses targeting an arbitrary observation is reject
   assert(!r.errors.some((e) => /or an intent/.test(e.message)), JSON.stringify(r.errors, null, 2));
 });
 
-test("links.supports accepts a legacy structured vitals EvidenceRef", async () => {
+// v0.2 back-compat
+test("v0.2 back-compat: links.supports accepts a legacy structured vitals EvidenceRef", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);
   const lines = (await fs.readFile(evPath, "utf8")).trim().split("\n");
@@ -1617,7 +1619,8 @@ test("links.supports accepts a legacy structured vitals EvidenceRef", async () =
   assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
 });
 
-test("legacy structured vitals without encounterId remain valid", async () => {
+// v0.2 back-compat
+test("v0.2 back-compat: legacy structured vitals without encounterId remain valid", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);
   const lines = (await fs.readFile(evPath, "utf8")).trim().split("\n");

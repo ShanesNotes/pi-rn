@@ -1,6 +1,6 @@
 chart_id: chart_patient_001
 chart_version: 0.2.0
-schema_version: 0.2.0
+schema_version: 0.3.0-partial
 subject: patient_001
 mode: simulation
 clock: sim_time

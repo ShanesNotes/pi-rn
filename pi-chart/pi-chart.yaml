@@ -1,5 +1,5 @@
 system_version: 0.2.0
-schema_version: 0.2.0
+schema_version: 0.3.0-partial
 default_timezone: America/Chicago
 patients:
   - id: patient_001

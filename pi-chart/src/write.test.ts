@@ -27,11 +27,11 @@ async function tmpChart(opts?: {
   const subject = opts?.subject ?? patientId;
   await fs.writeFile(
     path.join(dir, "pi-chart.yaml"),
-    `system_version: 0.2.0\nschema_version: 0.2.0\npatients:\n  - id: ${patientId}\n    directory: patients/${patientId}\n`,
+    `system_version: 0.2.0\nschema_version: 0.3.0-partial\npatients:\n  - id: ${patientId}\n    directory: patients/${patientId}\n`,
   );
   const patientDir = path.join(dir, "patients", patientId);
   await fs.mkdir(patientDir, { recursive: true });
-  const lines = [`subject: ${subject}`, "clock: sim_time"];
+  const lines = [`subject: ${subject}`, "schema_version: 0.3.0-partial", "clock: sim_time"];
   if (opts?.timezone) lines.push(`timezone: ${opts.timezone}`);
   await fs.writeFile(path.join(patientDir, "chart.yaml"), `${lines.join("\n")}\n`);
   await fs.cp(
@@ -929,7 +929,8 @@ test("appendEvent accepts canonical local EvidenceRef objects", async () => {
   ]);
 });
 
-test("appendEvent accepts legacy and canonical non-local EvidenceRef variants", async () => {
+// v0.2 back-compat
+test("v0.2 back-compat: appendEvent accepts legacy and canonical non-local EvidenceRef variants", async () => {
   const scope = await tmpChart();
   const assessmentId = await appendEvent(
     {

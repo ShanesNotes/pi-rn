@@ -61,7 +61,8 @@ test("formatVitalsUri accepts legacy `name` alias", () => {
   assert(r && r.kind === "vitals_window" && r.selection?.metric === "spo2");
 });
 
-test("parseEvidenceRef normalizes legacy structured objects into canonical refs", () => {
+// v0.2 back-compat
+test("v0.2 back-compat: parseEvidenceRef normalizes legacy structured objects into canonical refs", () => {
   const r = parseEvidenceRef({ kind: "artifact", id: "evt_20260418T0900_01" });
   assert.deepEqual(r, { kind: "artifact", ref: "evt_20260418T0900_01" });
 
@@ -82,7 +83,8 @@ test("parseEvidenceRef normalizes legacy structured objects into canonical refs"
   });
 });
 
-test("legacy structured vitals without encounterId still normalize", () => {
+// v0.2 back-compat
+test("v0.2 back-compat: legacy structured vitals without encounterId still normalize", () => {
   const v = parseEvidenceRef({
     kind: "vitals",
     metric: "heart_rate",

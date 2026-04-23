@@ -24,13 +24,13 @@ async function freshChart(): Promise<PatientScope> {
   const patientId = "patient_001";
   await fs.writeFile(
     path.join(dir, "pi-chart.yaml"),
-    `system_version: 0.2.0\nschema_version: 0.2.0\npatients:\n  - id: ${patientId}\n    directory: patients/${patientId}\n`,
+    `system_version: 0.2.0\nschema_version: 0.3.0-partial\npatients:\n  - id: ${patientId}\n    directory: patients/${patientId}\n`,
   );
   const patientDir = path.join(dir, "patients", patientId);
   await fs.mkdir(patientDir, { recursive: true });
   await fs.writeFile(
     path.join(patientDir, "chart.yaml"),
-    "subject: patient_001\nclock: sim_time\n",
+    "subject: patient_001\nschema_version: 0.3.0-partial\nclock: sim_time\n",
   );
   await fs.cp(path.join(REPO_ROOT, "schemas"), path.join(dir, "schemas"), {
     recursive: true,
