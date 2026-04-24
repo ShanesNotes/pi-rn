@@ -867,6 +867,39 @@ test("V-RESOLVES-01 rejects in-progress intents", async () => {
   assert(r.errors.some((e) => e.message === "V-RESOLVES-01: resolves target is neither an open loop nor a contradiction-bearing event: evt_resolve_in_progress_intent."), JSON.stringify(r.errors, null, 2));
 });
 
+test("V-RESOLVES-01 stays silent for failed fulfillments marked by status_detail", async () => {
+  const scope = await copyFixture();
+  const intent = phase4Event({
+    id: "evt_resolve_failed_intent",
+    type: "intent",
+    subtype: "order",
+    certainty: "planned",
+    status: "active",
+    effective_at: "2026-04-18T08:40:00-05:00",
+    recorded_at: "2026-04-18T08:40:00-05:00",
+    data: { order: "administer medication", due_by: "2026-04-18T10:00:00-05:00" },
+  });
+  const failedFulfillment = phase4Event({
+    id: "evt_resolve_failed_action",
+    type: "action",
+    subtype: "administration",
+    certainty: "performed",
+    status: "final",
+    effective_at: "2026-04-18T08:50:00-05:00",
+    recorded_at: "2026-04-18T08:50:00-05:00",
+    data: { action: "administer medication", status_detail: "failed" },
+    links: { supports: [], fulfills: ["evt_resolve_failed_intent"] },
+  });
+  const resolver = phase4Event({
+    id: "evt_resolve_failed",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    links: { supports: [], resolves: ["evt_resolve_failed_intent"] },
+  });
+  await appendTimelineEvents(scope, intent, failedFulfillment, resolver);
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
 test("V-RESOLVES-01 ignores backdated fulfillments authored after the resolver anchor", async () => {
   const scope = await copyFixture();
   const intent = phase4Event({

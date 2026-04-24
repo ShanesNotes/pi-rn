@@ -1397,8 +1397,8 @@ function isResolvableIntent(
     .filter((candidate) => isVisibleAtAnchor(candidate, anchorMs))
     .filter((candidate) => !isReplacedAtAnchor(String(candidate.id ?? ""), envelopes, anchorMs));
 
+  if (fulfillments.some(isFailureFulfillment)) return true;
   if (fulfillments.some((candidate) => candidate.status === "final")) return false;
-  if (fulfillments.some(isFailureFulfillment)) return false;
   if (fulfillments.some((candidate) => candidate.status === "active")) return false;
 
   return true;
@@ -1412,6 +1412,10 @@ function fulfillsTarget(ev: any, targetId: unknown): boolean {
 
 function isFailureFulfillment(ev: any): boolean {
   if (ev?.status === "entered_in_error") return true;
+  const detail = ev?.data?.status_detail;
+  if (typeof detail === "string" && /^(failed|failure|refused|aborted)$/i.test(detail)) {
+    return true;
+  }
   const outcome = ev?.data?.outcome;
   return typeof outcome === "string" && /^(failed|failure|refused|aborted)$/i.test(outcome);
 }
