@@ -470,4 +470,54 @@ export interface EvidenceChainParams {
   scope: PatientScope;
   eventId: string;
   depth?: number;
+  asOf?: string;
+}
+
+// --------------------------------------------------------------------
+// Composed proof projection types
+// --------------------------------------------------------------------
+
+export interface MemoryProofParams {
+  scope: PatientScope;
+  asOf?: string;
+  encounterId?: string;
+}
+
+export interface MemoryProofItem {
+  id: string;
+  event_ids: string[];
+  summary: string;
+  detail?: string;
+  source_view?: string;
+}
+
+export interface MemoryProofEvidence {
+  ref: string;
+  kind: EvidenceKind;
+  summary: string;
+  role?: EvidenceRole;
+  source?: Source;
+  event_ids?: string[];
+}
+
+export interface MemoryProofOpenLoop {
+  intent_id: string;
+  state: OpenLoopState;
+  summary: string;
+  dueDeltaMinutes?: number;
+  evidence_ids: string[];
+}
+
+export interface MemoryProof {
+  patient_id: string;
+  asOf: string;
+  sections: {
+    what_happened: MemoryProofItem[];
+    why_it_mattered: MemoryProofItem[];
+    evidence: MemoryProofEvidence[];
+    uncertainty: MemoryProofItem[];
+    open_loops: MemoryProofOpenLoop[];
+    next_shift_handoff: MemoryProofItem[];
+  };
+  source_view_refs: string[];
 }

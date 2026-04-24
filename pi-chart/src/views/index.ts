@@ -8,6 +8,7 @@ export { trend } from "./trend.js";
 export { evidenceChain } from "./evidenceChain.js";
 export { openLoops } from "./openLoops.js";
 export { narrative } from "./narrative.js";
+export { memoryProof } from "./memoryProof.js";
 
 export {
   loadContext,

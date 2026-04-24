@@ -7,3 +7,8 @@ patients:
     display_name: Patient 001
     created_at: 2026-04-18T11:00:00.000Z
     source: synthetic
+  - id: patient_002
+    directory: patients/patient_002
+    display_name: Patient 002 — Broad EHR skeleton
+    created_at: 2026-04-19T13:00:00.000Z
+    source: synthetic

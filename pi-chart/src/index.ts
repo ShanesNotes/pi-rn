@@ -31,6 +31,7 @@ export {
   evidenceChain,
   openLoops,
   narrative,
+  memoryProof,
 } from "./views/index.js";
 
 export {

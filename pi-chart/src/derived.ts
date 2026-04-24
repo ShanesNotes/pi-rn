@@ -23,11 +23,16 @@ import {
 } from "./time.js";
 import { patientRoot } from "./types.js";
 import { currentState } from "./views/currentState.js";
+import { memoryProof } from "./views/memoryProof.js";
 import { openLoops } from "./views/openLoops.js";
 import type {
   ContestedClaim,
   CurrentState,
   EventEnvelope,
+  MemoryProof,
+  MemoryProofEvidence,
+  MemoryProofItem,
+  MemoryProofOpenLoop,
   OpenLoop,
   PatientScope,
   TrendPoint,
@@ -68,12 +73,17 @@ export async function rebuildDerived(scope: PatientScope): Promise<void> {
     scope,
     ...(asOfIso ? { asOf: asOfIso } : {}),
   });
+  const proof = await memoryProof({
+    scope,
+    ...(asOfIso ? { asOf: asOfIso } : {}),
+  });
 
   const views: Record<string, string> = {
     "current.md": buildCurrent(state, asOfIso),
     "latest-vitals.md": buildLatestVitals(state.vitals),
     "active-constraints.md": await buildActiveConstraints(pr),
     "open-intents.md": buildOpenIntents(loops),
+    "memory-proof.md": buildMemoryProof(proof),
   };
   for (const [name, body] of Object.entries(views)) {
     await atomicWriteFile(path.join(dir, name), body);
@@ -221,6 +231,63 @@ function buildOpenIntents(loops: (OpenLoop | ContestedClaim)[]): string {
     }
   }
   return lines.join("\n");
+}
+
+function buildMemoryProof(proof: MemoryProof): string {
+  const lines: string[] = [HEADER, "# Memory proof\n"];
+  lines.push(`_patient: ${proof.patient_id}; as of: ${proof.asOf}_\n`);
+  appendItems(lines, "What happened", proof.sections.what_happened);
+  appendItems(lines, "Why it mattered", proof.sections.why_it_mattered);
+  appendEvidence(lines, proof.sections.evidence);
+  appendItems(lines, "Uncertainty", proof.sections.uncertainty);
+  appendOpenLoops(lines, proof.sections.open_loops);
+  appendItems(lines, "Next-shift handoff", proof.sections.next_shift_handoff);
+  lines.push("## Source views\n");
+  for (const ref of proof.source_view_refs) lines.push(`- ${ref}`);
+  lines.push("");
+  return lines.join("\n");
+}
+
+function appendItems(lines: string[], heading: string, items: MemoryProofItem[]): void {
+  lines.push(`## ${heading}\n`);
+  if (!items.length) {
+    lines.push("_none_\n");
+    return;
+  }
+  for (const item of items) {
+    lines.push(`- \`${item.id}\` — ${item.summary}`);
+    if (item.event_ids.length) lines.push(`  - events: ${item.event_ids.map((id) => `\`${id}\``).join(", ")}`);
+    if (item.detail) lines.push(`  - detail: ${item.detail.replace(/\n/g, " ")}`);
+  }
+  lines.push("");
+}
+
+function appendEvidence(lines: string[], evidence: MemoryProofEvidence[]): void {
+  lines.push("## Evidence/provenance\n");
+  if (!evidence.length) {
+    lines.push("_none_\n");
+    return;
+  }
+  for (const item of evidence) {
+    lines.push(`- \`${item.ref}\` (${item.kind}) — ${item.summary}`);
+    if (item.source) lines.push(`  - source: ${item.source.kind}${item.source.ref ? `/${item.source.ref}` : ""}`);
+    if (item.event_ids?.length) lines.push(`  - connected events: ${item.event_ids.map((id) => `\`${id}\``).join(", ")}`);
+  }
+  lines.push("");
+}
+
+function appendOpenLoops(lines: string[], loops: MemoryProofOpenLoop[]): void {
+  lines.push("## Open loops\n");
+  if (!loops.length) {
+    lines.push("_none_\n");
+    return;
+  }
+  for (const loop of loops) {
+    const due = loop.dueDeltaMinutes === undefined ? "" : ` (${formatMinutes(loop.dueDeltaMinutes)})`;
+    lines.push(`- \`${loop.intent_id}\` [${loop.state}]${due} — ${loop.summary}`);
+    if (loop.evidence_ids.length) lines.push(`  - evidence: ${loop.evidence_ids.map((id) => `\`${id}\``).join(", ")}`);
+  }
+  lines.push("");
 }
 
 function contestedLookup(

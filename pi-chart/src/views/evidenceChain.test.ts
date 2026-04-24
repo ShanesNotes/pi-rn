@@ -500,3 +500,95 @@ test("artifact ref: chain resolves to ArtifactPointer when file exists", async (
   if (ref.kind !== "artifact") throw new Error();
   assert.equal(ref.artifact.path, artifactPath);
 });
+
+test("evidenceChain asOf excludes future supports and future roots", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", obs("evt_obs_early", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", obs("evt_obs_future", "2026-04-18T09:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_ass_01",
+    type: "assessment",
+    subtype: "impression",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:15:00-05:00",
+    recorded_at: "2026-04-18T08:15:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "hypoxia" },
+    links: { supports: ["evt_obs_early", "evt_obs_future"] },
+  });
+  const node = await evidenceChain({
+    scope,
+    eventId: "evt_ass_01",
+    asOf: "2026-04-18T08:30:00-05:00",
+  });
+  if (node.kind !== "event") throw new Error();
+  assert.deepEqual(
+    node.supports.filter((support) => support.kind === "event").map((support) => support.event.id),
+    ["evt_obs_early"],
+  );
+  await assert.rejects(
+    evidenceChain({ scope, eventId: "evt_obs_future", asOf: "2026-04-18T08:30:00-05:00" }),
+    /unknown event id/,
+  );
+});
+
+test("evidenceChain asOf clamps vitals windows", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:05:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 93,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:15:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 88,
+  });
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_ass_01",
+    type: "assessment",
+    subtype: "trend",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:10:00-05:00",
+    recorded_at: "2026-04-18T08:10:00-05:00",
+    author: { id: "x", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "drop" },
+    links: {
+      supports: [
+        {
+          kind: "vitals_window",
+          ref: "vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:15:00-05:00",
+          selection: {
+            metric: "spo2",
+            from: "2026-04-18T08:00:00-05:00",
+            to: "2026-04-18T08:15:00-05:00",
+            encounterId: "enc_001",
+          },
+        },
+      ],
+    },
+  });
+  const node = await evidenceChain({
+    scope,
+    eventId: "evt_ass_01",
+    asOf: "2026-04-18T08:10:30-05:00",
+  });
+  if (node.kind !== "event") throw new Error();
+  const vitals = node.supports.find((support) => support.kind === "vitals");
+  assert(vitals && vitals.kind === "vitals");
+  assert.deepEqual(vitals.points.map((point) => point.sampled_at), ["2026-04-18T08:05:00-05:00"]);
+});

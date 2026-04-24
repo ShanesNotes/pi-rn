@@ -15,7 +15,7 @@ import {
   parseEvidenceRef,
 } from "../evidence.js";
 import { resolveArtifactPath } from "../artifacts.js";
-import { loadContext, supersededPriors } from "./active.js";
+import { isVisibleAsOf, loadContext, supersededPriors } from "./active.js";
 import { trend } from "./trend.js";
 import { narrative } from "./narrative.js";
 import { patientRoot } from "../types.js";
@@ -37,15 +37,15 @@ type EventEvidenceNode = Extract<EvidenceNode, { kind: "event" }>;
 export async function evidenceChain(
   params: EvidenceChainParams,
 ): Promise<EvidenceNode> {
-  const ctx = await loadContext(params.scope);
+  const ctx = await loadContext(params.scope, params.asOf);
   const root = ctx.byId.get(params.eventId);
-  if (!root) {
+  if (!root || !isVisibleAsOf(root, ctx)) {
     throw new Error(
       `evidenceChain: unknown event id '${params.eventId}' in patient '${params.scope.patientId}'`,
     );
   }
   const depth = params.depth ?? 3;
-  const notes = await narrative({ scope: params.scope });
+  const notes = await narrative({ scope: params.scope, to: params.asOf });
   const notesById = new Map<string, NarrativeEntry>(notes.map((n) => [n.id, n]));
   return resolveEvent(root, ctx, params, notesById, depth, new Set());
 }
@@ -79,7 +79,7 @@ async function resolveEvent(
     }
     for (const target of ev.links?.contradicts ?? []) {
       const contradicted = ctx.byId.get(target.ref);
-      if (!contradicted) continue;
+      if (!contradicted || !isVisibleAsOf(contradicted, ctx)) continue;
       const node = await resolveEvent(
         contradicted,
         ctx,
@@ -111,7 +111,7 @@ async function resolveRef(
   switch (ref.kind) {
     case "event": {
       const next = ctx.byId.get(ref.ref);
-      if (!next) return null;
+      if (!next || !isVisibleAsOf(next, ctx)) return null;
       return withRole(
         await resolveEvent(next, ctx, params, notesById, depthRemaining, seen),
         ref.role,
@@ -125,11 +125,12 @@ async function resolveRef(
     case "vitals_window": {
       const window = expandVitalsWindowRef(ref);
       if (!window) return null;
+      const to = clampIso(window.to, params.asOf);
       const points = await trend({
         scope: params.scope,
         metric: window.metric,
         from: window.from,
-        to: window.to,
+        to,
         encounterId: window.encounterId,
       });
       // ADR 010 dual vocabulary: input refs normalize to `vitals_window`,
@@ -149,6 +150,14 @@ async function resolveRef(
   }
 }
 
+function clampIso(to: string, asOf: string | undefined): string {
+  if (!asOf) return to;
+  const toMs = Date.parse(to);
+  const asOfMs = Date.parse(asOf);
+  if (!Number.isFinite(toMs) || !Number.isFinite(asOfMs) || toMs <= asOfMs) return to;
+  return asOf;
+}
+
 function withRole<T extends EvidenceNode>(node: T, role?: EvidenceRole): T {
   if (!role) return node;
   return { ...node, role };
@@ -160,7 +169,7 @@ async function resolveArtifact(
   params: EvidenceChainParams,
 ): Promise<ArtifactPointer | null> {
   const ev = ctx.byId.get(id);
-  if (!ev || ev.type !== "artifact_ref") return null;
+  if (!ev || ev.type !== "artifact_ref" || !isVisibleAsOf(ev, ctx)) return null;
   const relPath = ev.data?.path;
   if (typeof relPath !== "string") return null;
   let resolved: ReturnType<typeof resolveArtifactPath>;
