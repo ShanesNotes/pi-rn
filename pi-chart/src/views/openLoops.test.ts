@@ -10,6 +10,13 @@ import {
 import { validateChart } from "../validate.js";
 import { currentState } from "./currentState.js";
 import { openLoops } from "./openLoops.js";
+import type { ContestedClaim } from "../types.js";
+
+type OpenLoopEntry = Awaited<ReturnType<typeof openLoops>>[number];
+
+function isContestedClaim(loop: OpenLoopEntry): loop is ContestedClaim {
+  return "kind" in loop && loop.kind === "contested_claim";
+}
 
 function intent(
   id: string,
@@ -234,14 +241,7 @@ test("contested_claim emits after the default threshold", async () => {
     },
   }));
   const loops = await openLoops({ scope, asOf: "2026-04-18T09:15:00-05:00" });
-  const contested = loops.find((loop) => (loop as any).kind === "contested_claim") as (typeof loops)[number] & {
-    kind?: string;
-    events?: [string, string];
-    basis?: string;
-    age_seconds?: number;
-    threshold_seconds?: number;
-    severity?: string;
-  };
+  const contested = loops.find(isContestedClaim);
   assert(contested, "expected contested_claim entry");
   assert.equal(contested.kind, "contested_claim");
   assert.deepEqual(contested.events, ["evt_intent_old", "evt_intent_new"]);
@@ -269,8 +269,8 @@ test("medium contested_claim entries sort after overdue intents", async () => {
   }));
   const loops = await openLoops({ scope, asOf: "2026-04-18T09:15:00-05:00" });
   const order = loops.map((loop) =>
-    (loop as any).kind === "contested_claim"
-      ? `contested:${(loop as any).events.join("->")}`
+    isContestedClaim(loop)
+      ? `contested:${loop.events.join("->")}`
       : `intent:${loop.intent.id}`,
   );
   assert.deepEqual(order.slice(0, 2), [
@@ -310,7 +310,7 @@ test("resolver event clears contested_claim and currentState contested data whil
   ]);
 
   const beforeLoops = await openLoops({ scope, asOf: "2026-04-18T09:15:00-05:00" });
-  assert(beforeLoops.some((loop) => (loop as any).kind === "contested_claim"));
+  assert(beforeLoops.some(isContestedClaim));
 
   await appendRawEvent(scope, "2026-04-18", intent("evt_intent_fix", "2026-04-18T09:20:00-05:00", {
     links: {
@@ -334,5 +334,5 @@ test("resolver event clears contested_claim and currentState contested data whil
   assert.deepEqual(afterState.contested, []);
 
   const afterLoops = await openLoops({ scope, asOf: "2026-04-18T09:30:00-05:00" });
-  assert(!afterLoops.some((loop) => (loop as any).kind === "contested_claim"));
+  assert(!afterLoops.some(isContestedClaim));
 });

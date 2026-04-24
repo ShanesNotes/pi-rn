@@ -96,15 +96,13 @@ function safeParseFrontmatter(
 }
 
 function toEnvelope(fm: Record<string, unknown> | null): EventEnvelope | null {
-  if (!fm || typeof fm !== "object") return null;
-  if (typeof (fm as any).id !== "string") return null;
-  if (typeof (fm as any).type !== "string") return null;
+  if (!fm) return null;
+  if (typeof fm.id !== "string" || typeof fm.type !== "string") return null;
   // js-yaml materializes ISO timestamps as Date; coerce back to strings
   // so downstream comparisons and JSON.stringify behave uniformly with
   // the NDJSON path. Nested temporal fields such as
   // `effective_period.start` need the same normalization.
-  const normalized = normalizeDates(fm) as Record<string, unknown>;
-  return normalized as unknown as EventEnvelope;
+  return normalizeDates(fm) as EventEnvelope;
 }
 
 function normalizeDates(value: unknown): unknown {

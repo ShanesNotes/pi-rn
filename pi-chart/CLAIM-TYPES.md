@@ -136,7 +136,7 @@ Distinct from observation. Should have `links.supports` pointing to the
 observations it rests on.
 
 Conventional subtypes: `impression`, `differential`, `trend`, `risk_score`,
-`severity`, `problem`.
+`severity`, `problem`, `constraint`.
 
 ```jsonc
 "data": {
@@ -203,7 +203,8 @@ invariant 10 requires `fulfills` targets to be `intent` events.
 observations that triggered it).
 
 Conventional subtypes: `administration`, `procedure`, `notification`,
-`measurement`, `intervention`, and — for **acquisition actions** that
+`measurement`, `intervention`, `result_review`, `constraint_review`,
+`problem_review`, and — for **acquisition actions** that
 fulfill data-producing orders (ADR 003) — `specimen_collection`,
 `imaging_acquired`, `procedure_performed`. Acquisition actions carry
 `links.fulfills → intent.order`; the resulting `observation` then
@@ -425,9 +426,12 @@ do not carry `status_detail`.
 | `intent`      | `care_plan`, `monitoring_plan`       | `pending \| active \| on_hold \| completed \| failed \| cancelled`                 |
 | `action`      | `administration`                     | `performed \| held \| refused \| failed \| deferred`                               |
 | `action`      | `result_review`                      | `acknowledged \| deferred`                                                         |
+| `action`      | `constraint_review`                  | `reviewed \| deferred \| unable_to_verify`                                         |
+| `action`      | `problem_review`                     | `reviewed \| deferred \| updated`                                                  |
 | `observation` | `lab_result`, `diagnostic_result`    | `preliminary \| final \| corrected \| amended \| addendum \| cancelled`            |
 | `communication` | (any)                              | `sent \| acknowledged \| timeout \| failed`                                        |
 | `assessment`  | `problem`                            | `active \| resolved \| inactive \| ruled_out`                                      |
+| `assessment`  | `constraint`                         | `active \| inactive \| resolved \| refuted \| no_longer_applicable`                |
 
 ### Consistency rules (validator V-STATUS-01/02/03)
 
@@ -457,6 +461,8 @@ is present per event. `effective_period` is allow-listed per
 |---------------|----------------------------------------|----------------------------------------------------------------------------------|
 | `intent`      | `monitoring_plan`, `care_plan`         | The plan's active window.                                                        |
 | `action`      | `administration` (infusion/titration)  | The infusion period at a stable rate. New event per rate change (supersedes).    |
+| `action`      | `constraint_review`                   | The review window for a domain when review is interval-scoped.                   |
+| `assessment`  | `constraint`                          | The active window for an actionable restriction/directive/refusal.               |
 | `observation` | `device_reading` (stable setting)      | Vent settings, pressor drip rate, FiO2 epoch.                                    |
 | `observation` | `context_segment` (new, ADR 005)       | Care location, NPO, isolation precautions, restraint interval, coverage window.  |
 

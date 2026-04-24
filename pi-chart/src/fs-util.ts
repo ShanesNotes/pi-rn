@@ -88,18 +88,8 @@ export async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }
 
-// ---------------------------------------------------------------------------
-// Tiny purpose-built glob. Only handles the four shapes the chart actually
-// needs; pulling in a glob library would be overkill for v0.
-// ---------------------------------------------------------------------------
-
-export interface GlobShape {
-  // e.g. timeline/<day>/events.ndjson
-  dirsUnder: string;       // "timeline"
-  perDayFile?: string;     // "events.ndjson" | "vitals.jsonl"
-  perDaySubdir?: string;   // "notes" | "encounter_*"
-  fileGlob?: string;       // "*.md" or "encounter_*.md"
-}
+// Tiny purpose-built glob helpers. Pulling in a glob library would be
+// overkill for the chart's fixed timeline layout.
 
 /** List per-day leaf files like `timeline/<day>/events.ndjson` or vitals.jsonl. */
 export async function globPerDayFile(chartRoot: string, leaf: string): Promise<string[]> {

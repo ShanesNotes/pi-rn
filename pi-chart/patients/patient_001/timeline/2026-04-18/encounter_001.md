@@ -3,8 +3,8 @@ id: enc_001
 type: encounter
 subject: patient_001
 encounter_id: enc_001
-effective_at: 2026-04-18T06:00:00-05:00
-recorded_at: 2026-04-18T06:30:00-05:00
+effective_at: '2026-04-18T06:00:00-05:00'
+recorded_at: '2026-04-18T06:30:00-05:00'
 author:
   id: admitting_md
   role: md

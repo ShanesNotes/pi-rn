@@ -109,8 +109,9 @@ export function __setWriteCommunicationNoteTestHooksForTests(
 }
 
 function checkProvenance(ev: EventInput | EventEnvelope): void {
+  const record = ev as Record<string, unknown>;
   const missing = REQUIRED_BASE.filter(
-    (k) => (ev as any)[k] === undefined || (ev as any)[k] === null,
+    (k) => record[k] === undefined || record[k] === null,
   );
   if (missing.length) {
     throw new Error(
@@ -119,7 +120,7 @@ function checkProvenance(ev: EventInput | EventEnvelope): void {
   }
   if (CLINICAL_TYPES.has(ev.type as ClinicalType)) {
     const cMissing = REQUIRED_CLINICAL.filter(
-      (k) => (ev as any)[k] === undefined,
+      (k) => record[k] === undefined,
     );
     if (cMissing.length) {
       throw new Error(
@@ -127,10 +128,10 @@ function checkProvenance(ev: EventInput | EventEnvelope): void {
       );
     }
   }
-  const hasEffectiveAt = typeof (ev as any).effective_at === "string";
+  const hasEffectiveAt = typeof record.effective_at === "string";
   const hasEffectivePeriod =
-    !!(ev as any).effective_period &&
-    typeof (ev as any).effective_period === "object";
+    !!record.effective_period &&
+    typeof record.effective_period === "object";
   if (!hasEffectiveAt && !hasEffectivePeriod) {
     throw new Error(
       "event missing required temporal field: provide exactly one of effective_at or effective_period",

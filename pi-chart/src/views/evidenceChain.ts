@@ -161,7 +161,7 @@ async function resolveArtifact(
 ): Promise<ArtifactPointer | null> {
   const ev = ctx.byId.get(id);
   if (!ev || ev.type !== "artifact_ref") return null;
-  const relPath = (ev.data as any)?.path;
+  const relPath = ev.data?.path;
   if (typeof relPath !== "string") return null;
   let resolved: ReturnType<typeof resolveArtifactPath>;
   try {

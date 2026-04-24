@@ -307,6 +307,66 @@ test("future-dated interval intent is permitted without due_by", async () => {
   assert(!r.errors.some((e) => /evt_future_interval_intent/.test(e.where)));
 });
 
+test("Phase A constraint assertions allow open effective_period and status_detail", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(
+    scope,
+    {
+      id: "evt_constraint_support_01",
+      type: "observation",
+      subtype: "patient_report",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T09:00:00-05:00",
+      recorded_at: "2026-04-18T09:00:00-05:00",
+      author: { id: "phase_a", role: "rn" },
+      source: { kind: "manual_scenario" },
+      certainty: "reported",
+      status: "final",
+      data: { name: "allergy_history", value: "penicillin anaphylaxis" },
+      links: { supports: [] },
+    },
+    {
+      id: "evt_constraint_phase_a_01",
+      type: "assessment",
+      subtype: "constraint",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_period: { start: "2026-04-18T09:01:00-05:00" },
+      recorded_at: "2026-04-18T09:01:00-05:00",
+      author: { id: "phase_a", role: "rn" },
+      source: { kind: "manual_scenario" },
+      certainty: "reported",
+      status: "active",
+      data: {
+        constraint_domain: "allergy_intolerance",
+        status_detail: "active",
+        target: { kind: "medication_class", display: "penicillins" },
+        rule: "avoid",
+      },
+      links: { supports: ["evt_constraint_support_01"] },
+    },
+    {
+      id: "evt_constraint_review_phase_a_01",
+      type: "action",
+      subtype: "constraint_review",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T09:02:00-05:00",
+      recorded_at: "2026-04-18T09:02:00-05:00",
+      author: { id: "phase_a", role: "rn" },
+      source: { kind: "manual_scenario" },
+      certainty: "performed",
+      status: "final",
+      data: { status_detail: "reviewed", domains: ["allergy_intolerance"] },
+      links: { supports: ["evt_constraint_support_01"] },
+    },
+  );
+
+  const r = await validateChart(scope);
+  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+});
+
 test("assessment with no evidence rejected", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);
@@ -1334,8 +1394,8 @@ test("encounter day-prefix mismatch produces warning", async () => {
   );
   let text = await fs.readFile(encounterPath, "utf8");
   text = text.replace(
-    "effective_at: 2026-04-18T06:00:00-05:00",
-    "effective_at: 2026-04-19T06:00:00-05:00",
+    "effective_at: '2026-04-18T06:00:00-05:00'",
+    "effective_at: '2026-04-19T06:00:00-05:00'",
   );
   await fs.writeFile(encounterPath, text);
   const r = await validateChart(scope);
@@ -1356,8 +1416,8 @@ test("note day-prefix mismatch produces warning", async () => {
   );
   let text = await fs.readFile(notePath, "utf8");
   text = text.replace(
-    "effective_at: 2026-04-18T08:45:00-05:00",
-    "effective_at: 2026-04-19T08:45:00-05:00",
+    "effective_at: '2026-04-18T08:45:00-05:00'",
+    "effective_at: '2026-04-19T08:45:00-05:00'",
   );
   await fs.writeFile(notePath, text);
   const r = await validateChart(scope);

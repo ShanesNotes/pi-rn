@@ -4,6 +4,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import { appendEvent } from "./write.js";
+import { appendRawEvent } from "./test-helpers/fixture.js";
 import {
   latestEffectiveAt,
   readActiveConstraints,
@@ -55,6 +56,65 @@ test("readActiveConstraints returns null structured when block absent", async ()
   const out = await readActiveConstraints(scope);
   assert.equal(out.structured, null);
   assert(out.body.includes("narrative only"));
+});
+
+test("readActiveConstraints includes canonical constraint events and review actions", async () => {
+  const scope = await freshChart();
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_support_01",
+    type: "observation",
+    subtype: "patient_report",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T06:00:00-05:00",
+    recorded_at: "2026-04-18T06:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "reported",
+    status: "final",
+    data: { name: "allergy_history", value: "penicillin anaphylaxis" },
+    links: { supports: [] },
+  });
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_constraint_01",
+    type: "assessment",
+    subtype: "constraint",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_period: { start: "2026-04-18T06:01:00-05:00" },
+    recorded_at: "2026-04-18T06:01:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "reported",
+    status: "active",
+    data: {
+      constraint_domain: "allergy_intolerance",
+      status_detail: "active",
+      target: { kind: "medication_class", display: "penicillins" },
+      rule: "avoid",
+    },
+    links: { supports: ["evt_support_01"] },
+  });
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_constraint_review_01",
+    type: "action",
+    subtype: "constraint_review",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T06:02:00-05:00",
+    recorded_at: "2026-04-18T06:02:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "performed",
+    status: "final",
+    data: { status_detail: "reviewed", domains: ["allergy_intolerance"] },
+    links: { supports: ["evt_support_01"] },
+  });
+
+  const out = await readActiveConstraints(scope);
+  assert.equal(out.structured, null);
+  assert.deepEqual(out.events.map((event) => event.id), ["evt_constraint_01"]);
+  assert.deepEqual(out.reviews.map((event) => event.id), ["evt_constraint_review_01"]);
 });
 
 test("readRecentEvents defaults asOf to latest chart event, not wall clock", async () => {
@@ -126,7 +186,7 @@ test("readRecentEvents enforces inclusive bounds and excludes future/invalid tim
   });
   assert.deepEqual(
     events.map((event) => event.effective_at),
-    ["2026-04-18T08:15:00-05:00", "2026-04-18T08:20:00-05:00"],
+    ["2026-04-18T08:20:00-05:00", "2026-04-18T08:15:00-05:00"],
   );
 });
 

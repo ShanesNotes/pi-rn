@@ -79,8 +79,9 @@ block:
 - **Interval events via `effective_period`.** Exactly one of
   `effective_at` or `effective_period: { start, end? }` per event.
   Interval usage allow-listed per subtype (context segments, care
-  plans, infusion administrations, stable device settings). Open
-  intervals close via supersession (ADR 005).
+  plans, infusion administrations, stable device settings, and Phase A
+  constraint/review intervals). Open intervals close via supersession
+  (ADR 005).
 - **Closed `source.kind` taxonomy.** Enumerated in §1.1 below;
   validator warn-on-unknown, promotes to error in the next minor.
   `agent_reasoning` collapses into `agent_inference` (ADR 006).

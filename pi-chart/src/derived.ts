@@ -11,6 +11,8 @@ import path from "node:path";
 import {
   atomicWriteFile,
   ensureDir,
+  globPerDayFile,
+  iterNdjson,
   readTextIfExists,
 } from "./fs-util.js";
 import {
@@ -19,7 +21,6 @@ import {
   latestEffectiveAt,
   parseIso,
 } from "./time.js";
-import { iterNdjson, globPerDayFile } from "./fs-util.js";
 import { patientRoot } from "./types.js";
 import { currentState } from "./views/currentState.js";
 import { openLoops } from "./views/openLoops.js";
@@ -89,7 +90,7 @@ function buildCurrent(
 
   lines.push(`## Active intents (${state.intents.length})\n`);
   for (const loop of state.intents) {
-    const goal = (loop.intent.data as any)?.goal ?? loop.intent.subtype ?? "";
+    const goal = displayValue(loop.intent.data?.goal, loop.intent.subtype ?? "");
     lines.push(`- \`${loop.intent.id}\` — ${goal}${contestedSuffix(loop.intent.id, contestedById)}`);
   }
   lines.push("");
@@ -97,7 +98,7 @@ function buildCurrent(
   const assessments = state.problems.slice(0, 5);
   lines.push("## Recent assessments (latest 5)\n");
   for (const ev of assessments) {
-    const summary = (ev.data as any)?.summary ?? "";
+    const summary = displayValue(ev.data?.summary);
     lines.push(
       `- \`${ev.id}\` (${eventStartIso(ev) ?? "unknown"}) — ${summary}${contestedSuffix(ev.id, contestedById)}`,
     );
@@ -106,7 +107,7 @@ function buildCurrent(
 
   lines.push(`## Active constraints (${state.constraints.length})\n`);
   for (const ev of state.constraints) {
-    const summary = (ev.data as any)?.summary ?? ev.subtype ?? "constraint";
+    const summary = displayValue(ev.data?.summary, ev.subtype ?? "constraint");
     lines.push(
       `- \`${ev.id}\` — ${summary}${contestedSuffix(ev.id, contestedById)}`,
     );
@@ -116,9 +117,9 @@ function buildCurrent(
   const observations = state.observations.slice(0, 5);
   lines.push("## Recent observations (latest 5)\n");
   for (const ev of observations) {
-    const name = (ev.data as any)?.name ?? ev.subtype ?? "observation";
-    const value = (ev.data as any)?.value;
-    const summary = value !== undefined ? `${name} = ${value}` : `${name}`;
+    const name = displayValue(ev.data?.name, ev.subtype ?? "observation");
+    const value = ev.data?.value;
+    const summary = value !== undefined ? `${name} = ${String(value)}` : name;
     lines.push(
       `- \`${ev.id}\` (${eventStartIso(ev) ?? "unknown"}) — ${summary}${contestedSuffix(ev.id, contestedById)}`,
     );
@@ -210,8 +211,11 @@ function buildOpenIntents(loops: (OpenLoop | ContestedClaim)[]): string {
     }
     if (Array.isArray(d.contingencies) && (d.contingencies as unknown[]).length) {
       lines.push("**Contingencies:**");
-      for (const c of d.contingencies as any[]) {
-        lines.push(`- if _${c?.trigger ?? ""}_: ${c?.action ?? ""}`);
+      for (const c of d.contingencies as unknown[]) {
+        const item = asRecord(c);
+        lines.push(
+          `- if _${displayValue(item?.trigger)}_: ${displayValue(item?.action)}`,
+        );
       }
       lines.push("");
     }
@@ -249,6 +253,17 @@ function formatMinutes(mins: number): string {
   const h = Math.floor(abs / 60);
   const m = abs % 60;
   return m === 0 ? `${sign} ${h}h` : `${sign} ${h}h ${m}m`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function displayValue(value: unknown, fallback = ""): string {
+  if (value === null || value === undefined) return fallback;
+  return typeof value === "string" ? value : String(value);
 }
 
 /** Find the raw ISO string in events/vitals that matches `best` exactly. */

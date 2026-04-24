@@ -3,6 +3,7 @@
 
 export { timeline } from "./timeline.js";
 export { currentState } from "./currentState.js";
+export { activeProblems } from "./currentState.js";
 export { trend } from "./trend.js";
 export { evidenceChain } from "./evidenceChain.js";
 export { openLoops } from "./openLoops.js";

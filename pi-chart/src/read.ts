@@ -18,11 +18,13 @@ import {
   readTextIfExists,
 } from "./fs-util.js";
 import {
+  eventCoversAsOf,
   eventStartDate,
   latestEffectiveAt as _latestEffectiveAt,
   parseIso,
 } from "./time.js";
 import { patientRoot } from "./types.js";
+import { loadContext, isCorrected, isSuperseded } from "./views/active.js";
 import type {
   ConstraintsBlock,
   EventEnvelope,
@@ -67,13 +69,38 @@ export async function readPatientContext(scope: PatientScope): Promise<{
 export async function readActiveConstraints(scope: PatientScope): Promise<{
   structured: ConstraintsBlock | null;
   body: string;
+  events: EventEnvelope[];
+  reviews: EventEnvelope[];
 }> {
   const pr = patientRoot(scope);
   const text = await readTextIfExists(path.join(pr, "constraints.md"));
-  if (text === null) return { structured: null, body: "" };
-  const [fm, body] = parseFrontmatter(text);
-  const block = (fm as any)?.constraints as ConstraintsBlock | undefined;
-  return { structured: block ?? null, body };
+  let structured: ConstraintsBlock | null = null;
+  let body = "";
+  if (text !== null) {
+    const [fm, parsedBody] = parseFrontmatter(text);
+    const block = fm?.constraints as ConstraintsBlock | undefined;
+    structured = block ?? null;
+    body = parsedBody;
+  }
+  const ctx = await loadContext(scope);
+  const events: EventEnvelope[] = [];
+  const reviews: EventEnvelope[] = [];
+  for (const ev of ctx.events) {
+    if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
+    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
+    if (
+      ev.type === "assessment" &&
+      ev.subtype === "constraint" &&
+      (ev.status === "active" || ev.status === "final")
+    ) {
+      events.push(ev);
+    } else if (ev.type === "action" && ev.subtype === "constraint_review") {
+      reviews.push(ev);
+    }
+  }
+  events.sort((a, b) => a.id.localeCompare(b.id));
+  reviews.sort((a, b) => a.id.localeCompare(b.id));
+  return { structured, body, events, reviews };
 }
 
 export interface ReadRecentEventsOpts {
@@ -101,6 +128,11 @@ export async function readRecentEvents(
       results.push(ev as EventEnvelope);
     }
   }
+  results.sort((a, b) => {
+    const at = eventStartDate(a)?.getTime() ?? Number.NEGATIVE_INFINITY;
+    const bt = eventStartDate(b)?.getTime() ?? Number.NEGATIVE_INFINITY;
+    return bt - at || b.id.localeCompare(a.id);
+  });
   return results;
 }
 
@@ -126,11 +158,15 @@ export async function readRecentNotes(opts: {
     const [fm, body] = parseFrontmatter(text);
     out.push({
       path: path.relative(pr, p),
-      frontmatter: (fm as unknown as NoteFrontmatter | null) ?? null,
+      frontmatter: noteFrontmatter(fm),
       body,
     });
   }
   return out;
+}
+
+function noteFrontmatter(fm: Record<string, unknown> | null): NoteFrontmatter | null {
+  return fm === null ? null : (fm as unknown as NoteFrontmatter);
 }
 
 export async function readLatestVitals(

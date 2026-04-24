@@ -171,11 +171,11 @@ function computeState(
 
 function isFailureFulfillment(f: EventEnvelope): boolean {
   if (f.status === "entered_in_error") return true;
-  const detail = (f.data as any)?.status_detail;
+  const detail = f.data?.status_detail;
   if (typeof detail === "string" && /^(failed|failure|refused|aborted)$/i.test(detail)) {
     return true;
   }
-  const outcome = (f.data as any)?.outcome;
+  const outcome = f.data?.outcome;
   if (typeof outcome === "string" && /^(failed|failure|refused|aborted)$/i.test(outcome)) {
     return true;
   }
@@ -183,7 +183,7 @@ function isFailureFulfillment(f: EventEnvelope): boolean {
 }
 
 function readDueBy(intent: EventEnvelope): number | null {
-  const raw = (intent.data as any)?.due_by;
+  const raw = intent.data?.due_by;
   if (typeof raw !== "string") return null;
   const ms = Date.parse(raw);
   return Number.isFinite(ms) ? ms : null;
@@ -245,7 +245,13 @@ function classifyContestedAxis(
   older: EventEnvelope,
   newer: EventEnvelope,
 ): ContestedAxis | null {
-  if (older.type === "constraint_set" && newer.type === "constraint_set") {
+  const olderIsConstraint =
+    older.type === "constraint_set" ||
+    (older.type === "assessment" && older.subtype === "constraint");
+  const newerIsConstraint =
+    newer.type === "constraint_set" ||
+    (newer.type === "assessment" && newer.subtype === "constraint");
+  if (olderIsConstraint && newerIsConstraint) {
     return "constraints";
   }
   if (

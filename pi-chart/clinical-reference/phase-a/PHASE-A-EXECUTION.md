@@ -279,11 +279,11 @@ All files live in `clinical-reference/phase-a/`.
 
 ```
 a0a-patient-demographics-encounter.md
-a0b-active-constraints.md
-a0c-problem-list.md
+a0b-active-constraints-synthesis.md
+a0c-problem-list-synthesis.md
 a1-lab-results.md
 a2-results-review.md
-a3-vital-signs.md
+a3-vital-signs-synthesis.md
 a4-mar.md
 a4b-medication-reconciliation.md
 a5-io-and-ldas.md

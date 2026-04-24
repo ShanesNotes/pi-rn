@@ -10,7 +10,7 @@
     "rebuild": "tsx scripts/rebuild-derived.ts .",
     "check": "npm run rebuild && npm run validate",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx 'src/**/*.test.ts'"
+    "test": "node --test --import tsx 'src/**/*.test.ts' 'scripts/**/*.test.ts'"
   },
   "dependencies": {
     "ajv": "^8.17.0",

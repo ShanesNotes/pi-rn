@@ -118,6 +118,8 @@ const INTERVAL_ALLOWED = new Set([
   "intent:monitoring_plan",
   "intent:care_plan",
   "action:administration",
+  "action:constraint_review",
+  "assessment:constraint",
   "observation:device_reading",
   "observation:context_segment",
 ]);
@@ -126,6 +128,7 @@ const OPEN_INTERVAL_ALLOWED = new Set([
   "intent:monitoring_plan",
   "intent:care_plan",
   "action:administration",
+  "assessment:constraint",
   "observation:device_reading",
   "observation:context_segment",
 ]);
@@ -201,6 +204,24 @@ const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
       deferred: [],
     },
   },
+  "action:constraint_review": {
+    allowed: ["reviewed", "deferred", "unable_to_verify"],
+    terminal: ["reviewed", "deferred", "unable_to_verify"],
+    transitions: {
+      reviewed: [],
+      deferred: [],
+      unable_to_verify: [],
+    },
+  },
+  "action:problem_review": {
+    allowed: ["reviewed", "deferred", "updated"],
+    terminal: ["reviewed", "deferred", "updated"],
+    transitions: {
+      reviewed: [],
+      deferred: [],
+      updated: [],
+    },
+  },
   "observation:lab_result": {
     allowed: ["preliminary", "final", "corrected", "amended", "addendum", "cancelled"],
     terminal: ["final", "corrected", "amended", "addendum", "cancelled"],
@@ -243,6 +264,17 @@ const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
       resolved: [],
       inactive: [],
       ruled_out: [],
+    },
+  },
+  "assessment:constraint": {
+    allowed: ["active", "inactive", "resolved", "refuted", "no_longer_applicable"],
+    terminal: ["inactive", "resolved", "refuted", "no_longer_applicable"],
+    transitions: {
+      active: ["inactive", "resolved", "refuted", "no_longer_applicable"],
+      inactive: [],
+      resolved: [],
+      refuted: [],
+      no_longer_applicable: [],
     },
   },
 };
@@ -1801,8 +1833,8 @@ async function checkDerivedNotEdited(state: State) {
  * looks like a placeholder likely to have slipped through unchecked.
  */
 function checkAuthorSentinel(state: State, where: string, author: unknown) {
-  if (!author || typeof author !== "object") return;
-  const id = (author as any).id;
+  if (!author || typeof author !== "object" || Array.isArray(author)) return;
+  const id = (author as Record<string, unknown>).id;
   if (typeof id !== "string") return;
   const sentinels = ["", "TODO", "todo", "unknown", "placeholder", "<fill-me>"];
   if (sentinels.includes(id)) {

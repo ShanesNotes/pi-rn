@@ -9,6 +9,7 @@
 import { iterNdjson, globPerDayFile } from "../fs-util.js";
 import { patientRoot } from "../types.js";
 import { eventEndIso, eventStartIso } from "../time.js";
+import { formatSource } from "./source.js";
 import type { TrendParams, TrendPoint } from "../types.js";
 
 export async function trend(params: TrendParams): Promise<TrendPoint[]> {
@@ -62,21 +63,10 @@ export async function trend(params: TrendParams): Promise<TrendPoint[]> {
   return points;
 }
 
-function eventPointInstants(ev: Record<string, any>): string[] {
+function eventPointInstants(ev: Parameters<typeof eventStartIso>[0]): string[] {
   const start = eventStartIso(ev);
   if (!start) return [];
   const end = eventEndIso(ev);
   if (end && end !== start) return [start, end];
   return [start];
-}
-
-function formatSource(src: unknown): string {
-  if (src && typeof src === "object") {
-    const ref = (src as any).ref;
-    const kind = (src as any).kind;
-    if (typeof ref === "string" && ref.length) return ref;
-    if (typeof kind === "string" && kind.length) return kind;
-  }
-  if (typeof src === "string") return src;
-  return "unknown";
 }

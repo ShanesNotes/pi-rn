@@ -29,12 +29,16 @@ import type {
   CurrentState,
   CurrentStateParams,
   EventEnvelope,
+  PatientScope,
   TrendPoint,
 } from "../types.js";
 import {
   contestedRuntimeEntries,
   openLoops,
 } from "./openLoops.js";
+import { formatSource } from "./source.js";
+
+type ActiveContextReady = Awaited<ReturnType<typeof loadContext>>;
 
 export async function currentState(params: CurrentStateParams): Promise<CurrentState> {
   // Resolve asOf once — default "now" is chart-clock now (sim or wall)
@@ -110,20 +114,37 @@ export async function currentState(params: CurrentStateParams): Promise<CurrentS
   }
 }
 
-function collectConstraints(ctx: ReturnType<typeof loadContext> extends Promise<infer T> ? T : never): EventEnvelope[] {
-  const out: EventEnvelope[] = [];
+export async function activeProblems(
+  scope: PatientScope,
+  asOf?: string,
+): Promise<EventEnvelope[]> {
+  const state = await currentState({ scope, axis: "problems", asOf });
+  return state.axis === "problems" ? state.items : [];
+}
+
+function collectConstraints(ctx: ActiveContextReady): EventEnvelope[] {
+  const canonical: EventEnvelope[] = [];
+  const legacyStructural: EventEnvelope[] = [];
   for (const ev of ctx.events) {
-    if (ev.type !== "constraint_set") continue;
+    const isCanonicalConstraint =
+      ev.type === "assessment" && ev.subtype === "constraint";
+    const isLegacyStructuralConstraint = ev.type === "constraint_set";
+    if (!isCanonicalConstraint && !isLegacyStructuralConstraint) continue;
     if (!(ev.status === "active" || ev.status === "final")) continue;
     if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
     if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
-    out.push(ev);
+    if (isCanonicalConstraint) {
+      canonical.push(ev);
+    } else {
+      legacyStructural.push(ev);
+    }
   }
+  const out = canonical.length > 0 ? canonical : legacyStructural;
   out.sort((a, b) => a.id.localeCompare(b.id));
   return out;
 }
 
-function collectProblems(ctx: ReturnType<typeof loadContext> extends Promise<infer T> ? T : never): EventEnvelope[] {
+function collectProblems(ctx: ActiveContextReady): EventEnvelope[] {
   const out: EventEnvelope[] = [];
   for (const ev of ctx.events) {
     if (ev.type !== "assessment") continue;
@@ -141,7 +162,7 @@ function collectProblems(ctx: ReturnType<typeof loadContext> extends Promise<inf
 }
 
 function collectObservations(
-  ctx: ReturnType<typeof loadContext> extends Promise<infer T> ? T : never,
+  ctx: ActiveContextReady,
 ): EventEnvelope[] {
   const out: EventEnvelope[] = [];
   for (const ev of ctx.events) {
@@ -193,15 +214,4 @@ async function collectLatestVitals(
   const out: Record<string, TrendPoint> = {};
   for (const [name, entry] of Object.entries(latest)) out[name] = entry.point;
   return out;
-}
-
-function formatSource(src: unknown): string {
-  if (src && typeof src === "object") {
-    const ref = (src as any).ref;
-    const kind = (src as any).kind;
-    if (typeof ref === "string" && ref.length) return ref;
-    if (typeof kind === "string" && kind.length) return kind;
-  }
-  if (typeof src === "string") return src;
-  return "unknown";
 }

@@ -4,8 +4,8 @@ type: communication
 subtype: sbar
 subject: patient_001
 encounter_id: enc_001
-effective_at: 2026-04-18T08:45:00-05:00
-recorded_at: 2026-04-18T08:45:10-05:00
+effective_at: '2026-04-18T08:45:00-05:00'
+recorded_at: '2026-04-18T08:45:10-05:00'
 author:
   id: pi-agent
   role: rn_agent

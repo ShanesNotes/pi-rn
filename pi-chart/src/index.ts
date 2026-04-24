@@ -25,6 +25,7 @@ export { parseEvidenceRef, formatVitalsUri, isVitalsUri } from "./evidence.js";
 
 export {
   timeline,
+  activeProblems,
   currentState,
   trend,
   evidenceChain,

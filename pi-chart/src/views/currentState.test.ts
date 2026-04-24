@@ -5,7 +5,7 @@ import {
   appendRawEvent,
   appendRawVital,
 } from "../test-helpers/fixture.js";
-import { currentState } from "./currentState.js";
+import { activeProblems, currentState } from "./currentState.js";
 
 function ev(
   id: string,
@@ -45,6 +45,25 @@ test("constraints axis: active not superseded are returned; superseded are hidde
   assert.deepEqual(s.items.map((x) => x.id), ["cs_b"]);
 });
 
+test("constraints axis prefers canonical assessment/constraint events over constraint_set cache", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_support_01", "observation", "patient_report", "final", "2026-04-18T05:55:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("cs_cache", "constraint_set", undefined, "active", "2026-04-18T06:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_constraint_pcn", "assessment", "constraint", "active", "2026-04-18T06:05:00-05:00", {
+    certainty: "reported",
+    data: {
+      constraint_domain: "allergy_intolerance",
+      status_detail: "active",
+      target: { kind: "medication_class", display: "penicillins" },
+      rule: "avoid",
+    },
+    links: { supports: ["evt_support_01"] },
+  }));
+  const s = await currentState({ scope, axis: "constraints" });
+  if (s.axis !== "constraints") throw new Error();
+  assert.deepEqual(s.items.map((x) => x.id), ["evt_constraint_pcn"]);
+});
+
 test("problems axis: only assessment/problem with status active, no superseded", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", ev("evt_obs_01", "observation", "vital_sign", "final", "2026-04-18T08:00:00-05:00"));
@@ -59,6 +78,16 @@ test("problems axis: only assessment/problem with status active, no superseded",
   const s = await currentState({ scope, axis: "problems" });
   if (s.axis !== "problems") throw new Error();
   assert.deepEqual(s.items.map((x) => x.id), ["evt_p1"]);
+});
+
+test("activeProblems aliases currentState problems axis", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_obs_01", "observation", "vital_sign", "final", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_p1", "assessment", "problem", "active", "2026-04-18T08:30:00-05:00", {
+    data: { summary: "hypoxia" },
+    links: { supports: ["evt_obs_01"] },
+  }));
+  assert.deepEqual((await activeProblems(scope)).map((x) => x.id), ["evt_p1"]);
 });
 
 test("vitals axis returns latest per metric regardless of supersession semantics", async () => {

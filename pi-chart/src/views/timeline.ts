@@ -93,36 +93,42 @@ function summarize(ev: EventEnvelope): string {
   const data = ev.data ?? {};
   switch (ev.type) {
     case "observation": {
-      const name = (data as any).name ?? ev.subtype ?? "observation";
-      const value = (data as any).value;
-      const unit = (data as any).unit ?? "";
-      if (value !== undefined) return `${name} = ${value}${unit ? " " + unit : ""}`.trim();
-      return `${name}`;
+      const name = data.name ?? ev.subtype ?? "observation";
+      const value = data.value;
+      const unit = data.unit ?? "";
+      if (value !== undefined) {
+        return `${toText(name)} = ${toText(value)}${unit ? " " + toText(unit) : ""}`.trim();
+      }
+      return toText(name);
     }
     case "assessment": {
-      const summary = (data as any).summary ?? (data as any).impression;
+      const summary = data.summary ?? data.impression;
       if (typeof summary === "string" && summary.length) return summary;
       return ev.subtype ?? "assessment";
     }
     case "intent": {
-      const goal = (data as any).goal ?? ev.subtype ?? "intent";
+      const goal = data.goal ?? ev.subtype ?? "intent";
       return typeof goal === "string" ? goal : String(goal);
     }
     case "action": {
-      const what = (data as any).action ?? (data as any).name ?? ev.subtype ?? "action";
+      const what = data.action ?? data.name ?? ev.subtype ?? "action";
       return typeof what === "string" ? what : String(what);
     }
     case "communication": {
-      const audience = (data as any).audience;
+      const audience = data.audience;
       const subtype = ev.subtype ?? "communication";
       return audience ? `${subtype} → ${audience}` : subtype;
     }
     case "artifact_ref": {
-      const kind = (data as any).kind ?? ev.subtype ?? "artifact";
-      const desc = (data as any).description ?? "";
+      const kind = data.kind ?? ev.subtype ?? "artifact";
+      const desc = data.description ?? "";
       return desc ? `${kind}: ${desc}` : String(kind);
     }
     default:
       return ev.subtype ?? String(ev.type);
   }
+}
+
+function toText(value: unknown): string {
+  return typeof value === "string" ? value : String(value);
 }
