@@ -16,6 +16,10 @@ being discovered. This folder is where that discovery lives.
   clinical-memory usefulness across flowsheets/vitals, nursing assessment,
   notes, orders/meds/interventions, labs/diagnostics, and care
   plan/handoff.
+- `phase-a/` — active artifact research for the broad EHR skeleton.
+  Current local state: A0a-A4 are present; A4b and A5-A9b remain
+  unproduced; `OPEN-SCHEMA-QUESTIONS.md` is the compilation surface for
+  unresolved schema questions.
 
 ## What goes here
 

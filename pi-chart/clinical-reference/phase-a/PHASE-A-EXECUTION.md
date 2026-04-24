@@ -18,6 +18,11 @@ in the calibration stop than propagate EHR-tab drift through Batches 2–3.
 `clinical-reference/phase-a/`; §5 updated to reflect ADR 001
 (Synthea-primary, MIMIC deferred).
 
+**Current local state (2026-04-24):** Batch 0 and Batch 1 artifacts are
+present. Batch 2 has A3 and A4 synthesis artifacts plus separate
+open-schema-entry synthesis files. A4b and A5-A9b are not present yet.
+`SUMMARY.md` is not present yet.
+
 **Read first:**
 - `PHASE-A-CHARTER.md` — stance, rules, failure modes
 - `PHASE-A-TEMPLATE.md` — per-artifact output shape
@@ -111,10 +116,14 @@ primitive discipline.
 
 ## 2. Calibration stop — mandatory, between Batch 1 and Batch 2
 
-**After A0a–A0c + A1 + A2 are produced, stop and wait for project-owner
-review.**
+**Original gate:** after A0a-A0c + A1 + A2 are produced, stop and wait
+for project-owner review.
 
-Do not start A3 until calibration passes.
+**Current state:** A3 and A4 synthesis artifacts now exist, so the
+calibration gate has already been passed or bypassed in practice. Do not
+start A4b, A5, A6, A7, A8, A9a, or A9b until the project owner either
+retroactively signs off Batch 0/1 calibration or records a new routing
+decision.
 
 ### Why the stop matters (expanded for Batch 0)
 
@@ -284,7 +293,7 @@ a0c-problem-list-synthesis.md
 a1-lab-results.md
 a2-results-review.md
 a3-vital-signs-synthesis.md
-a4-mar.md
+a4-mar-synthesis.md
 a4b-medication-reconciliation.md
 a5-io-and-ldas.md
 a6-provider-notes.md
@@ -295,6 +304,16 @@ a9b-orderset-invocation.md
 ```
 
 Each uses `PHASE-A-TEMPLATE.md` verbatim.
+
+Current companion synthesis files:
+
+```
+a3-open-schema-entries-synthesis.md
+a4-open-schema-entries-synthesis.md
+```
+
+These are staging artifacts for `OPEN-SCHEMA-QUESTIONS.md`; they are not
+standalone Phase A deliverables.
 
 ### Cross-cutting files
 
@@ -407,8 +426,8 @@ This directive can be executed by:
   Charter + template + execution file loads into context; the agent
   drives through Batches sequentially, respecting the calibration stop.
 - **Claude Code locally**, using its own research capabilities.
-  Calibration stop is a commit boundary — project owner reviews before
-  A3 starts.
+  Calibration stop is a commit boundary — project owner review is
+  required before further Batch 2/3 expansion.
 - **The project owner** (a nurse) executing Batches 2 and 3 directly
   from experience, with a research agent augmenting A0a–A0c, A1, A2,
   A4b, A8, A9a, A9b. Direct clinical experience compresses research

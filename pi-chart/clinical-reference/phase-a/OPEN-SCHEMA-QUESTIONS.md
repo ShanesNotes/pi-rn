@@ -8,6 +8,8 @@ Coverage:
 - A0c problem list synthesis
 - A1 lab results
 - A2 results review
+- A3 vital signs synthesis
+- A4 MAR synthesis
 
 This file is a compilation surface. Source-specific sections remain authoritative
 for full clinical rationale and references.
@@ -21,6 +23,9 @@ for full clinical rationale and references.
 | Temporal semantics | [A1 effective_at](#a1-effective-at), [A2 effective_at](#a2-effective-at), [A0b effective_period](#a0b-effective-period-allow-list), [A0c effective_period](#a0c-effective-period-allow-list), [A0a location intervals](#a0a-location-context-segment) | Keep physiologic/event time distinct from chart-actionable time; extend interval primitives only where query value is clear. |
 | Derived/cache files | [A0b constraints file role](#a0b-constraints-file-role), [A0a structural split](#a0a-structural-event-split) | Event stream is authoritative; structural/cache files are identity or performance surfaces. |
 | Result actionability and closure | [A1 risk tier](#a1-risk-tier), [A2 coverage threshold](#a2-review-coverage-threshold), [A2 implicit closure](#a2-implicit-closure-via-citation), [A2 actionability tier](#a2-actionability-tier) | Prefer policy-significant explicit review; routine closure can stay derived or implicit. |
+| Stream/window addressability | [A3 stream sample identity](#a3-stream-sample-identity), [A4 dose occurrence and cardinality](#a4-dose-occurrence-and-cardinality) | Prefer deterministic virtual keys where dense materialized child events would create volume without clinical value. |
+| Context/state axes | [A3 oxygen context](#a3-oxygen-context), [A4 titration interval episode](#a4-titration-interval-episode) | Keep current state derived from events; add view axes only when multiple artifacts need the same projection pattern. |
+| Medication fulfillment and response | [A4 dose occurrence and cardinality](#a4-dose-occurrence-and-cardinality), [A4 response obligation closure](#a4-response-obligation-closure), [A4 attestation waste boundary](#a4-attestation-waste-boundary) | Preserve order-action-response auditability without widening `fulfills` unless an ADR explicitly changes it. |
 
 ## A0a patient demographics / encounter
 
@@ -266,3 +271,102 @@ only; critical results require human confirmation.
 risk tier.** ACR actionable categories and A1 CLSI GP47 risk tier may collapse
 into one actionability field on all result observations, with modality-specific
 policy determining SLA. Adoption would unify A2 and A1 validator logic.
+
+## A3 vital signs synthesis
+
+Source: `a3-vital-signs-synthesis.md` section 16 and
+`a3-open-schema-entries-synthesis.md`.
+
+### a3-stream-sample-identity
+
+**[open-schema] Stream-sample identity, correction, and fulfillment.**
+Continuous telemetry cannot give every sample a normal event id without
+ballooning `events.ndjson`, but unaddressed samples are hard to correct,
+supersede, cite, or use as fulfillment evidence. Current lean: keep dense
+stream rows lightweight, use vitals-window refs for evidence, and reserve
+explicit `action.measurement` events for one-shot ordered measurements.
+
+### a3-shared-metrics
+
+**[open-schema] Shared metrics across labs and vitals.** ABG-like values,
+lactate, and hemoglobin can appear both as lab observations and simulator or
+monitor-derived vital-frame fields. Current lean: A1 is canonical for drawn
+labs; suppress or profile-route A3 simulator-derived equivalents unless they
+are explicitly labeled as training/simulation values.
+
+### a3-oxygen-context
+
+**[open-schema] Oxygen-delivery context and current-state axis.** SpO2 is not
+clinically interpretable without oxygen device/flow/FiO2 context. Current lean:
+migrate from inline per-sample context toward interval
+`observation.context_segment` events, with backward-compatible reads over legacy
+inline context. `currentState(axis:"context")` remains proposed, not accepted.
+
+### a3-early-warning-score
+
+**[open-schema] Early-warning score storage.** NEWS2/MEWS/qSOFA can be derived
+from vitals and assessment data, stored as `assessment.risk_score`, or handled
+by policy profiles. Current lean: derived by default; store only when the score
+itself becomes clinically acted upon or must be audited.
+
+### a3-alarm-and-artifact-events
+
+**[open-schema] Alarm and artifact event class.** Alarms can be derived from
+thresholds, represented as actions such as `alarm_pause`, or captured as
+canonical alert events. Current lean: derive alert state from monitoring plans
+first; add canonical alarm/pause events only where audit requirements or
+fixture evidence require them.
+
+## A4 MAR synthesis
+
+Source: `a4-mar-synthesis.md` section 16 and
+`a4-open-schema-entries-synthesis.md`.
+
+### a4-dose-occurrence-and-cardinality
+
+**[open-schema] Dose occurrence identity and fulfillment cardinality.** A q6h
+order creates repeated due obligations; `links.fulfills: [order_id]` alone
+cannot distinguish which dose was given, late, held, refused, or omitted.
+Current lean: deterministic `meddose://...` occurrence keys plus strict
+one-disposition-action-to-one-medication-order fulfillment. Do not permit one
+administration to silently fulfill sibling medication orders.
+
+### a4-device-authored-dispositions
+
+**[open-schema] Device-authored dispositions and pump telemetry.** Barcode
+scans, dispensing systems, and smart pumps may provide supporting evidence, but
+not all device signals are clinician actions. Current lean: ADS/BCMA evidence
+supports nurse/provider actions; smart-pump state can become canonical exposure
+truth later once device provenance is formalized.
+
+### a4-response-obligation-closure
+
+**[open-schema] Medication response obligations and loop closure.** Many
+administrations require reassessment or monitoring. Current lean: persistent
+requirements live on orders, high-risk concrete checks become monitoring
+intents, ad hoc obligations can live on the action, and closure should use
+`links.resolves` or evidence overlap rather than widening `fulfills`.
+
+### a4-titration-interval-episode
+
+**[open-schema] Titration / infusion interval and episode model.** Continuous
+infusions and titrations are interval-shaped medication exposures. Current lean:
+extend ADR 005 with a narrow action-interval allow-list such as
+`action.titration` or `action.continuous_infusion`, and allow optional episode
+grouping without creating a new event type.
+
+### a4-attestation-waste-boundary
+
+**[open-schema] Partial dose, waste, verification, and attestation boundary.**
+High-risk administrations may need witness, cosign, double-check, waste, or
+pharmacy verification evidence. Current lean: administered dose is canonical;
+use compact `waste` and `attestations[]` payloads plus policy-profile
+validators. Promote separate action subtypes only if fixtures prove independent
+claim identity is required.
+
+### a4-order-discriminator
+
+**[open-schema] Medication order discriminator.** A4 uses the working shape
+`intent.subtype = order` plus `data.order_kind = "medication"`. Current lean:
+defer the durable order-family decision to A9a; if A9a chooses split subtypes,
+A4 can migrate mechanically.

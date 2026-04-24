@@ -1,12 +1,12 @@
 # pi-chart DESIGN
 
-Planning document for pi-chart v0.2. Intended audience: a human operator
-and Claude Code, working together. This is the spec; `README.md` is the
-primer.
+Planning document for pi-chart `0.3.0-partial`. Intended audience: a
+human operator and coding agents working together. This is the spec;
+`README.md` is the primer.
 
-**Revision:** v0.2 draft, council-reviewed 2026-04-19. All council
-amendments are integrated in place. A summary of changes is appended
-at the end (§11).
+**Revision:** `0.3.0-partial`, updated after ADRs 002-011 and ADR 016.
+The original v0.2 council-reviewed text remains the base; later accepted
+ADRs are integrated in place and tracked in `decisions/`.
 
 Scope:
 
@@ -1063,71 +1063,38 @@ trivial. v0.1 reads already work this way — keep it.
 
 ## 10. Roadmap
 
-Four phases. Each produces a reviewable, testable increment. Phases are
-strictly ordered by dependency.
+`ROADMAP.md` is the canonical schedule. This section records the spec
+state that matters to this document.
 
-### Phase 1 — Multi-patient + sessions (foundational)
+### Shipped substrate
 
-**Goal:** single-patient v0.1 becomes multi-patient v0.2 with
-autofill-from-session, zero regressions. One patient imported; layout
-is multi-patient-ready.
+- Multi-patient layout, `PatientScope`, session ergonomics, and patient
+  isolation are implemented.
+- The six view primitives are implemented and tested:
+  `timeline`, `currentState`, `trend`, `evidenceChain`, `openLoops`, and
+  `narrative`.
+- ADRs 002-006 and 009-011 are implemented in schema, types, validator,
+  views, migration, and the `patient_001` corpus.
 
-- `scripts/migrate-v01-to-v02.ts` — idempotent migration.
-- New `pi-chart.yaml` at root; new `sessions/current.yaml` schema in
-  `schemas/`.
-- `.gitignore` adds `sessions/current.yaml`. Commit
-  `sessions/current.example.yaml`.
-- Every `src/*.ts` that takes `chartRoot` gains `PatientScope`.
-  `assertSubjectMatches` moves to per-patient.
-- `src/session.ts` — load/save/resolve. Auto-fill `author` on writes
-  (library functions) or `chartRoot` (CLI wrappers only).
-- Validator: invariants 6, 7 added.
-- All existing tests updated; new tests for isolation (writes to wrong
-  patient throw; cross-patient links rejected).
+### Current focus
 
-### Phase 2 — View primitives
+The accepted near-term direction is ADR 016: prove pi-chart as clinical
+memory through a broad, shallow EHR skeleton before deep pi-agent
+integration. The first-pass skeleton covers flowsheets/vitals, nursing
+assessment, notes/narrative charting, orders/meds/interventions,
+labs/diagnostics, and care plan/handoff.
 
-**Goal:** the six views are real, tested, composable.
+`clinical-reference/phase-a/` is the active research surface for that
+work. Its outputs are proposals until resolved by ADR and integrated
+here.
 
-- `src/views/` with one function per primitive (or flat `src/views.ts`
-  if smaller — not committed).
-- Supersession evaluator (`src/views/active.ts`) as single source of
-  truth for "which events are live as of t."
-- **Schema change:** `links.supports` accepts `EvidenceRef` objects in
-  addition to strings. Bump `schema_version`.
-- **Schema change:** add `links.fulfills` and `links.addresses` arrays
-  to the event envelope. Bump `schema_version`.
-- `src/evidence.ts` moves under `views/`; signature aligns with
-  `evidenceChain` contract (§4.5). Preserve existing tests; extend to
-  cover vitals/note/artifact evidence.
-- `_derived/` rebuild becomes a wrapper around the views — no
-  independent query code under `scripts/`.
-- Validator: invariants 8, 10 added; integrity check resolves all five
-  link kinds.
-- Tests: every view, every supersession case, empty chart, vitals-
-  supported assessments, large timeline (performance smoke test).
+### Deferred
 
-### Phase 3 — MIMIC-IV ingestion
-
-**Goal:** `npx tsx scripts/import-mimic.ts --subject-id X --csv-dir ...`
-produces a valid multi-patient chart with full audit trail.
-
-- `src/importers/mimic-iv/` per §5.3 layout.
-- Dictionary tables (`d_items`, `d_labitems`) loaded once and cached.
-- `scripts/import-mimic.ts` thin CLI over `importMimicPatient`.
-- Import manifest writer (§5.8).
-- MIMIC-IV-Note mapper handled separately from hosp/icu tables.
-- Prescriptions → intents only; emar → actions linked via `fulfills`.
-- Validator: invariant 9.
-- Determinism and idempotency as separate test cases (§5.9).
-- Round-trip integration test against a known public-subset subject.
-- **Close `(open)`** before coding: ICU stay encoding — pick (a), (b),
-  or (c) from §5.2.
-
-### Phase 4 — UI (separate planning)
-
-Not specified here. When ready, open a new design doc. All UI work goes
-through the view primitives and write functions from Phases 1–2.
+- Synthea import is the primary historical-corpus path per ADR 001.
+  MIMIC-IV remains optional-later and credential-gated.
+- UI remains deferred. All UI work must consume the view primitives and
+  write through `appendEvent`, `writeCommunicationNote`, or
+  `writeArtifactRef`.
 
 ---
 
