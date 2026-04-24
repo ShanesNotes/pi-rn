@@ -19,9 +19,10 @@ in the calibration stop than propagate EHR-tab drift through Batches 2–3.
 (Synthea-primary, MIMIC deferred).
 
 **Current local state (2026-04-24):** Batch 0 and Batch 1 artifacts are
-present. Batch 2 has A3 and A4 synthesis artifacts plus separate
-open-schema-entry synthesis files. A4b and A5-A9b are not present yet.
-`SUMMARY.md` is not present yet.
+present. Batch 2 has A3, A4, and A4b synthesis artifacts plus separate
+open-schema-entry synthesis files. A5-A9b are not present yet.
+`SUMMARY.md` is not present yet. `patient_001` remains a narrow
+respiratory-decompensation seed, not the completed broad EHR fixture.
 
 **Read first:**
 - `PHASE-A-CHARTER.md` — stance, rules, failure modes
@@ -119,9 +120,9 @@ primitive discipline.
 **Original gate:** after A0a-A0c + A1 + A2 are produced, stop and wait
 for project-owner review.
 
-**Current state:** A3 and A4 synthesis artifacts now exist, so the
+**Current state:** A3, A4, and A4b synthesis artifacts now exist, so the
 calibration gate has already been passed or bypassed in practice. Do not
-start A4b, A5, A6, A7, A8, A9a, or A9b until the project owner either
+start A5, A6, A7, A8, A9a, or A9b until the project owner either
 retroactively signs off Batch 0/1 calibration or records a new routing
 decision.
 
@@ -294,7 +295,7 @@ a1-lab-results.md
 a2-results-review.md
 a3-vital-signs-synthesis.md
 a4-mar-synthesis.md
-a4b-medication-reconciliation.md
+a4b-medication-reconciliation-synthesis.md
 a5-io-and-ldas.md
 a6-provider-notes.md
 a7-nursing-notes.md
@@ -310,6 +311,7 @@ Current companion synthesis files:
 ```
 a3-open-schema-entries-synthesis.md
 a4-open-schema-entries-synthesis.md
+a4b-open-schema-entries-synthesis.md
 ```
 
 These are staging artifacts for `OPEN-SCHEMA-QUESTIONS.md`; they are not

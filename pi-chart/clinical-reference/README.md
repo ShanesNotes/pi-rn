@@ -17,9 +17,10 @@ being discovered. This folder is where that discovery lives.
   notes, orders/meds/interventions, labs/diagnostics, and care
   plan/handoff.
 - `phase-a/` — active artifact research for the broad EHR skeleton.
-  Current local state: A0a-A4 are present; A4b and A5-A9b remain
-  unproduced; `OPEN-SCHEMA-QUESTIONS.md` is the compilation surface for
-  unresolved schema questions.
+  Current local state: A0a-A4b are present; A5-A9b remain unproduced;
+  `OPEN-SCHEMA-QUESTIONS.md` is the compilation surface for unresolved
+  schema questions. `patients/patient_001` is still a narrow respiratory
+  seed, not the completed broad EHR fixture.
 
 ## What goes here
 

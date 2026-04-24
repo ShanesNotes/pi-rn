@@ -91,6 +91,13 @@ Adapter requirements:
 Use patient_001 or a successor respiratory-decompensation fixture as the
 first coherent story:
 
+Current state note: `patients/patient_001` is still a narrow
+respiratory-decompensation seed. It validates the claim-stream substrate and
+the A3-style vitals deterioration pattern, but it does not yet satisfy this
+broad skeleton. In particular, it does not yet contain the labs/diagnostics,
+MAR/reconciliation, nursing assessment, provider/nursing note breadth, care
+plan/handoff, or memory-proof projection required below.
+
 1. Baseline history and constraints exist in chart.
 2. Vitals trend worsens over about 40 minutes.
 3. Alarm or trend triggers attention.

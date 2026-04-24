@@ -10,9 +10,30 @@ Coverage:
 - A2 results review
 - A3 vital signs synthesis
 - A4 MAR synthesis
+- A4b medication reconciliation synthesis
 
-This file is a compilation surface. Source-specific sections remain authoritative
-for full clinical rationale and references.
+This file is a compilation surface. Source-specific sections remain
+authoritative for full clinical rationale and references.
+
+Status vocabulary:
+- **Implemented** — already reflected in `DESIGN.md`, `CLAIM-TYPES.md`,
+  schemas, validator, or views.
+- **Accepted direction** — locally settled enough to guide fixture
+  authoring, but not fully encoded as a committed schema/API contract.
+- **Open** — still needs owner/ADR resolution before implementation.
+- **Deferred** — intentionally left for Phase B or later.
+
+## Resolution triage
+
+This table is the data-purity layer for research agents. Do not treat
+every source-artifact "current lean" as equally open.
+
+| Status | Question anchors | Research-agent instruction |
+| --- | --- | --- |
+| Implemented | [A0b constraint subtype](#a0b-consolidated-subtype), [A0b effective period](#a0b-effective-period-allow-list), [A1/A2 result lifecycle](#a1-status-mapping), [A1/A2 effective time](#a1-effective-at), [A2 intermediate action](#a2-intermediate-action-model) | Treat as substrate baseline. Challenge only if evidence shows a defect, not because the source artifact predates implementation. |
+| Accepted direction | [A0a structural split](#a0a-structural-event-split), [A1/A2 actionability tier](#a2-actionability-tier), [A3 shared metrics](#a3-shared-metrics), [A4 dose occurrence](#a4-dose-occurrence-and-cardinality), [A4b list-shaped observation](#a4b-list-shaped-observation) | Use as fixture-authoring guidance; identify what validator/view/API work would make it durable. |
+| Open | [A0b read receipt](#a0b-read-receipt), [A3 oxygen context](#a3-oxygen-context), [A3 alarm events](#a3-alarm-and-artifact-events), [A4 titration interval episode](#a4-titration-interval-episode), [A4 attestation boundary](#a4-attestation-waste-boundary), [A4b current-state axes](#a4b-medication-current-state-axes), [A4b external retrieval source kinds](#a4b-external-retrieval-source-kinds) | Produce tradeoffs and a recommended ADR shape. Do not silently invent new source kinds, axes, or event types. |
+| Deferred | [A0c longitudinal problem thread](#a0c-problem-key), [A0c sensitive access](#a0c-sensitive-category), [A0a location analytics](#a0a-location-context-segment) | Preserve hooks only. Do not let Phase A broaden into full access control, longitudinal registry, or analytics platform work. |
 
 ## Cross-cutting index
 
@@ -26,6 +47,7 @@ for full clinical rationale and references.
 | Stream/window addressability | [A3 stream sample identity](#a3-stream-sample-identity), [A4 dose occurrence and cardinality](#a4-dose-occurrence-and-cardinality) | Prefer deterministic virtual keys where dense materialized child events would create volume without clinical value. |
 | Context/state axes | [A3 oxygen context](#a3-oxygen-context), [A4 titration interval episode](#a4-titration-interval-episode) | Keep current state derived from events; add view axes only when multiple artifacts need the same projection pattern. |
 | Medication fulfillment and response | [A4 dose occurrence and cardinality](#a4-dose-occurrence-and-cardinality), [A4 response obligation closure](#a4-response-obligation-closure), [A4 attestation waste boundary](#a4-attestation-waste-boundary) | Preserve order-action-response auditability without widening `fulfills` unless an ADR explicitly changes it. |
+| Medication reconciliation | [A4b home-med addressability](#a4b-homemed-addressability), [A4b list-shaped observation](#a4b-list-shaped-observation), [A4b reconciliation lifecycle](#a4b-reconciliation-lifecycle-and-discharge-closure) | Keep home-med snapshots distinct from inpatient medication intents; discharge instructions are canonical communication, not UI-only output. |
 
 ## A0a patient demographics / encounter
 
@@ -370,3 +392,53 @@ claim identity is required.
 `intent.subtype = order` plus `data.order_kind = "medication"`. Current lean:
 defer the durable order-family decision to A9a; if A9a chooses split subtypes,
 A4 can migrate mechanically.
+
+## A4b medication reconciliation synthesis
+
+Source: `a4b-medication-reconciliation-synthesis.md` section 16 and
+`a4b-open-schema-entries-synthesis.md`.
+
+### a4b-homemed-addressability
+
+**[open-schema] Home-medication-list item addressability.**
+`observation.home_medication_list.data.items[]` is list-shaped, but
+reconciliation decisions need stable item-level references. Current lean:
+v0.2 uses stable `item_key` values unique within the list event; a later
+cross-artifact ADR may unify this with `vitals://`, `meddose://`, and a
+future `homemed://` URI pattern.
+
+### a4b-list-shaped-observation
+
+**[open-schema] Home/discharge medication list as observation with
+`items[]`.** Home-med and discharge-med lists are snapshots, not constraints
+and not inpatient orders. Current lean: keep them as list-shaped observations
+whose list snapshot is the supersession unit; solve item references with
+item keys instead of materializing every item as a standalone event.
+
+### a4b-medication-current-state-axes
+
+**[open-schema] Cross-artifact `currentState` axis pattern.** A3 wants
+current oxygen/context, A4 wants active medication state, and A4b wants
+current home/discharge medication state. Current lean: resolve these axes in
+one ADR rather than adding piecemeal helpers. Rule: "what is currently true
+on this axis?" belongs in `currentState`; cross-axis reasoning stays in
+`openLoops`, `trend`, `evidenceChain`, or a later domain-specific view.
+
+### a4b-external-retrieval-source-kinds
+
+**[open-schema] Outside-records / pharmacy / HIE provenance.** A4b needs to
+distinguish patient report, caregiver report, pill bottle, outpatient
+pharmacy, outside records, prior chart, and HIE-style retrieval. Current lean:
+do not add new `source.kind` values in Phase A. Use existing source kinds plus
+`source.ref`, item-level `source_subtype`, `artifact_ref`, and communication
+evidence; consider a single ADR 006 amendment later with A4 device-source
+questions.
+
+### a4b-reconciliation-lifecycle-and-discharge-closure
+
+**[open-schema] Supersession scope, discrepancy closure, and discharge
+communication.** Admission, transfer, and discharge reconciliation are
+separate transition batches; same-transition corrections may supersede prior
+same-transition decisions. Current lean: discharge reconciliation is incomplete
+until both the discharge medication list and patient/caregiver communication
+exist. Do not treat the printed/rendered handout as sufficient chart truth.
