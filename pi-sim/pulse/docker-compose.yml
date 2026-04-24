@@ -12,8 +12,10 @@ services:
         cd /workspace/shim &&
         exec python3 app.py
       "
+    environment:
+      PULSE_SHIM_TOKEN: ${PULSE_SHIM_TOKEN:-}
     ports:
-      - "8765:8765"
+      - "127.0.0.1:8765:8765"
     volumes:
       - ./shim:/workspace/shim:ro
       - pulse_state:/workspace/state

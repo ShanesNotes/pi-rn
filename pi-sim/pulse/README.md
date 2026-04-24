@@ -5,7 +5,7 @@ Docker-based integration of the Kitware Pulse Physiology Engine (v4.3.1) into pi
 ## Boundary
 
 - **pi-agent never reaches this process.** The agent reads only `vitals/*.json` files, which the Node harness writes after talking to this sidecar.
-- Pulse's C++/Java/Python internals stay inside the container. The host Node process speaks HTTP to `localhost:8765`.
+- Pulse's C++/Java/Python internals stay inside the container. The host Node process speaks HTTP to `localhost:8765`; Docker publishes the port on host loopback only.
 - Scenario action schedules live in `../vitals/scenarios/*.json`. The Node harness reads those and calls `/action` at the right sim times; the shim does not auto-execute scenarios.
 
 ## Layout
@@ -39,6 +39,12 @@ curl -fsS http://localhost:8765/health
 
 First run pulls ~1.3 GB for the `kitware/pulse:4.3.1` image.
 
+The shim process listens on `0.0.0.0` inside the container so Docker port
+publishing works, but `docker-compose.yml` binds the published host port to
+`127.0.0.1`. Set `PULSE_SHIM_TOKEN` before `docker compose up` to require a
+bearer token or `X-Pulse-Shim-Token` header for every endpoint except
+`/health`.
+
 ## Endpoints
 
 | Method | Path            | Body                                                     | Returns |
@@ -50,6 +56,11 @@ First run pulls ~1.3 GB for the `kitware/pulse:4.3.1` image.
 | GET    | `/vitals`       | —                                                        | vitals frame (no advance) |
 | GET    | `/health`       | —                                                        | `{engine_ready, t_sim, scenario, requests}` |
 | GET    | `/schema`       | —                                                        | data-request → schema-key mapping |
+
+When `PULSE_SHIM_TOKEN` is set, call protected endpoints with either
+`Authorization: Bearer $PULSE_SHIM_TOKEN` or
+`X-Pulse-Shim-Token: $PULSE_SHIM_TOKEN`. The `/health` endpoint remains
+unauthenticated for Docker health checks.
 
 ### Action types
 
@@ -77,16 +88,16 @@ The resulting state file lives in the `pulse_state` volume at `/workspace/state/
 
 ```bash
 # Load StandardMale stock state, advance 60s, read vitals
-curl -sX POST localhost:8765/init    -H 'Content-Type: application/json' \
+curl -sX POST localhost:8765/init    -H 'Content-Type: application/json' ${PULSE_SHIM_TOKEN:+-H "Authorization: Bearer $PULSE_SHIM_TOKEN"} \
   -d '{"state_file": "./states/StandardMale@0s.pbb"}' | jq .
 
-curl -sX POST localhost:8765/advance -H 'Content-Type: application/json' \
+curl -sX POST localhost:8765/advance -H 'Content-Type: application/json' ${PULSE_SHIM_TOKEN:+-H "Authorization: Bearer $PULSE_SHIM_TOKEN"} \
   -d '{"dt_seconds": 60}' | jq .
 
-curl -sX POST localhost:8765/action  -H 'Content-Type: application/json' \
+curl -sX POST localhost:8765/action  -H 'Content-Type: application/json' ${PULSE_SHIM_TOKEN:+-H "Authorization: Bearer $PULSE_SHIM_TOKEN"} \
   -d '{"type":"hemorrhage","params":{"compartment":"VenaCava","severity":0.5}}' | jq .
 
-curl -sX POST localhost:8765/advance -H 'Content-Type: application/json' \
+curl -sX POST localhost:8765/advance -H 'Content-Type: application/json' ${PULSE_SHIM_TOKEN:+-H "Authorization: Bearer $PULSE_SHIM_TOKEN"} \
   -d '{"dt_seconds": 120}' | jq .
 ```
 
@@ -110,6 +121,9 @@ HR should rise and MAP should drop after the hemorrhage.
   container (shim-owned, auto-purged to the latest state after each call).
   Baked condition states live under `/workspace/state/` (persistent, mounted
   as the `pulse_state` volume).
+- **Single-engine state** is serialized with an in-process lock. Concurrent
+  HTTP requests are accepted by `ThreadingHTTPServer`, but state-changing
+  routes run one at a time against one current patient state.
 
 Fastest way to sanity-check the engine independently of the shim:
 

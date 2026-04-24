@@ -5,7 +5,8 @@ Durable clinical memory substrate for `pi-agent`, running against `pi-sim`.
 Not an EHR clone. A minimal, append-oriented, provenance-rich substrate
 for an AI agent operating under partial observability.
 
-See `DESIGN.md` for the current spec (v0.2); this file is the primer.
+See `DESIGN.md` for the current spec (`0.3.0-partial`); this file is
+the primer.
 
 ## Core thesis
 
@@ -34,7 +35,7 @@ immutable once written. Storage format is chosen for the payload:
 The envelope schema (`schemas/event.schema.json`) is the ontology. Markdown
 and NDJSON are carriers.
 
-## Directory layout (v0.2)
+## Directory layout
 
 ```
 pi-chart/
@@ -44,8 +45,7 @@ pi-chart/
 ├── ARCHITECTURE.md           # code map over DESIGN
 ├── ROADMAP.md                # phases, shipped vs deferred, open seams
 ├── decisions/                # ADRs (NNN-*.md) for pivots over primitives
-├── clinical-reference/       # domain research feeding design (not code)
-├── docs/                     # research directives (Phase A charter/template/execution)
+├── clinical-reference/       # domain research feeding design (including Phase A)
 ├── pi-chart.yaml             # system registry (patient ids, defaults)
 ├── sessions/
 │   ├── current.yaml          # GITIGNORED — operator identity + current patient
@@ -99,7 +99,6 @@ import {
 
   // writes (raise on contract violation)
   appendEvent,
-  writeNote,              // low-level note-file helper; caller preserves note↔communication invariant
   writeCommunicationNote, // sanctioned paired note + communication-event authoring
   writeArtifactRef,
   nextEventId,
@@ -140,10 +139,10 @@ HTTP surface.
 
 ## Invariants
 
-Machine-checked by `validateChart`. Full list with error messages in
-DESIGN §8; ten in v0.2:
+Machine-checked by `validateChart`. Full list with rule details lives in
+DESIGN §8:
 
-1. Every claim carries `source`, `effective_at`, `recorded_at`, `author`, `status`.
+1. Every claim carries `source`, exactly one of `effective_at` or `effective_period`, `recorded_at`, `author`, and `status`.
 2. Append-only — corrections create new events with `links.supersedes` / `links.corrects`.
 3. `_derived/` is never authoritative.
 4. No orphan claims — every `links.*` target exists within the same patient.
@@ -152,11 +151,11 @@ DESIGN §8; ten in v0.2:
 7. **Session transparency** — author captured at write time; agents pass explicit author; session never retroactively rewrites.
 8. **Supersession monotonicity** — no circular chains, at most one supersessor per event.
 9. **Import provenance** (Phase 3) — imported events (Synthea; MIMIC-IV optional) carry structured `source` fields preserving original ids + timestamps.
-10. **Fulfillment typing** — `links.fulfills` targets must be `intent`; `links.addresses` targets must be problem-subtype assessment or intent.
+10. **Fulfillment and closure typing** — `links.fulfills` sources must be `action` events and targets must be `intent`; `links.addresses` targets must be problem-subtype assessments; `links.resolves` closes open-loop or contradiction-bearing targets.
 
 ## Write-path scope
 
-`appendEvent()` / `writeNote()` enforce schema shape, patient isolation, and explicit-id collisions. `writeCommunicationNote()` additionally keeps the note file and matching `communication` event atomic. Graph-wide rules — link target resolution, `links.fulfills` / `links.addresses` typing, assessment support sufficiency, and note-reference integrity — remain the validator's job today.
+`appendEvent()` / `writeCommunicationNote()` / `writeArtifactRef()` enforce schema shape, patient isolation, explicit-id collisions, and local link/path guardrails. Narrative note authoring goes through `writeCommunicationNote()` so the note file and matching `communication` event stay atomic. Whole-chart rules — full link resolution, assessment support sufficiency, note-reference integrity, contradiction/resolution checks, and transform provenance coherence — remain the validator's job today.
 
 ## Clock source
 
@@ -192,12 +191,13 @@ cycle: escalation trigger met; SpO2 89% sustained, SBAR to provider
 
 ## Growth path
 
-- **v0.2 (now):** multi-patient layout, view primitives, explicit
-  fulfillment links, import provenance structure.
-- **Current focus:** deepen clinical content before pi-agent integration
-  — see `ROADMAP.md`. Research directives for what a real chart
-  contains live under `docs/` (Phase A) with outputs in
-  `clinical-reference/`.
+- **Current substrate (`0.3.0-partial`):** multi-patient layout, view
+  primitives, explicit fulfillment/resolution/contradiction links,
+  typed evidence references, transform provenance, and v0.2→v0.3
+  migration.
+- **Current focus:** broad, shallow EHR skeleton as a clinical-memory
+  proof before pi-agent integration — see `ROADMAP.md`. Research
+  directives and outputs live under `clinical-reference/`.
 - **Phase 3:** Synthea import (`src/importers/synthea/`). Per
   `decisions/001-mimic-to-synthea.md`, Synthea is the primary historical
   corpus; MIMIC-IV is a later-optional path requiring credentialing.

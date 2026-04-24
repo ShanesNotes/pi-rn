@@ -1,13 +1,13 @@
 // AJV setup: 2020-12 draft + format checking via ajv-formats.
 //
-// Validators are cached by schema $id so multiple charts pointing at the
-// same schema text share a single compiled validator. AJV refuses to
-// register two schemas under the same $id, so we must consult the cache
-// before compiling.
+// Validators are cached by resolved schema path plus content hash. AJV refuses
+// to register two different schemas under the same $id, so each compile gets a
+// fresh AJV instance and stale validators cannot survive same-$id edits.
 
 import Ajv2020Import from "ajv/dist/2020.js";
 import type { ValidateFunction, ErrorObject } from "ajv";
 import addFormatsImport from "ajv-formats";
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ReportEntry } from "./types.js";
@@ -15,10 +15,13 @@ import type { ReportEntry } from "./types.js";
 const Ajv2020 = (Ajv2020Import as any).default ?? Ajv2020Import;
 const addFormats = (addFormatsImport as any).default ?? addFormatsImport;
 
-const ajv = new Ajv2020({ allErrors: true, strict: false });
-addFormats(ajv);
-
 const cache = new Map<string, ValidateFunction>();
+
+function createAjv(): any {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  return ajv;
+}
 
 export async function loadValidator(
   chartRoot: string,
@@ -28,21 +31,13 @@ export async function loadValidator(
   const text = await fs.readFile(filePath, "utf8");
   const schema = JSON.parse(text);
 
-  const id: string | undefined = schema.$id;
-  const cacheKey = id ?? filePath;
+  const resolvedPath = path.resolve(filePath);
+  const digest = createHash("sha256").update(text).digest("hex");
+  const cacheKey = `${resolvedPath}:${digest}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  // AJV stores by $id internally; if a prior compile already registered it,
-  // reuse instead of throwing on duplicate registration.
-  if (id) {
-    const existing = ajv.getSchema(id);
-    if (existing) {
-      cache.set(cacheKey, existing);
-      return existing;
-    }
-  }
-
+  const ajv = createAjv();
   const fn = ajv.compile(schema);
   cache.set(cacheKey, fn);
   return fn;

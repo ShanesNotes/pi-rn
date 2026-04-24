@@ -1734,3 +1734,29 @@ test("artifact_ref traversal path is rejected", async () => {
     JSON.stringify(r.errors, null, 2),
   );
 });
+
+test("artifact_ref missing patient-local file is rejected", async () => {
+  const scope = await copyFixture();
+  const evPath = patientTimelineEvents(scope);
+  const missingArtifact = {
+    id: "evt_artifact_missing",
+    type: "artifact_ref",
+    subtype: "pdf",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T10:00:00-05:00",
+    recorded_at: "2026-04-18T10:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { kind: "pdf", path: "artifacts/missing.pdf", description: "missing" },
+    links: { supports: [] },
+  };
+  await fs.appendFile(evPath, JSON.stringify(missingArtifact) + "\n");
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /does not exist/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});

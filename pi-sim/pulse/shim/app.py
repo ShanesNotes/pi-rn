@@ -14,11 +14,13 @@ Important implementation note:
 from __future__ import annotations
 
 import csv
+import hmac
 import json
 import logging
 import os
 import shutil
 import subprocess
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from itertools import count
 from pathlib import Path
@@ -31,6 +33,10 @@ WORKSPACE_ROOT = Path("/workspace")
 PULSE_BIN_ROOT = Path("/pulse/bin")
 PULSE_SCENARIO_DRIVER = PULSE_BIN_ROOT / "PulseScenarioDriver"
 RUNTIME_ROOT = WORKSPACE_ROOT / "state" / "shim-runtime"
+MAX_DRIVER_OUTPUT_CHARS = 4000
+STATE_MUTATING_PATHS = {"/init", "/advance", "/action", "/state/save"}
+AUTH_EXEMPT_PATHS = {"/health"}
+STATE_LOCK = threading.RLock()
 
 
 # Single source of truth for the vitals schema and driver request generation.
@@ -87,6 +93,74 @@ class ShimState:
 
 
 state = ShimState()
+
+
+def _route_path(path: str) -> str:
+    return path.partition("?")[0]
+
+
+def _is_state_mutating_path(path: str) -> bool:
+    return _route_path(path) in STATE_MUTATING_PATHS
+
+
+def _clip_driver_output(
+    label: str,
+    text: str,
+    limit: int = MAX_DRIVER_OUTPUT_CHARS,
+) -> str:
+    if len(text) <= limit:
+        return f"{label}:\n{text}"
+    omitted = len(text) - limit
+    return f"{label}:\n{text[:limit]}\n... truncated {omitted} characters ..."
+
+
+def _driver_failure_message(
+    name: str,
+    scenario_path: Path,
+    results_path: Path,
+    next_state_path: Path,
+    result: subprocess.CompletedProcess[str],
+) -> str:
+    return "\n".join(
+        [
+            f"PulseScenarioDriver run '{name}' failed to produce required artifacts",
+            f"returncode: {result.returncode}",
+            f"scenario: {scenario_path}",
+            f"expected_results: {results_path}",
+            f"expected_next_state: {next_state_path}",
+            _clip_driver_output("stdout", result.stdout),
+            _clip_driver_output("stderr", result.stderr),
+        ]
+    )
+
+
+def _configured_token() -> Optional[str]:
+    token = os.environ.get("PULSE_SHIM_TOKEN", "").strip()
+    return token or None
+
+
+def _extract_request_token(headers: Any) -> Optional[str]:
+    auth_header = headers.get("Authorization")
+    if auth_header:
+        scheme, _, value = auth_header.partition(" ")
+        if scheme.lower() == "bearer" and value:
+            return value.strip()
+    header_token = headers.get("X-Pulse-Shim-Token")
+    if header_token:
+        return header_token.strip()
+    return None
+
+
+def _request_authorized(path: str, headers: Any, token: Optional[str] = None) -> bool:
+    configured = _configured_token() if token is None else token
+    if configured is None:
+        return True
+    if _route_path(path) in AUTH_EXEMPT_PATHS:
+        return True
+    request_token = _extract_request_token(headers)
+    if request_token is None:
+        return False
+    return hmac.compare_digest(request_token, configured)
 
 
 def _candidate_paths(raw_path: str) -> list[Path]:
@@ -283,12 +357,15 @@ def _run_driver(
         text=True,
     )
     if not next_state_path.exists():
-        raise ShimError(500, f"driver did not serialize next state: {next_state_path}")
+        raise ShimError(
+            500,
+            _driver_failure_message(name, scenario_path, results_path, next_state_path, result),
+        )
 
     if require_results and not results_path.exists():
         raise ShimError(
             500,
-            f"PulseScenarioDriver failed ({result.returncode}) and did not produce results\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}",
+            _driver_failure_message(name, scenario_path, results_path, next_state_path, result),
         )
 
     frame = _parse_results_csv(results_path) if require_results else None
@@ -372,11 +449,12 @@ def _fraction_action(value: float) -> dict[str, Any]:
 
 def _action_to_driver(action_type: str, params: dict[str, Any]) -> dict[str, Any]:
     if action_type == "hemorrhage":
+        # Payload matches canonical Pulse 4.3.1 scenarios under
+        # /source/data/human/adult/scenarios/patient/Hemorrhage*.json — no Type
+        # field. Previous `Type: Internal` silently nullified VenaCava severity.
         payload: dict[str, Any] = {
             "Compartment": params.get("compartment", "VenaCava"),
         }
-        if payload["Compartment"] == "VenaCava":
-            payload["Type"] = "Internal"
         if "severity" in params:
             payload["Severity"] = _fraction_action(float(params["severity"]))
         elif "rate_ml_min" in params:
@@ -390,7 +468,6 @@ def _action_to_driver(action_type: str, params: dict[str, Any]) -> dict[str, Any
             "PatientAction": {
                 "Hemorrhage": {
                     "Compartment": params.get("compartment", "VenaCava"),
-                    "Type": "Internal" if params.get("compartment", "VenaCava") == "VenaCava" else "External",
                     "Severity": _fraction_action(0.0),
                 }
             }
@@ -551,25 +628,35 @@ class ShimHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _dispatch(self) -> tuple[int, dict[str, Any]]:
+        route = _route_path(self.path)
+        if not _request_authorized(route, self.headers):
+            raise ShimError(401, "unauthorized")
+
         if self.command == "GET":
-            if self.path == "/health":
-                return 200, health()
-            if self.path == "/vitals":
-                return 200, state.current_frame or {"t": state.t_sim}
-            if self.path == "/schema":
+            if route == "/health":
+                with STATE_LOCK:
+                    return 200, health()
+            if route == "/vitals":
+                with STATE_LOCK:
+                    return 200, state.current_frame or {"t": state.t_sim}
+            if route == "/schema":
                 return 200, schema()
             raise ShimError(404, f"unknown route {self.command} {self.path}")
 
         if self.command == "POST":
             body = self._read_json_body()
-            if self.path == "/init":
-                return 200, init_engine(body)
-            if self.path == "/advance":
-                return 200, advance_engine(body)
-            if self.path == "/action":
-                return 200, apply_action(body)
-            if self.path == "/state/save":
-                return 200, save_state(body)
+            if route == "/init":
+                with STATE_LOCK:
+                    return 200, init_engine(body)
+            if route == "/advance":
+                with STATE_LOCK:
+                    return 200, advance_engine(body)
+            if route == "/action":
+                with STATE_LOCK:
+                    return 200, apply_action(body)
+            if route == "/state/save":
+                with STATE_LOCK:
+                    return 200, save_state(body)
             raise ShimError(404, f"unknown route {self.command} {self.path}")
 
         raise ShimError(405, f"method {self.command} not allowed")

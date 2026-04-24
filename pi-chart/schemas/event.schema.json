@@ -15,7 +15,7 @@
   ],
   "$defs": {
     "EvidenceRef": {
-      "description": "Canonical EvidenceRef. Phase 1 also accepts legacy structured refs for back-compat while parser normalization remains in place.",
+      "description": "Canonical EvidenceRef. Legacy structured refs remain accepted for v0.2 back-compat while parser normalization remains in place.",
       "oneOf": [
         {
           "type": "object",
@@ -229,7 +229,7 @@
         "resolves": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Open-loop-closing or contradiction-resolution target ids. Validator target typing lands in a later ADR 015 phase."
+          "description": "Open-loop-closing or contradiction-resolution target ids. Validator enforces target typing per ADR 009 / V-RESOLVES-01."
         },
         "contradicts": {
           "type": "array",
@@ -242,7 +242,7 @@
             },
             "additionalProperties": false
           },
-          "description": "Structural disagreement with a prior peer claim. Direction and resolution semantics are enforced in later ADR 015 phases."
+          "description": "Structural disagreement with a prior peer claim. Direction and resolution semantics are enforced by ADR 009 validator rules."
         }
       }
     }

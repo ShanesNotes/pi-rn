@@ -361,8 +361,22 @@ async function assertEventIntegrityAtWrite(
     if (typeof artifactPath !== "string") {
       throw new Error("artifact_ref.data.path must be a string");
     }
-    data!.path = resolveArtifactPath(patientDir, artifactPath).storedPath;
+    const resolved = await resolveExistingArtifactPath(patientDir, artifactPath);
+    data!.path = resolved.storedPath;
   }
+}
+
+async function resolveExistingArtifactPath(
+  patientDir: string,
+  artifactPath: string,
+): Promise<{ storedPath: string; absolutePath: string }> {
+  const resolved = resolveArtifactPath(patientDir, artifactPath);
+  try {
+    await fs.access(resolved.absolutePath);
+  } catch {
+    throw new Error(`artifact_ref.data.path '${resolved.storedPath}' does not exist`);
+  }
+  return resolved;
 }
 
 function assertNoteReferencesExist(
@@ -627,22 +641,23 @@ export async function writeArtifactRef(opts: {
   author?: Author;
 }): Promise<string> {
   const patientDir = patientRoot(opts.scope);
-  const event = {
+  const resolved = await resolveExistingArtifactPath(patientDir, opts.artifactPath);
+  const event: Record<string, unknown> = {
     type: "artifact_ref" as const,
     subtype: opts.kind,
     subject: opts.subject,
     encounter_id: opts.encounterId,
     effective_at: opts.effectiveAt ?? (await nowIsoForChart(patientDir)),
-    author: opts.author ?? { id: "pi-agent", role: "rn_agent" },
     source: opts.source,
     certainty: "observed" as const,
     status: "final" as const,
     data: {
       kind: opts.kind,
-      path: opts.artifactPath,
+      path: resolved.storedPath,
       description: opts.description,
     },
     links: { supports: [], supersedes: [] },
   };
-  return appendEvent(event, opts.scope);
+  if (opts.author) event.author = opts.author;
+  return appendEvent(event as EventInput, opts.scope);
 }

@@ -253,7 +253,8 @@ interface PatientScope {
 }
 
 function patientRoot(scope: PatientScope): string {
-  return path.join(scope.chartRoot, "patients", scope.patientId);
+  // Validates patientId as one directory name and rejects path traversal.
+  return resolvePatientRoot(scope.chartRoot, scope.patientId);
 }
 ```
 
@@ -308,7 +309,7 @@ it, and it can be deleted without data loss. Gitignored per §2.4.
 The council flagged ambient-working-directory as a footgun. Explicit
 boundaries:
 
-- **Low-level library functions** (`appendEvent`, `writeNote` / `writeCommunicationNote`, view
+- **Low-level library functions** (`appendEvent`, `writeCommunicationNote`, view
   primitives): `chartRoot` is **required**. No `process.cwd()` fallback
   at this layer.
 - **CLI wrappers** (`scripts/*.ts`, any future `npx pi-chart ...` bin):
@@ -582,8 +583,10 @@ State machine:
 - `in_progress`  — at least one fulfillment that is `status: active` and
                    no terminal fulfillment.
 - `overdue`      — no terminal fulfillment AND `due_by < asOf`.
-- `failed`       — a fulfillment with `status: failed` OR an outcome
-                   event linking via `fulfills` with a failure subtype.
+- `failed`       — a fulfillment whose domain lifecycle detail signals
+                   failure (for example `data.status_detail: "failed"`);
+                   legacy `data.outcome` failure values remain a
+                   compatibility fallback.
 
 "Closed" intents (completed, cancelled, resolved) do not appear in
 `openLoops` output at all.
@@ -1047,9 +1050,8 @@ built UI-aware rather than retrofitted.
 
 Whatever the UI is — web, desktop, agent-facing — it will be a pure
 consumer of the six view primitives on read and a caller of
-`appendEvent` / `writeCommunicationNote` on write. `writeNote` remains a
-low-level helper for callers that manage the matching communication event themselves. UI never reaches into the
-filesystem. Same contract pi-agent uses.
+`appendEvent` / `writeCommunicationNote` on write. UI never reaches into
+the filesystem. Same contract pi-agent uses.
 
 Practical implication for the view layer: returned structures are
 `JSON.stringify`-able, no Node streams, no class instances, ISO strings

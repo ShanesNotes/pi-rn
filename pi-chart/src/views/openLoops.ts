@@ -11,12 +11,9 @@
 // "Closed" intents (completed, cancelled, resolved → reflected via status
 // final/superseded/entered_in_error) are omitted from output entirely.
 //
-// Open ambiguity noted at build time: the Status enum (types.ts) has no
-// `"failed"` value. We interpret DESIGN §4.6 "failed" as either a
-// fulfillment carrying `status: "entered_in_error"` OR a fulfillment
-// event whose `data.outcome === "failed"`. If MIMIC ingestion or
-// pi-agent writes surface a need for a first-class `"failed"` status,
-// revisit with a schema_version bump.
+// ADR 002 keeps graph lifecycle in envelope `status`; domain failure lives
+// in `data.status_detail`. Legacy `data.outcome` remains a v0.2 back-compat
+// fallback for old fixtures.
 
 import {
   isCorrected,
@@ -75,7 +72,7 @@ export async function openLoops(
         !isSuperseded(f, ctx) &&
         !isCorrected(f, ctx),
     );
-    if (hasTerminalFinalFulfillment(fulfillments)) continue;
+    if (hasClosingFulfillment(fulfillments)) continue;
 
     const dueBy = readDueBy(intent);
     const state = computeState(fulfillments, dueBy, asOfMs);
@@ -153,8 +150,8 @@ function indexFulfillments(events: EventEnvelope[]): Map<string, EventEnvelope[]
   return out;
 }
 
-function hasTerminalFinalFulfillment(fulfillments: EventEnvelope[]): boolean {
-  return fulfillments.some((f) => f.status === "final");
+function hasClosingFulfillment(fulfillments: EventEnvelope[]): boolean {
+  return fulfillments.some((f) => f.status === "final" && !isFailureFulfillment(f));
 }
 
 function computeState(
@@ -174,6 +171,10 @@ function computeState(
 
 function isFailureFulfillment(f: EventEnvelope): boolean {
   if (f.status === "entered_in_error") return true;
+  const detail = (f.data as any)?.status_detail;
+  if (typeof detail === "string" && /^(failed|failure|refused|aborted)$/i.test(detail)) {
+    return true;
+  }
   const outcome = (f.data as any)?.outcome;
   if (typeof outcome === "string" && /^(failed|failure|refused|aborted)$/i.test(outcome)) {
     return true;

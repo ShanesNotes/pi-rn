@@ -16,9 +16,33 @@ export interface PatientScope {
   patientId: string;
 }
 
+const PATIENT_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export function assertValidPatientId(patientId: string): void {
+  if (
+    typeof patientId !== "string" ||
+    !PATIENT_ID_RE.test(patientId) ||
+    patientId === "." ||
+    patientId === ".."
+  ) {
+    throw new Error(
+      `invalid patientId '${patientId}': expected a single patient directory name`,
+    );
+  }
+}
+
 /** Filesystem path to `<chartRoot>/patients/<patientId>/`. */
 export function patientRoot(scope: PatientScope): string {
-  return path.join(scope.chartRoot, "patients", scope.patientId);
+  assertValidPatientId(scope.patientId);
+  const patientsDir = path.resolve(scope.chartRoot, "patients");
+  const resolved = path.resolve(patientsDir, scope.patientId);
+  const rel = path.relative(patientsDir, resolved);
+  if (rel === "" || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+    throw new Error(
+      `invalid patientId '${scope.patientId}': resolves outside patients/`,
+    );
+  }
+  return resolved;
 }
 
 /** One entry in the root `pi-chart.yaml` registry. */

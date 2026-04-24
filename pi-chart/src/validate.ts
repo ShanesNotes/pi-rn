@@ -954,7 +954,12 @@ async function checkReferentialIntegrity(state: State) {
         err(state, where, "artifact_ref.data.path: missing string path");
       } else {
         try {
-          resolveArtifactPath(state.patientRoot, relPath);
+          const resolved = resolveArtifactPath(state.patientRoot, relPath);
+          try {
+            await fs.access(resolved.absolutePath);
+          } catch {
+            throw new Error(`artifact_ref.data.path '${resolved.storedPath}' does not exist`);
+          }
         } catch (error) {
           err(state, where, String(error));
         }

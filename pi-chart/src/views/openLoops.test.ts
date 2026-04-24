@@ -114,7 +114,21 @@ test("overdue: no fulfillment, due_by in the past", async () => {
   assert(typeof loops[0].dueDeltaMinutes === "number" && loops[0].dueDeltaMinutes! < 0);
 });
 
-test("failed: a fulfillment carries data.outcome = failed", async () => {
+test("failed: a final fulfillment carries ADR 002 data.status_detail = failed", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", action("evt_act_01", "2026-04-18T08:05:00-05:00", ["evt_intent_01"], {
+    subtype: "administration",
+    status: "final",
+    data: { action: "give med", status_detail: "failed" },
+  }));
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:10:00-05:00" });
+  assert.equal(loops.length, 1);
+  assert.equal(loops[0].state, "failed");
+});
+
+// v0.2 back-compat
+test("failed: a fulfillment carries legacy data.outcome = failed", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));
   await appendRawEvent(scope, "2026-04-18", action("evt_act_01", "2026-04-18T08:05:00-05:00", ["evt_intent_01"], {

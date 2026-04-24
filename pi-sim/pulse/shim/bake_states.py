@@ -56,13 +56,18 @@ def bake_sepsis(out_dir: Path, severity: float) -> Path:
                     ]
                 },
             },
+            # AdvanceTime is required for Pulse to stabilize the Conditions
+            # into the patient's steady state. Canonical Sepsis.json uses 2min.
+            # Without it, the engine cold-inits with sepsis flagged but never
+            # manifests the septic hemodynamic profile on load.
             "AnyAction": [
+                {"AdvanceTime": {"Time": {"ScalarTime": {"Value": 2.0, "Unit": "min"}}}},
                 {
                     "SerializeState": {
                         "Mode": "Save",
                         "Filename": str(state_path),
                     }
-                }
+                },
             ],
         }
     }

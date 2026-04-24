@@ -10,6 +10,13 @@ pi-chart's load-bearing primitives are fixed (DESIGN.md §1). What
 order conventions, handoff structure, assessment patterns — is still
 being discovered. This folder is where that discovery lives.
 
+## Current accepted reference
+
+- `broad-ehr-skeleton.md` — accepted first-pass breadth contract for
+  clinical-memory usefulness across flowsheets/vitals, nursing assessment,
+  notes, orders/meds/interventions, labs/diagnostics, and care
+  plan/handoff.
+
 ## What goes here
 
 - Notes from external research (web iteration with Opus, papers,

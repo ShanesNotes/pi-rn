@@ -1,6 +1,6 @@
 # pi-chart ARCHITECTURE
 
-How the pi-chart v0.2 spec (`DESIGN.md`) is realized in code. This doc
+How the pi-chart `0.3.0-partial` spec (`DESIGN.md`) is realized in code. This doc
 is a map, not a spec — when the code moves, this doc moves with it.
 When the contract moves, `DESIGN.md` moves first.
 
@@ -44,26 +44,27 @@ primitives (§1.6) for agent-facing reads.
 ### 1.3 Writes — `src/write.ts`
 
 Every write takes a `PatientScope` (`{chartRoot, patientId}`) and an
-`author`. Raises on local contract violation (schema shape, patient
-isolation, explicit id/path collisions). Graph-wide link typing,
-referential integrity, and support sufficiency still land in
+`author` for clinical writes. Raises on local contract violation
+(schema shape, patient isolation, explicit id/path collisions, local
+link/path guardrails). Whole-chart referential integrity, support
+sufficiency, and cross-event lifecycle rules still land in
 `validateChart()` today.
 
 | Function                  | Writes to                                          |
 |---------------------------|----------------------------------------------------|
 | `appendEvent`             | `timeline/YYYY-MM-DD/events.ndjson`                |
-| `writeNote`               | low-level `timeline/YYYY-MM-DD/notes/HHMM_<slug>.md` write only |
 | `writeCommunicationNote`  | sanctioned note + associated communication event pair |
-| `writeArtifactRef`        | `artifacts/` + `artifact_ref` event                |
+| `writeArtifactRef`        | pointer to an existing `artifacts/` file + `artifact_ref` event |
 | `nextEventId`/`nextNoteId`| id allocator (stable, locally-unique per patient)  |
 
 ### 1.4 Validate — `src/validate.ts`
 
-Implements DESIGN §8 invariants 1–10. Entry: `validateChart(scope?)`.
+Implements DESIGN §8 invariants and ADR rule codes. Entry: `validateChart(scope?)`.
 Walks patient dirs (all or scoped), checks schemas, resolves links,
 enforces patient isolation, note↔communication binding, assessment
 support sufficiency, supersession monotonicity, and fulfillment
-/ addresses target typing. CLI wrapper: `scripts/validate.ts`.
+/ addresses / resolves / contradicts target typing. CLI wrapper:
+`scripts/validate.ts`.
 
 ### 1.5 Derived — `src/derived.ts`
 
@@ -132,6 +133,7 @@ Thin `tsx` wrappers over library code. No business logic.
 | Script                     | Wraps                       |
 |----------------------------|-----------------------------|
 | `migrate-v01-to-v02.ts`    | v0.1 → v0.2 layout migration|
+| `migrate-v02-to-v03.ts`    | v0.2 → `0.3.0-partial` migration|
 | `rebuild-derived.ts`       | `rebuildDerived`            |
 | `validate.ts`              | `validateChart`             |
 
@@ -158,7 +160,7 @@ patients/<id>/timeline/YYYY-MM-DD/{events.ndjson | notes/*.md | vitals.jsonl}
    │
    ▼  out-of-band
 scripts/rebuild-derived  →  patients/<id>/_derived/   (disposable cache)
-scripts/validate         →  green/red; invariants 1–10
+scripts/validate         →  green/red; DESIGN §8 invariants + ADR rules
 ```
 
 ### 2.2 Read path (agent / UI → view)
@@ -232,7 +234,7 @@ See `decisions/001-mimic-to-synthea.md` for the pivot rationale.
 
 ## 4. Testing
 
-128 tests, colocated (`*.test.ts`). Strong coverage on active
+Colocated tests (`*.test.ts`). Strong coverage on active
 semantics, supersession, evidence chain depth/cycles, openLoops state
 machine, write-side invariants, cross-patient link rejection, session
 autofill, determinism.

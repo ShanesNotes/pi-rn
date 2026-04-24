@@ -14,19 +14,29 @@ DESIGN.md is the spec; this doc is the schedule over it.
 - Session + author ergonomics; `sessions/current.yaml` autofill
 - All six view primitives: timeline, currentState, trend,
   evidenceChain, openLoops, narrative
-- Write path: `appendEvent`, `writeNote`, `writeCommunicationNote`,
-  `writeArtifactRef`
+- Write path: `appendEvent`, `writeCommunicationNote`, `writeArtifactRef`
 - Validator: invariants 1–10
 - Migration script: v0.1 → v0.2 (idempotent)
 - Seed: `patient_001` — respiratory decompensation teaching case
-- 128 tests passing
+- Test baseline passing
 
 ---
 
-## Current focus — deepen before integration
+## Current focus — broad EHR skeleton before integration
 
-The near-term goal is to **thicken pi-chart against realistic clinical
-content before wiring pi-agent into it**. Research-heavy, code-light.
+The near-term goal is to prove pi-chart as **clinical memory** through a
+broad, shallow EHR skeleton before wiring pi-agent deeply into it. The
+accepted direction is ADR 016 plus `clinical-reference/broad-ehr-skeleton.md`:
+EHR breadth matters when it defines observable clinical context for an
+agent harness and reduces documentation burden; it is not a mandate to
+build a full EHR product.
+
+The first-pass skeleton must cover six surfaces: flowsheets/vitals,
+nursing assessment, notes/narrative charting, orders/meds/interventions,
+labs/diagnostics, and care plan/handoff. It should be anchored by one
+coherent fixture story so breadth proves clinical usefulness rather than
+becoming taxonomy theater.
+
 Two parallel tracks:
 
 ### Track A — clinical depth (research)
@@ -47,9 +57,12 @@ Two parallel tracks:
   encounters, follow-up notes, order/assessment/intent chains deep
   enough to stress `evidenceChain` and `openLoops`.
 
-Exit criteria for "deepened enough": a nurse (operator) can open any
-seeded chart's `_derived/current.md` and recognize it as a plausible ICU
-chart, not a demo fixture.
+Exit criteria for "deepened enough": the operator can inspect a derived
+memory proof projection for the broad skeleton and answer what changed,
+why it mattered, what evidence supports it, what remains uncertain, and
+what should be watched next. `_derived/current.md` remains useful, but the
+acceptance target is the substrate's ability to project reviewable
+clinical memory across all six mandatory surfaces.
 
 ---
 
@@ -60,8 +73,8 @@ chart, not a demo fixture.
 | 1 | pi-sim vitals schema ↔ ingest translator  | translate in extension vs. rename sim fields  | open   |
 | 2 | encounter_id resolution for ingest        | sim emits it, vs. chart lookup from latest    | open   |
 | 3 | chart-tools Pi extension against v0.2     | rewrite `_imports/pi-agent-chart-tools-spec.md` for `PatientScope` + session autofill | open   |
-| 4 | `Status` enum — missing `"failed"`         | two-layer via `data.status_detail`          | **closed** by ADR 002 (pending implementation) |
-| 5 | ICU stay granularity (DESIGN §5.2)        | `observation.context_segment` + `effective_period` | **closed** by ADR 005 (pending implementation) |
+| 4 | `Status` enum — missing `"failed"`         | two-layer via `data.status_detail`          | **closed** by ADR 002 / ADR 007 |
+| 5 | ICU stay granularity (DESIGN §5.2)        | `observation.context_segment` + `effective_period` | **closed** by ADR 005 / ADR 007 |
 
 None of the open rows block v0.2's existing functionality; all block the
 pi-agent ↔ pi-chart ↔ pi-sim loop.
@@ -85,14 +98,16 @@ cleanup.
 ## Tier 1 substrate ADRs — 2026-04-22 acceptance pass
 
 Three additive substrate ADRs were accepted on 2026-04-22 and batched
-under ADR 015 for phased implementation. Phase 0 is the docs gate in
-this commit; schema/runtime/validator/view phases remain pending.
+under ADR 015 for phased implementation. The repo is now on
+`schema_version: 0.3.0-partial`: schema, types, parser, validator,
+views, migration script, and `patient_001` corpus sweep have landed.
+ADRs 012-013 remain outside this batch.
 
 | ADR  | Topic                                           | Status | Implementation status |
 |------|-------------------------------------------------|--------|-----------------------|
-| 009  | `contradicts` link + `addresses` → `resolves`   | accepted 2026-04-22 | ADR 015 batch; Phase 0 docs gate landed 2026-04-22, code phases pending |
-| 010  | Typed `EvidenceRef` with roles                  | accepted 2026-04-22 | ADR 015 batch; Phase 0 docs gate landed 2026-04-22, code phases pending |
-| 011  | `transform` block provenance                    | accepted 2026-04-22 | ADR 015 batch; Phase 0 docs gate landed 2026-04-22, code phases pending |
+| 009  | `contradicts` link + `addresses` → `resolves`   | accepted 2026-04-22 | implemented under ADR 015; `resolves`, `contradicts`, validator/view handling, and migration sweep landed |
+| 010  | Typed `EvidenceRef` with roles                  | accepted 2026-04-22 | implemented under ADR 015; canonical refs, role validation/threading, and v0.2 compatibility landed |
+| 011  | `transform` block provenance                    | accepted 2026-04-22 | implemented under ADR 015; transform schema, source/activity validation, and input-ref resolution landed |
 
 ## Deferred primitives (named now, decided later)
 

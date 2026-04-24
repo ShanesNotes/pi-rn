@@ -70,6 +70,16 @@ async function readEvents(scope: PatientScope): Promise<any[]> {
   }
 }
 
+async function writeArtifactBytes(
+  scope: PatientScope,
+  storedPath: string,
+  body = "artifact-bytes",
+): Promise<void> {
+  const target = path.join(patientRoot(scope), storedPath);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target, body);
+}
+
 async function listNoteFiles(scope: PatientScope, day = "2026-04-18"): Promise<string[]> {
   try {
     return (await fs.readdir(path.join(patientRoot(scope), "timeline", day, "notes"))).sort();
@@ -564,12 +574,14 @@ test("generated write timestamps use chart timezone and preserve caller-supplied
   const [event] = await readEvents(scope);
   assert.equal(event.recorded_at, "2026-04-18T23:30:45-05:00");
 
+  await writeArtifactBytes(scope, "artifacts/x.pdf");
   const artifactId = await writeArtifactRef({
     artifactPath: "artifacts/x.pdf",
     kind: "pdf",
     description: "x",
     encounterId: "enc_001",
     subject: "patient_001",
+    author: { id: "x", role: "rn_agent" },
     source: { kind: "manual_scenario" },
     scope,
   });
@@ -620,12 +632,14 @@ test("generated write timestamps use chart timezone and preserve caller-supplied
 test("generated write timestamps fall back to UTC when chart timezone is absent", async () => {
   const scope = await tmpChart();
   __setTimeNowForTests(() => new Date("2026-04-19T04:30:45.000Z"));
+  await writeArtifactBytes(scope, "artifacts/x.pdf");
   const artifactId = await writeArtifactRef({
     artifactPath: "artifacts/x.pdf",
     kind: "pdf",
     description: "x",
     encounterId: "enc_001",
     subject: "patient_001",
+    author: { id: "x", role: "rn_agent" },
     source: { kind: "manual_scenario" },
     scope,
   });
@@ -871,12 +885,14 @@ test("appendEvent accepts canonical local EvidenceRef objects", async () => {
     },
     scope,
   );
+  await writeArtifactBytes(scope, "artifacts/cxr.pdf");
   const artifactId = await writeArtifactRef({
     artifactPath: "artifacts/cxr.pdf",
     kind: "pdf",
     description: "report",
     encounterId: "enc_001",
     subject: "patient_001",
+    author: { id: "x", role: "rn" },
     source: { kind: "manual_scenario" },
     scope,
   });
@@ -991,12 +1007,14 @@ test("v0.2 back-compat: appendEvent accepts legacy and canonical non-local Evide
 
 test("writeArtifactRef normalizes in-scope paths and rejects escapes", async () => {
   const scope = await tmpChart();
+  await writeArtifactBytes(scope, "artifacts/imaging/cxr.pdf");
   const normalizedId = await writeArtifactRef({
     artifactPath: "artifacts/../artifacts/imaging/cxr.pdf",
     kind: "pdf",
     description: "report",
     encounterId: "enc_001",
     subject: "patient_001",
+    author: { id: "x", role: "rn" },
     source: { kind: "manual_scenario" },
     scope,
   });
@@ -1012,9 +1030,43 @@ test("writeArtifactRef normalizes in-scope paths and rejects escapes", async () 
         description: "report",
         encounterId: "enc_001",
         subject: "patient_001",
+        author: { id: "x", role: "rn" },
         source: { kind: "manual_scenario" },
         scope,
       }),
     /escapes the patient artifact tree|must stay under artifacts\//,
+  );
+});
+
+test("writeArtifactRef rejects missing artifacts and does not synthesize authorship", async () => {
+  const scope = await tmpChart();
+  await assert.rejects(
+    () =>
+      writeArtifactRef({
+        artifactPath: "artifacts/missing.pdf",
+        kind: "pdf",
+        description: "missing",
+        encounterId: "enc_001",
+        subject: "patient_001",
+        author: { id: "x", role: "rn" },
+        source: { kind: "manual_scenario" },
+        scope,
+      }),
+    /does not exist/,
+  );
+
+  await writeArtifactBytes(scope, "artifacts/present.pdf");
+  await assert.rejects(
+    () =>
+      writeArtifactRef({
+        artifactPath: "artifacts/present.pdf",
+        kind: "pdf",
+        description: "present",
+        encounterId: "enc_001",
+        subject: "patient_001",
+        source: { kind: "manual_scenario" },
+        scope,
+      }),
+    /missing required envelope fields/,
   );
 });

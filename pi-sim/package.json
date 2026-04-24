@@ -8,7 +8,7 @@
     "monitor": "tsx scripts/monitor.ts",
     "monitor:shock": "tsx scripts/monitor.ts --scenario vitals/scenarios/hemorrhagic_shock.json",
     "monitor:sepsis": "tsx scripts/monitor.ts --scenario vitals/scenarios/sepsis_norepi.json",
-    "monitor:ui": "python3 monitor-ui/app.py",
+    "monitor:ui": "monitor-ui/.venv/bin/python monitor-ui/app.py",
     "validate": "tsx scripts/validate.ts",
     "pulse:up": "docker compose -f pulse/docker-compose.yml up -d",
     "pulse:down": "docker compose -f pulse/docker-compose.yml down",

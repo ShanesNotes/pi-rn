@@ -13,22 +13,23 @@ Standalone PySide6 bedside monitor for `pi-rn`.
 
 ## Install
 
+From the repo root:
+
 ```bash
-python3 -m venv /tmp/pi-rn-monitor-ui-venv
-source /tmp/pi-rn-monitor-ui-venv/bin/activate
-pip install -r monitor-ui/requirements.txt
+python3 -m venv monitor-ui/.venv
+monitor-ui/.venv/bin/pip install -r monitor-ui/requirements.txt
 ```
 
 ## Run
 
 ```bash
-python3 monitor-ui/app.py
+npm run monitor:ui
 ```
 
-Or from the repo root:
+Or directly:
 
 ```bash
-npm run monitor:ui
+monitor-ui/.venv/bin/python monitor-ui/app.py
 ```
 
 ## Environment
@@ -45,3 +46,5 @@ npm run monitor:ui
 - Phase 3: live numerics and alarm banner
 
 Waveform rails are placeholders in this delivery lane. They stay independent from the JSON ingress boundary so a later waveform provider can replace them cleanly.
+
+`vitals/timeline.json` is a demo-mode full-history file. Long-duration or multi-patient monitor runs should move to JSONL or bounded-window reads before replay scale becomes part of the contract.

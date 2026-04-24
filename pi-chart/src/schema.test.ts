@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { loadValidator } from "./schema.js";
 
@@ -178,4 +180,41 @@ test("constraints schema validates known-good block", async () => {
     preferences: ["x"],
   };
   assert.equal(v(ok), true);
+});
+
+test("loadValidator does not reuse stale validators after same-$id schema edits", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-schema-cache-"));
+  try {
+    const schemaDir = path.join(root, "schemas");
+    await fs.mkdir(schemaDir);
+    const schemaPath = path.join(schemaDir, "cache.schema.json");
+    const base = {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      $id: "https://pi-rn.local/test/cache.schema.json",
+      type: "object",
+      required: ["a"],
+      properties: { a: { type: "string" } },
+      additionalProperties: false,
+    };
+
+    await fs.writeFile(schemaPath, JSON.stringify(base), "utf8");
+    const first = await loadValidator(root, "cache.schema.json");
+    assert.equal(first({ a: "ok" }), true);
+    assert.equal(first({ b: 1 }), false);
+
+    await fs.writeFile(
+      schemaPath,
+      JSON.stringify({
+        ...base,
+        required: ["b"],
+        properties: { b: { type: "number" } },
+      }),
+      "utf8",
+    );
+    const second = await loadValidator(root, "cache.schema.json");
+    assert.equal(second({ b: 1 }), true, JSON.stringify(second.errors, null, 2));
+    assert.equal(second({ a: "ok" }), false);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
 });

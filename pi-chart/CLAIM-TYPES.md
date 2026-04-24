@@ -261,9 +261,9 @@ Conventional subtypes: `sbar`, `progress_note`, `handoff`, `portal_message`,
 
 The note file itself follows `schemas/note.schema.json`. Sanctioned paired
 authoring goes through `writeCommunicationNote()` so the markdown note and
-matching `communication` event land together. `writeNote()` is lower-level:
-it only writes the note file, so callers must preserve the note↔communication
-invariant themselves.
+matching `communication` event land together. The lower-level note-file helper
+is intentionally not part of the public `src/index.ts` API because callers
+should not manage the note↔communication invariant themselves.
 
 ---
 
