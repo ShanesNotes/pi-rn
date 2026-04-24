@@ -117,7 +117,7 @@ future ADR when the corresponding artifact makes the need concrete.
 
 | Item                                        | Source                        | Trigger for decision                                    |
 |---------------------------------------------|-------------------------------|---------------------------------------------------------|
-| Actor / attestation enrichment              | autoresearch P3               | A4 MAR (co-sign) or pi-agent integration design         |
+| Actor / attestation / review taxonomy        | deep-research Workstream B; ADR 017 proposed | Operator review of ADR 017, then implementation ADR only when fixture/profile pressure requires it |
 | Definition / protocol directory             | autoresearch P2               | A9b orderset invocation, or standing-protocol execution |
 | Semantic profile registry                   | autoresearch P6               | After ADRs 002/003/006 settle — profiles build on them  |
 | Longitudinal problem-thread primitive       | autoresearch P7               | A8 ICU nursing assessment (problem list)                |
