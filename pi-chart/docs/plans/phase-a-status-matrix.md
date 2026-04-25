@@ -25,14 +25,15 @@ Canonical exact-once Phase A file coverage table for `PHA-001`. Future structura
 | `clinical-reference/phase-a/a6-provider-notes-council-synthesis.md` | phase source input | Phase A research/source artifact | Keep as source input; promote to implementation card only after HITL selection. |
 | `clinical-reference/phase-a/a7-nursing-notes-council-synthesis.md` | phase source input | Phase A research/source artifact | Keep as source input; promote to implementation card only after HITL selection. |
 | `clinical-reference/phase-a/a7-open-schema-entries-council-synthesis.md` | phase source input | Phase A research/source artifact | Keep as source input; promote to implementation card only after HITL selection. |
-| `clinical-reference/phase-a/a8-icu-nursing-assessment-synthesis.md` | new heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-3 to decide first order/assessment loop test card. |
-| `clinical-reference/phase-a/a8-open-schema-entries-synthesis.md` | new heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-3 to decide first order/assessment loop test card. |
-| `clinical-reference/phase-a/a9a-open-schema-entries.md` | new heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-3 to decide first order/assessment loop test card. |
-| `clinical-reference/phase-a/a9a-order-primitive.md` | new heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-3 to decide first order/assessment loop test card. |
-| `clinical-reference/phase-a/a9a-research-synthesis.md` | new heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-3 to decide first order/assessment loop test card. |
+| `clinical-reference/phase-a/a8-icu-nursing-assessment-synthesis.md` | current heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-1 to classify candidate deltas, then PHA-TB-3 for one focused reassessment-order loop. |
+| `clinical-reference/phase-a/a8-open-schema-entries-synthesis.md` | current heavy-surface delta ledger | Candidate A8 open-schema entries not silently canonical | Use PHA-TB-1 before any schema/view implementation. |
+| `clinical-reference/phase-a/a9a-open-schema-entries.md` | current heavy-surface delta ledger | Candidate A9a open-schema entries not silently canonical | Use PHA-TB-1 before any schema/view implementation. |
+| `clinical-reference/phase-a/a9a-order-primitive.md` | current heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-1 to classify candidate deltas, then PHA-TB-3 for one focused reassessment-order loop. |
+| `clinical-reference/phase-a/a9a-research-synthesis.md` | current heavy-surface input | Current A8/A9a source requiring bridge triage | Use PHA-TB-1 to classify candidate deltas, then PHA-TB-3 for one focused reassessment-order loop. |
 
 ## Guardrails
 
 - This matrix is a planning surface, not source policy.
 - Do not edit Phase A source docs during implementation unless a selected card explicitly owns that doc edit.
 - A8/A9a are current inputs, not future/missing work.
+- A8/A9a open-schema entry files are candidate delta ledgers until PHA-TB-1/HITL promotes a decision.

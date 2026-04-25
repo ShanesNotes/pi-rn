@@ -2,106 +2,146 @@
 
 ## Scope
 
-Verify the thin V03 decision PRD, not product behavior. This lane creates only:
+Verify the executable planning surface for `V03-001`, not product behavior. Owned files for this lane are:
 
 - `docs/plans/prd-v03-foundation-reconciliation.md`
 - `docs/plans/test-spec-v03-foundation-reconciliation.md`
+- optionally `docs/plans/kanban-prd-board.md` for the V03 row only
 
-It must not edit `docs/plans/kanban-prd-board.md`, product roots, roadmap roots, memos, or ADR files.
+Do not edit `src/`, `schemas/`, `patients/`, `scripts/`, `profiles/`, ADRs, roadmap roots, or memos.
 
 ## Required content checks
 
 | Check | Pass condition |
 |---|---|
-| Source inputs present | PRD/test spec name the v0.3 memo, `ROADMAP.md`, accepted ADR 009/010/011/015/016, and proposed ADR 017. |
-| Authority preserved | Accepted ADRs are canonical; v0.3 memo is evidence/proposal; ADR17 is proposed/non-canonical. |
-| Decision shape thin | PRD stays a decision/backlog surface, target <=200 lines, no broad implementation plan. |
-| Options present | PRD lists decision options and rejects direct implementation from memo alone. |
-| HITL gate present | PRD states operator approval required before proposed/deferred items become implementation scope. |
-| Acceptance criteria present | PRD has explicit acceptance criteria for reconciliation output. |
-| Deferrals present | PRD explicitly defers unaccepted profiles, governance, protocols, ordersets, adapter/internal-model work, and product-code changes. |
+| Source authority | PRD names board, roadmap, v0.3 memo, ADR 009/010/011/015/016, and proposed ADR17. |
+| Buckets complete | PRD includes all buckets: `accepted/current`, `stale/superseded`, `deferred/backlog`, `needs-ADR/HITL`, `rejected/out-of-scope`. |
+| Brownfield reality | PRD records `0.3.0-partial`, implemented ADR 009/010/011 surfaces, and absent profile/hash/identity/bundle surfaces. |
+| Tracer bullets complete | `V03-TB-1` through `V03-TB-5` exist and include owned files, first characterization validation, verification command, and product-code exclusion. |
+| Row-level dispositions | Reconciliation table includes evidence link, bucket, current repo truth, HITL flag, and next lane/disposition. |
+| HITL exactness | HITL checkpoint lists exact operator choices before any implementation handoff. |
+| Deferrals explicit | PRD defers profiles, ADR17 governance, protocols/ordersets/problem threads, suppression/incidents, hash/identity, invalidation cache, context bundle, adapters/internal model, coupling, dependencies, and product-root changes. |
+
+## Preflight baseline
+
+Capture this before any future V03 implementation-planning edit in a dirty repo:
+
+```bash
+mkdir -p .omx/tmp
+{
+  git diff --name-only -- src schemas patients scripts profiles || true
+} | sort > .omx/tmp/v03-product-root-preflight.txt
+```
+
+Pass condition: later product-root diffs match this baseline exactly. A globally clean repo is not assumed.
 
 ## Structural verification
 
 ```bash
 python3 - <<'PY'
 from pathlib import Path
-files = [
-  Path('docs/plans/prd-v03-foundation-reconciliation.md'),
-  Path('docs/plans/test-spec-v03-foundation-reconciliation.md'),
-]
-for path in files:
+prd_path = Path('docs/plans/prd-v03-foundation-reconciliation.md')
+spec_path = Path('docs/plans/test-spec-v03-foundation-reconciliation.md')
+for path in [prd_path, spec_path]:
     if not path.exists():
-        print(f'Missing {path}')
-        raise SystemExit(1)
-    lines = path.read_text().splitlines()
-    if path.name.startswith('prd-') and len(lines) > 200:
-        print(f'{path} exceeds thin PRD target: {len(lines)} lines')
-        raise SystemExit(1)
-PY
-```
-
-## Authority and source verification
-
-```bash
-python3 - <<'PY'
-from pathlib import Path
-text = '\n'.join(p.read_text(errors='ignore') for p in [
-    Path('docs/plans/prd-v03-foundation-reconciliation.md'),
-    Path('docs/plans/test-spec-v03-foundation-reconciliation.md'),
-])
+        raise SystemExit(f'Missing {path}')
+prd = prd_path.read_text()
+spec = spec_path.read_text()
+text = prd + '\n' + spec
 required = [
-  'memos/pi-chart-v03-memo.md',
+  'docs/plans/kanban-prd-board.md',
   'ROADMAP.md',
+  'memos/pi-chart-v03-memo.md',
   'decisions/009-contradicts-link-and-resolves.md',
   'decisions/010-evidence-ref-roles.md',
   'decisions/011-transform-activity-provenance.md',
   'decisions/015-adr-009-011-implementation.md',
   'decisions/016-broad-ehr-skeleton-clinical-memory.md',
   'decisions/017-actor-attestation-review-taxonomy.md',
-  'accepted',
-  'canonical',
-  'evidence/proposal',
-  'proposed/non-canonical',
-  'HITL',
-  'Deferred',
+  'accepted/current', 'stale/superseded', 'deferred/backlog',
+  'needs-ADR/HITL', 'rejected/out-of-scope',
+  'proposed/non-canonical', '0.3.0-partial',
 ]
 missing = [item for item in required if item not in text]
 if missing:
-    print('Missing required content:')
-    print('\n'.join(missing))
-    raise SystemExit(1)
+    raise SystemExit('Missing required V03 terms:\n' + '\n'.join(missing))
+for tb in [f'V03-TB-{i}' for i in range(1, 6)]:
+    if tb not in prd:
+        raise SystemExit(f'Missing tracer bullet {tb}')
+for header in ['Owned files', 'First characterization validation', 'Verification command', 'Product-code exclusion']:
+    if header not in prd:
+        raise SystemExit(f'Missing tracer bullet column: {header}')
 PY
 ```
 
-## Ownership verification
-
-Because other agents may edit other docs concurrently, compare against the lane preflight baseline instead of assuming `docs/plans` is otherwise clean. This lane's owned output set is exactly:
-
-- `docs/plans/prd-v03-foundation-reconciliation.md`
-- `docs/plans/test-spec-v03-foundation-reconciliation.md`
+## Brownfield absence/current-state verification
 
 ```bash
 python3 - <<'PY'
 from pathlib import Path
-owned = [
-  Path('docs/plans/prd-v03-foundation-reconciliation.md'),
-  Path('docs/plans/test-spec-v03-foundation-reconciliation.md'),
+expected_absent = [
+  Path('profiles'),
+  Path('src/hash.ts'),
+  Path('src/identity.ts'),
+  Path('src/views/bundle.ts'),
+  Path('schemas/profile.schema.json'),
 ]
-missing = [str(p) for p in owned if not p.exists()]
-if missing:
-    print('Missing owned files:')
-    print('\n'.join(missing))
-    raise SystemExit(1)
+for path in expected_absent:
+    if path.exists():
+        raise SystemExit(f'V03 planning expected absent surface to remain absent: {path}')
+prd = Path('docs/plans/prd-v03-foundation-reconciliation.md').read_text()
+for phrase in [
+  'No `profiles/`',
+  'No `src/hash.ts`',
+  'No `src/identity.ts`',
+  'No `src/views/bundle.ts`',
+  'No `schemas/profile.schema.json`',
+  '`schema_version: 0.3.0-partial`',
+]:
+    if phrase not in prd:
+        raise SystemExit(f'Missing brownfield phrase: {phrase}')
 PY
-
-git diff --name-only -- src schemas patients scripts
 ```
 
-Pass condition: owned files exist and product-root diff has no new paths beyond the captured preflight baseline for this lane.
+## Product-root baseline comparison
+
+```bash
+current=$(mktemp)
+git diff --name-only -- src schemas patients scripts profiles | sort > "$current"
+if [ -f .omx/tmp/v03-product-root-preflight.txt ]; then
+  diff -u .omx/tmp/v03-product-root-preflight.txt "$current"
+else
+  # Fallback for a clean planning lane: print any product-root edits.
+  cat "$current"
+  test ! -s "$current"
+fi
+rm -f "$current"
+```
+
+Pass condition: no product-root diff beyond preflight baseline.
+
+## Optional board-row verification
+
+If the board is edited, verify it still links V03 artifacts and shows HITL-gated status:
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+board = Path('docs/plans/kanban-prd-board.md').read_text()
+required = [
+  'V03-001 v0.3 foundation reconciliation',
+  'prd-v03-foundation-reconciliation.md',
+  'test-spec-v03-foundation-reconciliation.md',
+  'HITL',
+]
+missing = [item for item in required if item not in board]
+if missing:
+    raise SystemExit('Board missing V03 row terms:\n' + '\n'.join(missing))
+PY
+```
 
 ## Known verification gaps
 
 - These checks cannot grant HITL approval.
-- These checks do not prove future reconciliation quality; they only prove the thin decision surface has the required authority, option, gate, acceptance, verification, and deferral structure.
-- No `npm test` is required because this is planning-only and product code is out of scope.
+- These checks do not prove future implementation correctness; they only prove the V03 planning surface preserves authority, brownfield reality, explicit deferrals, and no product-root changes.
+- No `npm test` is required for this planning-only lane. Product implementation lanes must add focused tests before code.
