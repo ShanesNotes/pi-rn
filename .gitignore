@@ -13,6 +13,7 @@ Thumbs.db
 # Tool / marker artifacts
 .codex
 .omx/
+.omc/
 
 # AI assistant session state
 .claude/
