@@ -29,3 +29,6 @@ sessions/current.yaml
 # Planning memos consumed by ADR authoring. Not authoritative; ADRs are
 # the canonical policy surface.
 /memos/
+
+# Generated kanban dashboard (build artifact; regen via `npm run dashboard`).
+docs/plans/dashboard.html

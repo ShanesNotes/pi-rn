@@ -44,3 +44,7 @@ These are not a ban on implementation. They describe how agents should move from
 - Do not couple `pi-chart` or `pi-agent` to hidden `pi-sim` internals.
 - Do not add dependencies unless the active card or user explicitly approves them.
 - Do not move, delete, or archive source documents without HITL approval.
+
+## Dashboard
+
+`dashboard.html` is a generated, gitignored build artifact. Regen via `npm run dashboard` from `pi-chart/`. Source of truth is `kanban-prd-board.md`. Open the resulting file via `file://` in a browser for a 4-column glance view.
