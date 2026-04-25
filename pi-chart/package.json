@@ -10,6 +10,7 @@
     "rebuild": "tsx scripts/rebuild-derived.ts .",
     "check": "npm run rebuild && npm run validate",
     "dashboard": "tsx scripts/dashboard.ts",
+    "dashboard:dev": "tsx scripts/dashboard-dev.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --test --import tsx 'src/**/*.test.ts' 'scripts/**/*.test.ts'"
   },

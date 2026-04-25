@@ -48,3 +48,5 @@ These are not a ban on implementation. They describe how agents should move from
 ## Dashboard
 
 `dashboard.html` is a generated, gitignored build artifact. Regen via `npm run dashboard` from `pi-chart/`. Source of truth is `kanban-prd-board.md`. Open the resulting file via `file://` in a browser for a 4-column glance view.
+
+For live development, `npm run dashboard:dev` starts a local server at `http://localhost:5173` that rebuilds the page in memory on each request and auto-reloads the browser via Server-Sent Events whenever `kanban-prd-board.md` changes. No disk write; the static `dashboard.html` is unaffected.
