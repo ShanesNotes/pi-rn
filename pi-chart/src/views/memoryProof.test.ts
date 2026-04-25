@@ -1,17 +1,38 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { memoryProof } from "./memoryProof.js";
 import { loadAllEvents } from "./active.js";
 import { narrative } from "./narrative.js";
-import type { PatientScope } from "../types.js";
+import type { EventEnvelope, PatientScope } from "../types.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const broadScope: PatientScope = { chartRoot: REPO_ROOT, patientId: "patient_002" };
 const WOB = "evt_p002_0905_wob";
+const HIDDEN_SIM_KEYS = [
+  "hidden_lung_fluid_ml",
+  "ground_truth_pneumonia_burden",
+  "scheduled_event_queue",
+] as const;
 
 function stringifyProof(value: unknown): string {
   return JSON.stringify(value, null, 2);
+}
+
+function stringField(value: unknown, key: string): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const out = (value as Record<string, unknown>)[key];
+  return typeof out === "string" ? out : undefined;
+}
+
+function isCanonicalWorkOfBreathing(event: EventEnvelope): boolean {
+  const name = stringField(event.data, "name");
+  const value = stringField(event.data, "value") ?? "";
+  return event.type === "observation" &&
+    event.subtype === "exam_finding" &&
+    (name === "work_of_breathing" || value.toLowerCase().includes("accessory muscle use"));
 }
 
 test("memoryProof returns six required sections and is JSON-serializable", async () => {
@@ -67,11 +88,57 @@ test("memoryProof clamps vitals evidence windows to the consumer event time", as
 });
 
 test("memoryProof reuses one bedside observation across projection contexts", async () => {
+  const events = await loadAllEvents(broadScope);
+  const wobEvents = events.filter(isCanonicalWorkOfBreathing);
+  assert.deepEqual(wobEvents.map((event) => event.id), [WOB]);
+
   const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
   assert(proof.sections.why_it_mattered.some((item) => item.event_ids.includes(WOB)), "review/assessment missing WOB support");
   assert(proof.sections.evidence.some((item) => item.ref === WOB && item.event_ids?.includes("evt_p002_0930_care_plan")), "evidence/provenance missing WOB reuse");
   assert(proof.sections.open_loops.some((loop) => loop.evidence_ids.includes(WOB)), "open loop missing WOB support");
   assert(proof.sections.next_shift_handoff.some((item) => item.event_ids.includes(WOB)), "handoff missing WOB support");
+
+  const notes = await narrative({ scope: broadScope, to: "2026-04-19T09:30:35-05:00" });
+  assert(notes.some((note) => note.references.includes(WOB)), "narrative note path missing WOB support");
+});
+
+test("memoryProof ignores hidden simulator state files", async () => {
+  const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-hidden-state-"));
+  try {
+    const tmpPatientRoot = path.join(tmpRoot, "patients", "patient_002");
+    await fs.mkdir(path.dirname(tmpPatientRoot), { recursive: true });
+    await fs.cp(path.join(REPO_ROOT, "patients", "patient_002"), tmpPatientRoot, {
+      recursive: true,
+    });
+
+    const scope: PatientScope = { chartRoot: tmpRoot, patientId: "patient_002" };
+    const asOf = "2026-04-19T09:30:35-05:00";
+    const before = stringifyProof(await memoryProof({ scope, asOf }));
+
+    await fs.writeFile(
+      path.join(tmpPatientRoot, "_sim_state.json"),
+      `${JSON.stringify({
+        hidden_lung_fluid_ml: 875,
+        ground_truth_pneumonia_burden: "high",
+        scheduled_event_queue: ["future_private_event"],
+      }, null, 2)}\n`,
+    );
+
+    const after = stringifyProof(await memoryProof({ scope, asOf }));
+    assert.equal(after, before);
+    for (const key of HIDDEN_SIM_KEYS) {
+      assert(!after.includes(key), `${key} leaked into memoryProof output`);
+    }
+  } finally {
+    await fs.rm(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("memoryProof represents open-loop closure with patient_002", async () => {
+  const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
+  const openIntentIds = proof.sections.open_loops.map((loop) => loop.intent_id);
+  assert(openIntentIds.includes("evt_p002_0930_care_plan"), "active next-shift care plan should remain open");
+  assert(!openIntentIds.includes("evt_p002_0912_order_abg"), "fulfilled ABG order should be closed");
 });
 
 test("memoryProof is deterministic", async () => {

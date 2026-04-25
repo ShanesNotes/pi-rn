@@ -13,8 +13,10 @@ async function copyFixture(): Promise<PatientScope> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-val-"));
   await fs.cp(REPO_ROOT, dir, {
     recursive: true,
-    filter: (src) =>
-      !/node_modules|_derived/.test(src),
+    filter: (src) => {
+      const parts = path.relative(REPO_ROOT, src).split(path.sep);
+      return !parts.some((part) => ["node_modules", "_derived", ".git", ".omx"].includes(part));
+    },
   });
   return { chartRoot: dir, patientId: "patient_001" };
 }
