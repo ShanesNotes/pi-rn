@@ -64,7 +64,10 @@ test("agent dock is a chart-side advisory shell with a mock prompt", () => {
   assert.match(html, /id="agent-prompt"/);
   assert.match(html, /Organize my shift and tell me what I should pay attention to\./);
   assert.match(html, /advisory only · Chart requires clinician action/);
-  assert.match(html, /Co-pilot advice only\. Chart truth changes only through clinician final clinical write\./);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /Pi-agent \/ advisory/);
+  assert.match(html, /Co-pilot advice only\./);
+  assert.match(html, /Chart truth changes only through clinician final clinical write\./);
 });
 
 test("clinician journey storyboard exposes chart navigation states", () => {

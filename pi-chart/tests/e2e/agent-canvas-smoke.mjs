@@ -65,6 +65,7 @@ await check("blocked MAR pane closes via close button", page.locator(".artifact-
 await check("agent dock prompt hidden initially", page.locator("#agent-chat").isHidden());
 await page.locator("#agent-open").click();
 await check("agent dock prompt opens", page.locator("#agent-chat").isVisible());
+await check("agent dock toggle advertises expanded state", page.locator("#agent-open").getAttribute("aria-expanded").then((value) => value === "true"));
 await check("agent shift organization state visible", hasText("Pi-agent shift organization"));
 await page.locator("#agent-prompt").fill("Organize my shift and tell me what I should pay attention to.");
 await page.locator("#agent-chat button[type='submit']").click();
@@ -72,6 +73,9 @@ await check("agent response remains advisory", hasText("Co-pilot advice only"));
 
 await page.locator('[data-view="overview"]').click();
 await check("return to Overview restores cockpit home base", hasText("Problem-oriented timeline"));
+await check("expanded dock persists across chart navigation", page.locator("#agent-chat").isVisible());
+await page.locator("#agent-open").click();
+await check("agent dock can collapse explicitly", page.locator("#agent-chat").isHidden());
 await check("blocked MAR remains blocked after return", page.locator("[data-artifact='zosyn-blocked'] .worklist-meta").textContent().then((text) => text?.includes("blocked")));
 
 await check("no console or page errors", Promise.resolve(consoleMessages.length === 0 && pageErrors.length === 0));
