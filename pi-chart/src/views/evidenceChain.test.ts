@@ -30,6 +30,67 @@ function obs(id: string, at: string, extras: Record<string, unknown> = {}) {
   };
 }
 
+function orderIntent(id: string, at: string, extras: Record<string, unknown> = {}) {
+  return {
+    id,
+    type: "intent",
+    subtype: "order",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "x", role: "md" },
+    source: { kind: "clinician_chart_action" },
+    certainty: "planned",
+    status: "active",
+    data: { order: "lactate", goal: "check perfusion" },
+    links: { supports: [] },
+    ...extras,
+  };
+}
+
+function specimenCollection(
+  id: string,
+  at: string,
+  fulfills: string[],
+  extras: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    type: "action",
+    subtype: "specimen_collection",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "x", role: "rn" },
+    source: { kind: "nurse_charted" },
+    certainty: "performed",
+    status: "final",
+    data: { specimen_type: "blood" },
+    links: { supports: [], fulfills },
+    ...extras,
+  };
+}
+
+function labResult(id: string, at: string, collectionId: string) {
+  return {
+    id,
+    type: "observation",
+    subtype: "lab_result",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "lab", role: "system" },
+    source: { kind: "lab_interface_hl7" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "lactate", value: 2.8, unit: "mmol/L", status_detail: "final" },
+    links: { supports: [collectionId] },
+  };
+}
+
 test("role-carrying event supports preserve role on emitted child nodes", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", obs("evt_obs_01", "2026-04-18T08:00:00-05:00"));
@@ -591,4 +652,26 @@ test("evidenceChain asOf clamps vitals windows", async () => {
   const vitals = node.supports.find((support) => support.kind === "vitals");
   assert(vitals && vitals.kind === "vitals");
   assert.deepEqual(vitals.points.map((point) => point.sampled_at), ["2026-04-18T08:05:00-05:00"]);
+});
+
+test("lab result evidence chain traverses specimen collection to fulfilled order intent", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", orderIntent("evt_order_lactate", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", specimenCollection("evt_collect_lactate", "2026-04-18T08:05:00-05:00", ["evt_order_lactate"]));
+  await appendRawEvent(scope, "2026-04-18", labResult("evt_lactate_result", "2026-04-18T08:20:00-05:00", "evt_collect_lactate"));
+
+  const node = await evidenceChain({ scope, eventId: "evt_lactate_result" });
+  if (node.kind !== "event") throw new Error();
+  assert.equal(node.event.id, "evt_lactate_result");
+  assert.deepEqual(
+    node.supports.filter((support) => support.kind === "event").map((support) => support.event.id),
+    ["evt_collect_lactate"],
+  );
+  const collectionNode = node.supports[0];
+  assert.equal(collectionNode.kind, "event");
+  if (collectionNode.kind !== "event") throw new Error();
+  assert.deepEqual(
+    collectionNode.supports.filter((support) => support.kind === "event").map((support) => support.event.id),
+    ["evt_order_lactate"],
+  );
 });

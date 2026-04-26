@@ -65,6 +65,52 @@ function action(
   };
 }
 
+function observation(
+  id: string,
+  at: string,
+  extras: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    type: "observation",
+    subtype: "exam_finding",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "x", role: "rn" },
+    source: { kind: "nurse_charted" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "work_of_breathing", value: "unchanged" },
+    links: { supports: [] },
+    ...extras,
+  };
+}
+
+function assessment(
+  id: string,
+  at: string,
+  extras: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    type: "assessment",
+    subtype: "problem",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "x", role: "rn" },
+    source: { kind: "nurse_charted" },
+    certainty: "asserted",
+    status: "final",
+    data: { summary: "respiratory status unchanged" },
+    links: { supports: [] },
+    ...extras,
+  };
+}
+
 async function seedStructuralMarkdown(scope: Awaited<ReturnType<typeof makeEmptyPatient>>): Promise<void> {
   const root = patientDir(scope);
   await fs.writeFile(
@@ -160,6 +206,36 @@ test("terminal-final fulfillment closes the loop (skipped from output)", async (
   }));
   const loops = await openLoops({ scope, asOf: "2026-04-18T08:10:00-05:00" });
   assert.equal(loops.length, 0);
+});
+
+test("observation.exam_finding is evidence and does not close an intent loop", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", observation("evt_exam_01", "2026-04-18T08:05:00-05:00", {
+    links: { supports: ["evt_intent_01"], fulfills: ["evt_intent_01"] },
+  }));
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:10:00-05:00" });
+
+  assert.equal(loops.length, 1);
+  assert.equal(loops[0].intent.id, "evt_intent_01");
+  assert.equal(loops[0].state, "pending");
+  assert.deepEqual(loops[0].fulfillments, []);
+});
+
+test("assessment events do not fulfill intent loops", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", assessment("evt_assess_01", "2026-04-18T08:05:00-05:00", {
+    links: { supports: ["evt_intent_01"], fulfills: ["evt_intent_01"] },
+  }));
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:10:00-05:00" });
+
+  assert.equal(loops.length, 1);
+  assert.equal(loops[0].intent.id, "evt_intent_01");
+  assert.equal(loops[0].state, "pending");
+  assert.deepEqual(loops[0].fulfillments, []);
 });
 
 test("superseded fulfillment does not close the loop", async () => {

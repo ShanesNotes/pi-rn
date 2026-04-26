@@ -142,6 +142,7 @@ export function contestedRuntimeEntries(ctx: ActiveContext): ContestedRuntimeEnt
 function indexFulfillments(events: EventEnvelope[]): Map<string, EventEnvelope[]> {
   const out = new Map<string, EventEnvelope[]>();
   for (const ev of events) {
+    if (ev.type !== "action") continue;
     for (const targetId of ev.links?.fulfills ?? []) {
       if (!out.has(targetId)) out.set(targetId, []);
       out.get(targetId)!.push(ev);

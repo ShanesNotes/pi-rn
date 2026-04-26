@@ -1661,6 +1661,92 @@ test("V-FULFILL-03 rejects result observation without acquisition action support
   assert(r.errors.some((e) => /V-FULFILL-03/.test(e.message) && /must support an acquisition action/.test(e.message)));
 });
 
+test("V-EXAMFIND-01 rejects exam findings that try to fulfill or address loops", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, {
+    id: "evt_exam_target_order",
+    type: "intent",
+    subtype: "monitoring_plan",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "planned",
+    status: "active",
+    data: { goal: "reassess respiratory status" },
+    links: { supports: [] },
+  }, {
+    id: "evt_exam_target_problem",
+    type: "assessment",
+    subtype: "problem",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "inferred",
+    status: "active",
+    data: { summary: "oxygen requirement" },
+    links: { supports: [] },
+  }, {
+    id: "evt_exam_bad_links",
+    type: "observation",
+    subtype: "exam_finding",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:05:00-05:00",
+    recorded_at: "2026-04-18T09:05:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { finding: "work of breathing improved", finding_state: "present" },
+    links: {
+      supports: ["evt_exam_target_order"],
+      fulfills: ["evt_exam_target_order"],
+      addresses: ["evt_exam_target_problem"],
+    },
+  });
+
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /V-EXAMFIND-01/.test(e.message) && /must not carry links\.fulfills/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+  assert(
+    r.errors.some((e) => /V-EXAMFIND-01/.test(e.message) && /must not carry links\.addresses/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-EXAMFIND-01 rejects unsupported finding_state values", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, {
+    id: "evt_exam_bad_state",
+    type: "observation",
+    subtype: "exam_finding",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:05:00-05:00",
+    recorded_at: "2026-04-18T09:05:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { finding: "work of breathing", finding_state: "unknown" },
+    links: { supports: [] },
+  });
+
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /V-EXAMFIND-01/.test(e.message) && /finding_state/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
 test("invariant 10: links.addresses targeting an arbitrary observation is rejected", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);

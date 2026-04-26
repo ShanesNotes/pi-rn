@@ -44,6 +44,31 @@ test("timeline filters by type", async () => {
   assert.equal(list[0].id, "evt_b");
 });
 
+test("timeline characterizes observation.exam_finding as evidence", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_intent_01", "intent", "care_plan", "2026-04-18T08:00:00-05:00", {
+    certainty: "planned",
+    data: { goal: "watch respiratory status" },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_exam_01", "observation", "exam_finding", "2026-04-18T08:05:00-05:00", {
+    data: { name: "work_of_breathing", value: "mildly increased" },
+    links: { supports: ["evt_intent_01"] },
+  }));
+
+  const list = await timeline({
+    scope,
+    types: ["observation"],
+    subtypes: ["exam_finding"],
+  });
+
+  assert.equal(list.length, 1);
+  assert.equal(list[0].id, "evt_exam_01");
+  assert.equal(list[0].type, "observation");
+  assert.equal(list[0].subtype, "exam_finding");
+  assert.equal(list[0].summary, "work_of_breathing = mildly increased");
+  assert.deepEqual(list[0].raw.links?.supports, ["evt_intent_01"]);
+});
+
 test("timeline subtypePrefix picks medication_*", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", ev("evt_a", "intent", "medication_order", "2026-04-18T08:00:00-05:00", {

@@ -14,6 +14,9 @@ Coverage:
 - A5 intake & output, lines/tubes/drains
 - A6 provider notes
 - A7 nursing notes
+- A8 ICU nursing assessment
+- A9a order primitive
+- A9b order-set / standing-protocol / template invocation
 
 This file is a compilation surface. Source-specific sections remain
 authoritative for full clinical rationale and references.
@@ -56,6 +59,93 @@ every source-artifact "current lean" as equally open.
 | Attestation and cosignature | [A6 attestation primitive](#a6-attestation-primitive), [A7 preceptor attestation](#a7-preceptor-attestation) | Reuse `communication.attestation` across provider and nursing roles with profile-driven timing; do not introduce a new event type. |
 | Scope-of-practice enforcement | [A7 scope enforcement](#a7-scope-enforcement) | Default to soft warnings on out-of-scope authorship; profile-driven severity is the implementation endpoint once profiles exist. |
 | Session and import provenance | [A6 session coupling](#a6-session-coupling), [A6 legacy/generated provenance](#a6-legacy-import-and-generated-provenance) | Defer stored session id and new note-import source kinds; rely on author proximity, note `references[]`, and existing source kinds plus transform provenance. |
+| Phase A order/finding bridge | [A8 finding-state negative missingness](#a8-finding-state-negative-missingness), [A8 reassessment response coupling](#a8-reassessment-response-coupling), [A8 nursing-scope assessment boundary](#a8-nursing-scope-assessment-boundary), [A8 structured vs narrative boundary](#a8-a7-structured-vs-narrative-boundary), [A9a canonical subtype](#a9a-canonical-subtype), [A9a result fulfillment pathway](#a9a-result-fulfillment-pathway) | Accepted direction for PHA-001: findings are observations/evidence, fulfillment stays action-mediated, and order family remains payload on `intent.order`. |
+| A9b order-set invocation | [A9b invocation as event vs derived](#a9b-invocation-as-event-vs-derived), [A9b parent-child link convention](#a9b-parent-child-link-convention), [A9b orderset modification mid invocation](#a9b-orderset-modification-mid-invocation), [A9b set-level openLoops vs child-level](#a9b-set-level-openloops-vs-child-level), [A9b CDS suggestion boundary](#a9b-cds-suggestion-boundary), [A9b protocol decision branch boundary](#a9b-protocol-decision-branch-boundary) | Accepted direction for planning only: invocation is `action.intervention` payload, children are `intent.order`, parent/child provenance uses `transform`, set lifecycle is derived, CDS/protocol state remains out-of-chart. |
+
+## A8/A9a/A9b Phase A bridge promotions
+
+Source: `docs/plans/prd-phase-a-completion-to-implementation-bridge.md` PHA-TB-1, approved for canonical merge during Ralph execution.
+
+### a8-finding-state-negative-missingness
+
+**[accepted-direction] Three-valued finding state.** `observation.exam_finding`
+fixtures and future validator work should distinguish `present`, explicitly
+absent, and not-assessed states so chart silence is not confused with explicit
+normal/negative findings. PHA-001 may characterize this in view tests; closed
+finding vocabularies and full exam-session shells remain deferred.
+
+### a8-reassessment-response-coupling
+
+**[accepted-direction] Exam findings are evidence, not fulfillment.**
+`observation.exam_finding` must not carry `links.fulfills` to close an
+`intent.order` or `intent.monitoring_plan`. Fulfillment/closure remains
+action-mediated; findings and nursing assessments may support/address/interpret
+the loop context.
+
+### a8-nursing-scope-assessment-boundary
+
+**[accepted-direction] RN-scope structured assessments stay nursing-domain.**
+Nursing-scope `assessment.*` claims can support or interpret bedside findings,
+but they do not become provider-only judgments and do not bypass action-mediated
+fulfillment.
+
+### a8-a7-structured-vs-narrative-boundary
+
+**[accepted-direction] A8 owns structured findings; A7 owns narrative.**
+Nursing notes can support or narrate findings, but live structured findings
+belong in `observation.exam_finding` rather than being minted by note text alone.
+
+### a9a-canonical-subtype
+
+**[accepted-direction] Orders stay `intent.order`.** Do not introduce order
+family subtypes for first implementation; use `intent.order` with payload fields
+such as `data.order_kind`.
+
+### a9a-result-fulfillment-pathway
+
+**[accepted-direction] Result-producing orders use action-mediated fulfillment.**
+Diagnostic results and lab results support acquisition/performance actions; the
+actions fulfill the upstream `intent.order` or `intent.monitoring_plan`.
+
+### a9b-invocation-as-event-vs-derived
+
+**[accepted-direction] Order-set/protocol/template invocation is a chart action.**
+Use a point-shaped `action.intervention` event with
+`data.action = "orderset_invocation"` as the planning direction. Do not add a
+new event type or `intent.orderset_invocation` in PHA-001.
+
+### a9b-parent-child-link-convention
+
+**[accepted-direction] Parent/child provenance uses existing transform surface.**
+Generated child `intent.order` events should point back to the invocation through
+`transform.run_id` and `transform.input_refs`, not through a new link kind or
+`data.invoked_by`.
+
+### a9b-orderset-modification-mid-invocation
+
+**[accepted-direction] Modify children, not the invocation.** Mid-invocation
+changes are represented by per-child supersession/cancellation; the invocation
+event remains point-shaped provenance and is never re-authored as a mutable
+bundle object.
+
+### a9b-set-level-openloops-vs-child-level
+
+**[accepted-direction] Set lifecycle is derived from child orders.** Do not add
+stored bundle-complete/bundle-cancelled lifecycle fields. Standing-order delayed
+authentication is the surviving regulated set-level loop candidate and needs a
+later ADR/profile decision before implementation.
+
+### orderset-cds-suggestion-boundary
+
+**[accepted-direction] Non-accepted CDS suggestions are not patient-stream
+claims.** They remain system telemetry unless accepted into patient-specific
+orders/actions.
+
+### a9b-protocol-decision-branch-boundary
+
+**[accepted-direction] Protocol branch state stays out of pi-chart.** pi-agent
+owns protocol state machines; pi-chart records authoring, provenance, and
+action-mediated fulfillment, with only opaque references if needed later.
 
 ## A0a patient demographics / encounter
 

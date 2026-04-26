@@ -64,6 +64,7 @@ async function resolveEvent(
     const next = new Set(seen);
     next.add(ev.id);
     const childDepth = depthRemaining < 0 ? depthRemaining : depthRemaining - 1;
+    const supportEventIds = new Set<string>();
     for (const raw of ev.links?.supports ?? []) {
       const ref = parseEvidenceRef(raw);
       if (!ref) continue;
@@ -75,7 +76,34 @@ async function resolveEvent(
         childDepth,
         next,
       );
-      if (node) supportsNodes.push(node);
+      if (node) {
+        supportsNodes.push(node);
+        if (node.kind === "event") supportEventIds.add(node.event.id);
+      }
+    }
+    if (ev.type === "action") {
+      for (const targetId of ev.links?.fulfills ?? []) {
+        if (supportEventIds.has(targetId)) continue;
+        const fulfilled = ctx.byId.get(targetId);
+        if (
+          !fulfilled ||
+          fulfilled.type !== "intent" ||
+          !isVisibleAsOf(fulfilled, ctx)
+        ) {
+          continue;
+        }
+        supportsNodes.push(
+          await resolveEvent(
+            fulfilled,
+            ctx,
+            params,
+            notesById,
+            childDepth,
+            next,
+          ),
+        );
+        supportEventIds.add(targetId);
+      }
     }
     for (const target of ev.links?.contradicts ?? []) {
       const contradicted = ctx.byId.get(target.ref);

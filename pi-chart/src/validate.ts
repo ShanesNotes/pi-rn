@@ -145,6 +145,12 @@ const RESULT_OBSERVATION_SUBTYPES = new Set([
   "diagnostic_result",
 ]);
 
+const EXAM_FINDING_STATES = new Set([
+  "present",
+  "absent",
+  "not_assessed",
+]);
+
 const EVIDENCE_DERIVED_FROM_MAX_DEPTH = 8;
 
 const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
@@ -909,6 +915,7 @@ async function checkReferentialIntegrity(state: State) {
 
     validateStatusTransitions(state, where, ev, envelopesById);
     validateIntervalClosure(state, where, ev, envelopesById);
+    validateExamFindingSemantics(state, where, ev);
 
     // Invariant 10 / ADR 003: fulfillment typing.
     if ((links.fulfills ?? []).length && ev.type !== "action") {
@@ -1589,6 +1596,44 @@ function supportsAcquisitionAction(
     }
   }
   return false;
+}
+
+function validateExamFindingSemantics(
+  state: State,
+  where: string,
+  ev: any,
+) {
+  if (ev?.type !== "observation" || ev?.subtype !== "exam_finding") return;
+
+  if ((ev?.links?.fulfills ?? []).length > 0) {
+    ruleErr(
+      state,
+      where,
+      "V-EXAMFIND-01",
+      "observation.exam_finding must not carry links.fulfills; findings are evidence, not fulfillment",
+    );
+  }
+  if ((ev?.links?.addresses ?? []).length > 0) {
+    ruleErr(
+      state,
+      where,
+      "V-EXAMFIND-01",
+      "observation.exam_finding must not carry links.addresses; use supporting/action-mediated closure context instead",
+    );
+  }
+
+  const findingState = ev?.data?.finding_state;
+  if (
+    findingState !== undefined &&
+    (typeof findingState !== "string" || !EXAM_FINDING_STATES.has(findingState))
+  ) {
+    ruleErr(
+      state,
+      where,
+      "V-EXAMFIND-01",
+      "observation.exam_finding data.finding_state must be one of: present, absent, not_assessed",
+    );
+  }
 }
 
 function findEventEnvelope(

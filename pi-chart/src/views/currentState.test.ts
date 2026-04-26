@@ -246,3 +246,29 @@ test("supersession clears contested sibling data", async () => {
   if (s.axis !== "intents") throw new Error();
   assert.deepEqual(s.contested, []);
 });
+
+test("all axis characterizes fulfilled order, specimen collection, and lab result as closed result evidence", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("evt_order_lactate", "intent", "order", "active", "2026-04-18T08:00:00-05:00", {
+    certainty: "planned",
+    data: { order: "lactate", goal: "check perfusion" },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_collect_lactate", "action", "specimen_collection", "final", "2026-04-18T08:05:00-05:00", {
+    certainty: "performed",
+    data: { specimen_type: "blood" },
+    links: { supports: [], fulfills: ["evt_order_lactate"] },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("evt_lactate_result", "observation", "lab_result", "final", "2026-04-18T08:20:00-05:00", {
+    data: { name: "lactate", value: 2.8, unit: "mmol/L", status_detail: "final" },
+    links: { supports: ["evt_collect_lactate"] },
+  }));
+
+  const s = await currentState({
+    scope,
+    axis: "all",
+    asOf: "2026-04-18T08:30:00-05:00",
+  });
+  if (s.axis !== "all") throw new Error();
+  assert.deepEqual(s.intents.map((loop) => loop.intent.id), []);
+  assert.deepEqual(s.observations.map((item) => item.id), ["evt_lactate_result"]);
+});
