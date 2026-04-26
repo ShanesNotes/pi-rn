@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { ADVISORY_BANNER_COPY } from "./agent-canvas-constants.js";
+
 const html = readFileSync(
   path.resolve(import.meta.dirname, "..", "docs", "prototypes", "pi-chart-agent-canvas.html"),
   "utf8",
@@ -47,7 +49,9 @@ test("clinical worklist keeps prioritized required sections", () => {
 
 test("artifact pane is editable, resizable, and uses Chart language", () => {
   assert.match(html, /class="artifact-pane"/);
-  assert.match(html, /resize:both/);
+  assert.match(html, /top:10px;right:10px/);
+  assert.match(html, /resize:horizontal/);
+  assert.match(html, /z-index:30/);
   assert.match(html, /<textarea aria-label="Resp reassessment markdown editor"/);
   assert.match(html, /Discard draft/);
   assert.match(html, /Stage draft/);
@@ -63,8 +67,9 @@ test("agent dock is a chart-side advisory shell with a mock prompt", () => {
   assert.match(html, /aria-label="Pi-agent dock"/);
   assert.match(html, /id="agent-prompt"/);
   assert.match(html, /Organize my shift and tell me what I should pay attention to\./);
-  assert.match(html, /advisory only · Chart requires clinician action/);
-  assert.match(html, /aria-expanded="false"/);
+  assert.ok(html.includes(`data-role="advisory-banner">${ADVISORY_BANNER_COPY}</span>`));
+  assert.match(html, /aria-expanded="true"/);
+  assert.match(html, /z-index:20/);
   assert.match(html, /Pi-agent \/ advisory/);
   assert.match(html, /Co-pilot advice only\./);
   assert.match(html, /Chart truth changes only through clinician final clinical write\./);

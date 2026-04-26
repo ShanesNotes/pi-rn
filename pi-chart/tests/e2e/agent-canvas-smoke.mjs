@@ -2,6 +2,8 @@ import { chromium } from "playwright";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { ADVISORY_BANNER_COPY } from "../../scripts/agent-canvas-constants.ts";
+
 const prototypePath = path.resolve("docs/prototypes/pi-chart-agent-canvas.html");
 const url = pathToFileURL(prototypePath).href;
 
@@ -32,6 +34,15 @@ await check("overview loads chart-first with artifact pane hidden", page.locator
 await check("patient banner visible", hasText("Patient 002"));
 await check("respiratory watcher visible", hasText("WATCHER"));
 await check("worklist due loop visible", hasText("Reassess oxygen response & WoB"));
+await check("advisory banner copy is exact", page.locator('[data-role="advisory-banner"]').textContent().then((text) => text === ADVISORY_BANNER_COPY));
+await check("agent dock starts expanded on Overview", page.locator("#agent-chat").isVisible());
+await check("agent dock starts with expanded aria state", page.locator("#agent-open").getAttribute("aria-expanded").then((value) => value === "true"));
+
+await page.locator('[data-view="mar"]').click();
+await check("grid MAR view smart-collapses dock to notification pill", page.locator("#agent-chat").isHidden());
+await check("advisory banner remains visible in collapsed pill", page.locator('[data-role="advisory-banner"]').isVisible());
+await page.locator('[data-view="notes"]').click();
+await check("narrative Notes view expands dock", page.locator("#agent-chat").isVisible());
 
 const navExpectations = [
   ["Care plan / handoff", "Handoff report"],
@@ -49,9 +60,14 @@ for (const [navLabel, expectedText] of navExpectations) {
 
 await page.getByText("Next-shift handoff draft", { exact: false }).first().click();
 await check("generated handoff draft opens editable pane", page.locator(".artifact-pane").isVisible());
+await check("artifact pane uses top-right horizontal-resize anchor above dock", page.locator(".artifact-pane").evaluate((element) => {
+  const pane = getComputedStyle(element);
+  const dock = getComputedStyle(document.querySelector("#agent-dock"));
+  return pane.top === "10px" && pane.right === "10px" && pane.resize === "horizontal" && pane.zIndex === "30" && dock.zIndex === "20";
+}));
 await check("chartable pane exposes final clinical write", hasText("FINAL CLINICAL WRITE"));
 await page.locator("#chart-artifact").click();
-await check("Chart closes chartable pane", page.locator(".artifact-pane").isHidden());
+await check("Chart action is clickable while dock is expanded and closes pane", page.locator(".artifact-pane").isHidden());
 await check("worklist item can reflect Charted status", page.locator("[data-artifact='handoff-draft'] .worklist-meta").first().textContent().then((text) => text?.includes("charted")));
 
 await page.getByText("Zosyn due at 12:00", { exact: false }).first().click();
@@ -62,18 +78,16 @@ await check("blocked MAR states agent cannot chart med administration", hasText(
 await page.locator("#close-artifact").click();
 await check("blocked MAR pane closes via close button", page.locator(".artifact-pane").isHidden());
 
-await check("agent dock prompt hidden initially", page.locator("#agent-chat").isHidden());
-await page.locator("#agent-open").click();
-await check("agent dock prompt opens", page.locator("#agent-chat").isVisible());
+await check("agent dock prompt remains available on narrative views", page.locator("#agent-chat").isVisible());
 await check("agent dock toggle advertises expanded state", page.locator("#agent-open").getAttribute("aria-expanded").then((value) => value === "true"));
-await check("agent shift organization state visible", hasText("Pi-agent shift organization"));
 await page.locator("#agent-prompt").fill("Organize my shift and tell me what I should pay attention to.");
 await page.locator("#agent-chat button[type='submit']").click();
+await check("agent shift organization state visible", hasText("Pi-agent shift organization"));
 await check("agent response remains advisory", hasText("Co-pilot advice only"));
 
 await page.locator('[data-view="overview"]').click();
 await check("return to Overview restores cockpit home base", hasText("Problem-oriented timeline"));
-await check("expanded dock persists across chart navigation", page.locator("#agent-chat").isVisible());
+await check("expanded dock returns on narrative Overview navigation", page.locator("#agent-chat").isVisible());
 await page.locator("#agent-open").click();
 await check("agent dock can collapse explicitly", page.locator("#agent-chat").isHidden());
 await check("blocked MAR remains blocked after return", page.locator("[data-artifact='zosyn-blocked'] .worklist-meta").textContent().then((text) => text?.includes("blocked")));
