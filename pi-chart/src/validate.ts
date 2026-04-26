@@ -6,7 +6,7 @@
 // checkable subset of the chart invariants. Invariants 6 and 7 landed here
 // in Phase 1; 8 and 10 land in Phase 2.
 
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   ajvErrorsTo,
@@ -36,6 +36,22 @@ import {
 } from "./time.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope, ReportEntry, ValidationReport } from "./types.js";
+
+type ProfileRegistry = {
+  version: number;
+  profiles: string[];
+};
+
+const PROFILE_REGISTRY: ProfileRegistry = (() => {
+  const registryPath = path.resolve(import.meta.dirname, "../schemas/profiles/index.json");
+  const parsed = JSON.parse(readFileSync(registryPath, "utf8")) as Partial<ProfileRegistry>;
+  return {
+    version: typeof parsed.version === "number" ? parsed.version : 1,
+    profiles: Array.isArray(parsed.profiles)
+      ? parsed.profiles.filter((profile): profile is string => typeof profile === "string")
+      : [],
+  };
+})();
 
 interface State {
   errors: ReportEntry[];
@@ -333,6 +349,28 @@ function validateSourceKind(state: State, where: string, ev: any) {
       where,
       "V-SRC-03",
       `import source.kind '${kind}' is missing required source fields: ${missing.join(", ")} (invariant 9: structured import provenance)`,
+    );
+  }
+}
+
+// V-PROFILE-01: optional profile field must reference a registered profile id
+function validateProfile(state: State, where: string, ev: any) {
+  if (ev?.profile === undefined) return;
+  if (typeof ev.profile !== "string" || ev.profile.length === 0) {
+    ruleErr(
+      state,
+      where,
+      "V-PROFILE-01",
+      `profile must be a non-empty string when present; got ${JSON.stringify(ev.profile)}`,
+    );
+    return;
+  }
+  if (!PROFILE_REGISTRY.profiles.includes(ev.profile)) {
+    ruleWarn(
+      state,
+      where,
+      "V-PROFILE-01",
+      `profile=${ev.profile} not in schemas/profiles/index.json registry`,
     );
   }
 }
@@ -685,6 +723,7 @@ async function validateStructuralMarkdown(
     state.eventTypes.set(normalized.id, normalized.type);
   }
   validateSourceKind(state, rel, normalized);
+  validateProfile(state, rel, normalized);
   validateTimeSemantics(state, rel, normalized);
   validateIntervalSemantics(state, rel, normalized);
   validateStatusDetailSemantics(state, rel, normalized);
@@ -763,6 +802,7 @@ async function validateTimeline(
         // session template sentinel that leaked into agent-authored events.
         checkAuthorSentinel(state, where, ev?.author);
         validateSourceKind(state, where, ev);
+        validateProfile(state, where, ev);
         validateTimeSemantics(state, where, ev);
         validateIntervalSemantics(state, where, ev);
         validateStatusDetailSemantics(state, where, ev);
