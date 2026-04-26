@@ -9,6 +9,10 @@ const html = readFileSync(
   path.resolve(import.meta.dirname, "..", "docs", "prototypes", "pi-chart-agent-canvas.html"),
   "utf8",
 );
+const contextFixture = JSON.parse(readFileSync(
+  path.resolve(import.meta.dirname, "..", "tests", "fixtures", "agent-canvas-context.json"),
+  "utf8",
+));
 
 test("overview cockpit renders required patient and clinical content", () => {
   for (const required of [
@@ -56,6 +60,7 @@ test("artifact pane is editable, resizable, and uses Chart language", () => {
   assert.match(html, /Discard draft/);
   assert.match(html, /Stage draft/);
   assert.match(html, /Chart <small>FINAL CLINICAL WRITE<\/small>/);
+  assert.match(html, /id="artifact-titlebar" data-freshness="current"/);
 });
 
 test("prototype copy uses Chart product language only", () => {
@@ -76,6 +81,17 @@ test("agent dock is a chart-side advisory shell with a mock prompt", () => {
   assert.match(html, /Chart truth changes only through clinician final clinical write\./);
   assert.match(html, /data-role="agent-suggestions" data-advisory="true"/);
   assert.match(html, /Warning: Unverified Synthesis/);
+});
+
+test("generated context fixture is grounded in patient_002 view primitives", () => {
+  assert.equal(contextFixture.patientId, "patient_002");
+  assert.equal(contextFixture.encounterId, "enc_p002_001");
+  assert.ok(contextFixture.sourceViewRefs.includes("currentState(axis=vitals,asOf)"));
+  assert.ok(contextFixture.sourceViewRefs.includes("openLoops(asOf)"));
+  assert.equal(contextFixture.latestVitals.spo2.value, 89);
+  assert.equal(contextFixture.latestVitals.spo2.sample_key, "vital_647c98955de3bdeb");
+  assert.ok(contextFixture.openLoop.detail.includes("Escalate if SpO₂ < 90%"));
+  assert.ok(contextFixture.artifacts.some((artifact) => artifact.id === "resp-reassessment" && artifact.sourceRefs.some((ref) => ref.includes("vital_647c98955de3bdeb"))));
 });
 
 test("clinician journey storyboard exposes chart navigation states", () => {

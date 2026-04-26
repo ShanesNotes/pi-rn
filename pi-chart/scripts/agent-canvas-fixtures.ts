@@ -34,12 +34,12 @@ export const patient002ContextFixture = {
     {
       kind: "open-loop-disposition",
       id: "resp-reassessment-draft",
-      sourceRefs: ["patient_002/timeline/2026-04-19/vitals.jsonl#0930"],
+      sourceRefs: ["vitals://enc_p002_001/spo2#vital_647c98955de3bdeb", "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"],
     },
     {
       kind: "clinical-note",
       id: "handoff-draft",
-      sourceRefs: ["patient_002/timeline/2026-04-19/notes/0930_handoff.md"],
+      sourceRefs: ["patient_002/timeline/2026-04-19/notes/0930_handoff.md", "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"],
     },
   ],
   requiresReview: ["clinical-note", "open-loop-disposition"],

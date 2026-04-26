@@ -70,7 +70,7 @@ export function mockAgentRespond(request: AgentDockRequest): AgentDockResponse {
           kind: "clinical-note",
           body: "Draft suggestion: update next-shift handoff with 09:50 respiratory reassessment status after source-data verification.",
           sourceRefs: [
-            "patient_002/timeline/2026-04-19/vitals.jsonl#0930",
+            "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
             "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
           ],
         },

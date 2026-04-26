@@ -71,6 +71,9 @@ await check("artifact pane uses top-right horizontal-resize anchor above dock", 
   const dock = getComputedStyle(document.querySelector("#agent-dock"));
   return pane.top === "10px" && pane.right === "10px" && pane.resize === "horizontal" && pane.zIndex === "30" && dock.zIndex === "20";
 }));
+await check("artifact freshness starts current", page.locator("#artifact-titlebar").getAttribute("data-freshness").then((value) => value === "current"));
+await page.evaluate(() => window.dispatchEvent(new CustomEvent("pi-chart:vitals-shift")));
+await check("artifact freshness turns stale after vitals shift", page.locator("#artifact-titlebar").getAttribute("data-freshness").then((value) => value === "stale"));
 await check("chartable pane exposes final clinical write", hasText("FINAL CLINICAL WRITE"));
 await page.locator("#chart-artifact").click();
 await check("Chart action is clickable while dock is expanded and closes pane", page.locator(".artifact-pane").isHidden());

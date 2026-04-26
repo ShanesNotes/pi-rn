@@ -1,0 +1,513 @@
+{
+  "generatedAt": "2026-04-19T14:36:00.000Z",
+  "patientId": "patient_002",
+  "encounterId": "enc_p002_001",
+  "sourceViewRefs": [
+    "currentState(axis=vitals,asOf)",
+    "openLoops(asOf)",
+    "trend(metric=spo2|heart_rate|respiratory_rate)",
+    "narrative(to=asOf)",
+    "memoryProof(asOf)"
+  ],
+  "views": [
+    {
+      "id": "overview",
+      "density": "narrative",
+      "bundle": {
+        "view": "overview",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "handoff",
+      "density": "narrative",
+      "bundle": {
+        "view": "handoff",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "vitals",
+      "density": "grid",
+      "bundle": {
+        "view": "vitals",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "mar",
+      "density": "grid",
+      "bundle": {
+        "view": "mar",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "notes",
+      "density": "narrative",
+      "bundle": {
+        "view": "notes",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "labs",
+      "density": "grid",
+      "bundle": {
+        "view": "labs",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "radiology",
+      "density": "narrative",
+      "bundle": {
+        "view": "radiology",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    },
+    {
+      "id": "agent",
+      "density": "narrative",
+      "bundle": {
+        "view": "agent",
+        "mar": {
+          "activeBlocks": [
+            {
+              "kind": "clinical-note",
+              "reason": "Piperacillin/Tazobactam administration requires barcode scan and clinician attestation before MAR documentation."
+            }
+          ]
+        },
+        "recentArtifacts": [
+          {
+            "kind": "open-loop-disposition",
+            "id": "resp-reassessment-draft",
+            "sourceRefs": [
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+              "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "handoff-draft",
+            "sourceRefs": [
+              "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+              "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+            ]
+          },
+          {
+            "kind": "clinical-note",
+            "id": "sbar-draft",
+            "sourceRefs": []
+          }
+        ],
+        "requiresReview": [
+          "clinical-note",
+          "open-loop-disposition"
+        ]
+      }
+    }
+  ],
+  "latestVitals": {
+    "heart_rate": {
+      "sampled_at": "2026-04-19T09:30:00-05:00",
+      "recorded_at": "2026-04-19T09:30:00-05:00",
+      "sample_key": "vital_27cbe94dfb48d42d",
+      "value": 112,
+      "unit": "beats/min",
+      "source": "stepdown-monitor",
+      "quality": "valid"
+    },
+    "respiratory_rate": {
+      "sampled_at": "2026-04-19T09:30:00-05:00",
+      "recorded_at": "2026-04-19T09:30:00-05:00",
+      "sample_key": "vital_44c37c3ce5537f71",
+      "value": 30,
+      "unit": "breaths/min",
+      "source": "stepdown-monitor",
+      "quality": "valid"
+    },
+    "spo2": {
+      "sampled_at": "2026-04-19T09:30:00-05:00",
+      "recorded_at": "2026-04-19T09:30:00-05:00",
+      "sample_key": "vital_647c98955de3bdeb",
+      "value": 89,
+      "unit": "%",
+      "source": "stepdown-monitor",
+      "context": {
+        "o2_device": "simple_mask",
+        "o2_flow_lpm": 6
+      },
+      "quality": "valid"
+    }
+  },
+  "trends": {
+    "spo2": [
+      {
+        "value": 92,
+        "sample_key": "vital_572dfc25e31b7558"
+      },
+      {
+        "value": 88,
+        "sample_key": "vital_c3beb94682367576"
+      },
+      {
+        "value": 89,
+        "sample_key": "vital_647c98955de3bdeb"
+      }
+    ],
+    "heart_rate": [
+      {
+        "value": 96,
+        "sample_key": "vital_ba81122d82edd55e"
+      },
+      {
+        "value": 108,
+        "sample_key": "vital_cc1bdbab5a4b3f7c"
+      },
+      {
+        "value": 112,
+        "sample_key": "vital_27cbe94dfb48d42d"
+      }
+    ],
+    "respiratory_rate": [
+      {
+        "value": 22,
+        "sample_key": "vital_95debf4563821846"
+      },
+      {
+        "value": 28,
+        "sample_key": "vital_38f6d30e9a8586aa"
+      },
+      {
+        "value": 30,
+        "sample_key": "vital_44c37c3ce5537f71"
+      }
+    ]
+  },
+  "openLoop": {
+    "title": "Reassess oxygen response & WoB",
+    "detail": "Due 09:50 · high priority · Escalate if SpO₂ < 90% or accessory muscle use persists",
+    "meta": "in 14m",
+    "dueDeltaMinutes": 14
+  },
+  "evidenceRefs": [
+    "evt_p002_0900_report",
+    "evt_p002_0905_wob",
+    "evt_p002_0910_assess_resp",
+    "evt_p002_0915_abg_collection",
+    "evt_p002_0925_abg_result"
+  ],
+  "artifacts": [
+    {
+      "id": "resp-reassessment",
+      "sourceRefs": [
+        "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+        "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+      ],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    },
+    {
+      "id": "handoff-draft",
+      "sourceRefs": [
+        "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+        "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+      ],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    },
+    {
+      "id": "due-vitals",
+      "sourceRefs": [
+        "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+        "vitals://enc_p002_001/heart_rate#vital_27cbe94dfb48d42d",
+        "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+      ],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    },
+    {
+      "id": "zosyn-blocked",
+      "sourceRefs": [],
+      "freshness": "current"
+    },
+    {
+      "id": "sbar-draft",
+      "sourceRefs": [],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    }
+  ]
+}

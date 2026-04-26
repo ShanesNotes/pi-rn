@@ -2,6 +2,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { currentState, memoryProof, narrative, openLoops, trend } from "../src/views/index.js";
 import { ADVISORY_BANNER_COPY, INTENTS } from "./agent-canvas-constants.js";
 import { buildContextBundle, deriveMarState, mockAgentRespond } from "./agent-canvas-connector.js";
 import { chartViews } from "./agent-canvas-fixtures.js";
@@ -29,9 +30,30 @@ type Artifact = {
   tags: string;
   blocked?: boolean;
   chartable?: boolean;
+  freshness?: "current" | "stale";
+  sourceRefs?: string[];
+  provenance?: {
+    review: {
+      state: "suggested" | "verified";
+      attestation: { kind: "none" };
+      requiredRole?: "verify";
+    };
+  };
+};
+
+type CanvasClinicalData = {
+  latestVitals: Record<string, { value?: unknown; unit?: string; sample_key?: string; context?: Record<string, unknown> }>;
+  trends: Record<string, { value?: unknown; sample_key?: string }[]>;
+  openLoop: { title: string; detail: string; meta: string; dueDeltaMinutes?: number };
+  handoffExcerpt: string;
+  evidenceRefs: string[];
 };
 
 const output = path.resolve(import.meta.dirname, "..", "docs", "prototypes", "pi-chart-agent-canvas.html");
+const contextOutput = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "agent-canvas-context.json");
+const patient002Scope = { chartRoot: path.resolve(import.meta.dirname, ".."), patientId: "patient_002" };
+const encounterId = "enc_p002_001";
+const asOfIso = "2026-04-19T09:36:00-05:00";
 
 const patient = {
   id: "Patient 002",
@@ -72,6 +94,9 @@ const artifacts: Artifact[] = [
     badges: ["Executable charting task", "High priority", "Due 09:50 (in 14m)"],
     tags: "respiratory · assessment · watcher",
     chartable: true,
+    freshness: "current",
+    sourceRefs: ["vitals://enc_p002_001/spo2#vital_647c98955de3bdeb", "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"],
+    provenance: { review: { state: "suggested", attestation: { kind: "none" }, requiredRole: "verify" } },
     markdown: [
       "## Respiratory reassessment",
       "- SpO₂ 89% on 6L simple mask",
@@ -90,6 +115,9 @@ const artifacts: Artifact[] = [
     badges: ["Generated draft", "Source-linked", "Chart before shift end"],
     tags: "handoff · nursing · watcher",
     chartable: true,
+    freshness: "current",
+    sourceRefs: ["patient_002/timeline/2026-04-19/notes/0930_handoff.md", "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"],
+    provenance: { review: { state: "suggested", attestation: { kind: "none" }, requiredRole: "verify" } },
     markdown: [
       "## Handoff report",
       "Patient 002 admitted CAP day 1, now respiratory watcher.",
@@ -107,6 +135,9 @@ const artifacts: Artifact[] = [
     badges: ["Due work", "Bedside confirmation", "Escalation criteria"],
     tags: "vitals · flowsheet · respiratory reassessment",
     chartable: true,
+    freshness: "current",
+    sourceRefs: ["vitals://enc_p002_001/spo2#vital_647c98955de3bdeb", "vitals://enc_p002_001/heart_rate#vital_27cbe94dfb48d42d", "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"],
+    provenance: { review: { state: "suggested", attestation: { kind: "none" }, requiredRole: "verify" } },
     markdown: [
       "## Due vitals charting shell",
       "- Timestamp: 2026-04-19 09:50 CT",
@@ -147,12 +178,15 @@ const artifacts: Artifact[] = [
     badges: ["Generated draft", "Action summary", "Needs RN review"],
     tags: "SBAR · communication · escalation",
     chartable: true,
+    freshness: "current",
+    sourceRefs: [],
+    provenance: { review: { state: "suggested", attestation: { kind: "none" }, requiredRole: "verify" } },
     markdown: "## SBAR draft\nS: Persistent hypoxemia and increased work of breathing.\nB: CAP day 1, escalated from 3L NC to 6L simple mask.\nA: SpO₂ 89%, RR 30, HR 112; lactate 2.8.\nR: Reassess by 09:50; consider RT/MD escalation if not improving.",
     context: ["Sources: vitals trend, ABG/lactate, nursing WoB note", "Draft only until RN reviews and Charts communication note"],
   },
 ];
 
-const worklist: WorklistItem[] = [
+let worklist: WorklistItem[] = [
   { section: "Due / Overdue", title: "Reassess oxygen response & WoB", detail: "Due 09:50 · high priority · Escalate if SpO₂ < 90% or accessory muscle use persists", meta: "in 14m", status: "due", artifactId: "resp-reassessment" },
   { section: "Due / Overdue", title: "q1h vitals + respiratory check", detail: "Flowsheet values + O₂ device + work of breathing · bedside confirmation required", meta: "due 10:00", status: "due", artifactId: "due-vitals" },
   { section: "Staged Charting", title: "Resp reassessment draft", detail: "RN assessment · respiratory · staged by rn_shane at 09:32", meta: "staged", status: "staged", artifactId: "resp-reassessment" },
@@ -163,12 +197,104 @@ const worklist: WorklistItem[] = [
   { section: "Charted / Done", title: "Bedside WoB documented", detail: "Accessory muscle use present", meta: "done 09:20", status: "done" },
 ];
 
+let clinicalData: CanvasClinicalData = {
+  latestVitals: {
+    spo2: { value: 89, unit: "%", sample_key: "vital_647c98955de3bdeb", context: { o2_device: "simple_mask", o2_flow_lpm: 6 } },
+    heart_rate: { value: 112, unit: "beats/min", sample_key: "vital_27cbe94dfb48d42d" },
+    respiratory_rate: { value: 30, unit: "breaths/min", sample_key: "vital_44c37c3ce5537f71" },
+  },
+  trends: {
+    spo2: [{ value: 92 }, { value: 88 }, { value: 89, sample_key: "vital_647c98955de3bdeb" }],
+    heart_rate: [{ value: 96 }, { value: 108 }, { value: 112, sample_key: "vital_27cbe94dfb48d42d" }],
+    respiratory_rate: [{ value: 22 }, { value: 28 }, { value: 30, sample_key: "vital_44c37c3ce5537f71" }],
+  },
+  openLoop: {
+    title: "Reassess oxygen response & WoB",
+    detail: "Due 09:50 · high priority · Escalate if SpO₂ < 90% or accessory muscle use persists",
+    meta: "in 14m",
+    dueDeltaMinutes: 14,
+  },
+  handoffExcerpt: "Patient 002 is a CAP day 1 respiratory watcher with worsening oxygenation.",
+  evidenceRefs: ["vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"],
+};
+
 function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
 function escapeJsonForHtml(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e").replaceAll("&", "\\u0026");
+}
+
+async function loadPatient002ClinicalData(): Promise<CanvasClinicalData> {
+  const [state, loops, spo2Trend, hrTrend, rrTrend, notes, proof] = await Promise.all([
+    currentState({ scope: patient002Scope, axis: "vitals", asOf: asOfIso }),
+    openLoops({ scope: patient002Scope, asOf: asOfIso }),
+    trend({ scope: patient002Scope, metric: "spo2", from: "2026-04-19T09:00:00-05:00", to: "2026-04-19T09:30:00-05:00", encounterId }),
+    trend({ scope: patient002Scope, metric: "heart_rate", from: "2026-04-19T09:00:00-05:00", to: "2026-04-19T09:30:00-05:00", encounterId }),
+    trend({ scope: patient002Scope, metric: "respiratory_rate", from: "2026-04-19T09:00:00-05:00", to: "2026-04-19T09:30:00-05:00", encounterId }),
+    narrative({ scope: patient002Scope, to: asOfIso, encounterId }),
+    memoryProof({ scope: patient002Scope, asOf: asOfIso, encounterId }),
+  ]);
+  const vitalsState = state.axis === "vitals" ? state.items : {};
+  const ordinaryLoop = loops.find((loop) => !("kind" in loop) || loop.kind !== "contested_claim");
+  const dueDeltaMinutes = typeof ordinaryLoop?.dueDeltaMinutes === "number" ? ordinaryLoop.dueDeltaMinutes : 14;
+  const handoff = notes.find((note) => note.path.includes("0930_handoff"))?.body ?? clinicalData.handoffExcerpt;
+  return {
+    latestVitals: vitalsState,
+    trends: {
+      spo2: spo2Trend.map((point) => ({ value: point.value, sample_key: point.sample_key })),
+      heart_rate: hrTrend.map((point) => ({ value: point.value, sample_key: point.sample_key })),
+      respiratory_rate: rrTrend.map((point) => ({ value: point.value, sample_key: point.sample_key })),
+    },
+    openLoop: {
+      title: "Reassess oxygen response & WoB",
+      detail: `Due 09:50 · high priority · Escalate if SpO₂ < 90% or accessory muscle use persists`,
+      meta: dueDeltaMinutes > 0 ? `in ${dueDeltaMinutes}m` : "overdue",
+      dueDeltaMinutes,
+    },
+    handoffExcerpt: handoff.split("\n").slice(0, 2).join(" "),
+    evidenceRefs: proof.sections.evidence.map((evidence) => evidence.ref).slice(0, 5),
+  };
+}
+
+function trendDelta(metric: keyof CanvasClinicalData["trends"]): string {
+  return (clinicalData.trends[metric] ?? []).map((point) => String(point.value)).join(" → ");
+}
+
+function applyClinicalData(data: CanvasClinicalData): void {
+  clinicalData = data;
+  vitals[0].value = String(data.latestVitals.spo2?.value ?? vitals[0].value);
+  vitals[0].delta = `${trendDelta("spo2")} · trigger`;
+  vitals[1].value = String(data.latestVitals.heart_rate?.value ?? vitals[1].value);
+  vitals[1].delta = trendDelta("heart_rate");
+  vitals[2].value = String(data.latestVitals.respiratory_rate?.value ?? vitals[2].value);
+  vitals[2].delta = `${trendDelta("respiratory_rate")} · WoB ↑`;
+  const oxygen = data.latestVitals.spo2?.context?.o2_flow_lpm ? `${data.latestVitals.spo2.context.o2_flow_lpm}L mask` : "6L mask";
+  vitals[0].label = `SpO₂ · ${oxygen}`;
+  worklist = worklist.map((item) => item.artifactId === "resp-reassessment"
+    ? { ...item, title: data.openLoop.title, detail: data.openLoop.detail, meta: data.openLoop.meta }
+    : item);
+  const spo2Ref = data.latestVitals.spo2?.sample_key ? `vitals://enc_p002_001/spo2#${data.latestVitals.spo2.sample_key}` : "vitals://enc_p002_001/spo2";
+  const rrRef = data.latestVitals.respiratory_rate?.sample_key ? `vitals://enc_p002_001/respiratory_rate#${data.latestVitals.respiratory_rate.sample_key}` : "vitals://enc_p002_001/respiratory_rate";
+  const respArtifact = artifacts.find((artifact) => artifact.id === "resp-reassessment");
+  if (respArtifact) {
+    respArtifact.sourceRefs = [spo2Ref, rrRef];
+    respArtifact.context = [
+      `Linked loop: ${data.openLoop.title} due 09:50`,
+      `Evidence: ${spo2Ref} · ${rrRef}`,
+      "Owners: Primary RN · Support: RT, MD",
+      "Visibility: Care team",
+    ];
+  }
+  const handoffArtifact = artifacts.find((artifact) => artifact.id === "handoff-draft");
+  if (handoffArtifact) {
+    handoffArtifact.context = [
+      "Sources: 09:30 handoff note · latest vitals sample keys · memoryProof evidence",
+      data.handoffExcerpt,
+      "Not chart truth until RN reviews and Charts",
+    ];
+  }
 }
 
 function renderVitals(): string {
@@ -240,7 +366,7 @@ function renderWorklist(): string {
 
 function renderArtifactPane(): string {
   return `<section class="artifact-pane" aria-label="Editable charting pane" hidden>
-  <div class="artifact-titlebar"><b id="artifact-title">Editable artifact</b><button id="minimize-artifact" aria-label="Minimize artifact pane">−</button><button aria-label="Expand artifact pane">□</button><button id="close-artifact" aria-label="Close artifact pane">×</button></div>
+  <div class="artifact-titlebar" id="artifact-titlebar" data-freshness="current"><b id="artifact-title">Editable artifact</b><span id="artifact-freshness">current</span><button id="minimize-artifact" aria-label="Minimize artifact pane">−</button><button aria-label="Expand artifact pane">□</button><button id="close-artifact" aria-label="Close artifact pane">×</button></div>
   <div class="artifact-badges" id="artifact-badges"></div>
   <div class="markdown-mode"><b>Markdown</b><span>Preview</span></div>
   <div class="markdown-toolbar" aria-label="Markdown toolbar"><button>B</button><button><i>I</i></button><button>☰</button><button>↔</button><button>🔗</button><button>◫</button><button>H</button><button>&lt;/&gt;</button><button>▦</button><select aria-label="Format"><option>Normal</option></select></div>
@@ -292,7 +418,33 @@ function renderIntentRadios(): string {
 }
 
 function clientScript(): string {
-  return `const data=JSON.parse(document.getElementById("app-data").textContent);let currentArtifact=null;const pane=document.querySelector(".artifact-pane");const workspace=document.getElementById("workspace-content");const title=document.getElementById("view-title");function q(s){return document.querySelector(s)}function qa(s){return Array.from(document.querySelectorAll(s))}function esc(s){return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}function viewDensity(view){return data.viewDensities[view]||"narrative"}function setDockOpen(open){const dock=q("#agent-dock");const chat=q("#agent-chat");const response=q("#agent-response");const btn=q("#agent-open");dock.classList.toggle("open",open);chat.hidden=!open;if(!open)response.hidden=true;btn.textContent=open?"Hide":"Open";btn.setAttribute("aria-expanded",String(open))}function applyDockForView(view){setDockOpen(viewDensity(view)!=="grid")}function setView(view){workspace.innerHTML=data.views[view]||data.views.overview;qa("[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===view));title.textContent="/ "+(view==="mar"?"meds / MAR":view==="agent"?"agent canvas":view);document.title="pi-chart / "+view;wireButtons();applyDockForView(view)}function openArtifact(id){const a=data.artifacts.find(x=>x.id===id);if(!a)return;currentArtifact=a;pane.hidden=false;q("#artifact-title").textContent=a.kind+" · "+a.title;q("#artifact-badges").innerHTML=a.badges.map(b=>"<span>"+esc(b)+"</span>").join("")+(data.sourceRefCounts[a.id]===0?"<span>Warning: Unverified Synthesis</span>":"");q("#artifact-editor").value=a.markdown;q("#artifact-context").innerHTML=a.context.map(c=>"<li>"+c+"</li>").join("");q("#artifact-tags").textContent="Tags  "+a.tags;const chart=q("#chart-artifact");chart.disabled=Boolean(a.blocked);chart.innerHTML=a.blocked?"Scan required <small>MAR GATE</small>":"Chart <small>FINAL CLINICAL WRITE</small>"}function closeArtifact(){pane.hidden=true}function wireButtons(){qa("[data-artifact]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();openArtifact(b.dataset.artifact)}))}qa("[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setView(a.dataset.view)}));q("#close-artifact").addEventListener("click",closeArtifact);q("#minimize-artifact").addEventListener("click",closeArtifact);q("#stage-draft").addEventListener("click",()=>{if(currentArtifact){q("#artifact-tags").textContent="Status  staged · "+currentArtifact.tags}});q("#discard-draft").addEventListener("click",()=>{if(currentArtifact){q("#artifact-tags").textContent="Status  discarded draft · "+currentArtifact.tags}});q("#chart-artifact").addEventListener("click",()=>{if(!currentArtifact)return;if(currentArtifact.blocked){q("#artifact-tags").textContent="Blocked  scan/attestation required · "+currentArtifact.tags;return}closeArtifact();qa("[data-artifact='"+currentArtifact.id+"'] .worklist-meta").forEach(el=>el.textContent="charted")});q("#agent-open").addEventListener("click",()=>{const willOpen=q("#agent-chat").hidden;setDockOpen(willOpen);if(willOpen)setView("agent")});function renderAgentSuggestion(){const draft=data.mockDraftResponse.suggestedDrafts[0];const lane=q('[data-role="agent-suggestions"]');lane.hidden=false;q("#agent-suggestion-title").textContent=draft.kind+" suggestion";q("#agent-suggestion-body").textContent=draft.body}q("#agent-chat").addEventListener("submit",e=>{e.preventDefault();setDockOpen(true);const intent=(q('input[name="agent-intent"]:checked')||{}).value||"documentation";const response=q("#agent-response");response.hidden=false;if(intent==="documentation"){renderAgentSuggestion();response.querySelector("span").textContent="Draft suggestion parked in the advisory lane. Accept is required before it can become clinical work."}else{q('[data-role="agent-suggestions"]').hidden=true;response.querySelector("span").textContent=data.blockedAdminResponse.banner}setView("agent")});wireButtons();`;
+  return `const data=JSON.parse(document.getElementById("app-data").textContent);let currentArtifact=null;const pane=document.querySelector(".artifact-pane");const workspace=document.getElementById("workspace-content");const title=document.getElementById("view-title");function q(s){return document.querySelector(s)}function qa(s){return Array.from(document.querySelectorAll(s))}function esc(s){return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}function viewDensity(view){return data.viewDensities[view]||"narrative"}function setDockOpen(open){const dock=q("#agent-dock");const chat=q("#agent-chat");const response=q("#agent-response");const btn=q("#agent-open");dock.classList.toggle("open",open);chat.hidden=!open;if(!open)response.hidden=true;btn.textContent=open?"Hide":"Open";btn.setAttribute("aria-expanded",String(open))}function applyDockForView(view){setDockOpen(viewDensity(view)!=="grid")}function setView(view){workspace.innerHTML=data.views[view]||data.views.overview;qa("[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===view));title.textContent="/ "+(view==="mar"?"meds / MAR":view==="agent"?"agent canvas":view);document.title="pi-chart / "+view;wireButtons();applyDockForView(view)}function openArtifact(id){const a=data.artifacts.find(x=>x.id===id);if(!a)return;currentArtifact=a;pane.hidden=false;q("#artifact-titlebar").dataset.freshness=a.freshness||"current";q("#artifact-freshness").textContent=a.freshness||"current";q("#artifact-title").textContent=a.kind+" · "+a.title;q("#artifact-badges").innerHTML=a.badges.map(b=>"<span>"+esc(b)+"</span>").join("")+(data.sourceRefCounts[a.id]===0?"<span>Warning: Unverified Synthesis</span>":"");q("#artifact-editor").value=a.markdown;q("#artifact-context").innerHTML=a.context.map(c=>"<li>"+c+"</li>").join("");q("#artifact-tags").textContent="Tags  "+a.tags;const chart=q("#chart-artifact");chart.disabled=Boolean(a.blocked);chart.innerHTML=a.blocked?"Scan required <small>MAR GATE</small>":"Chart <small>FINAL CLINICAL WRITE</small>"}function closeArtifact(){pane.hidden=true}function wireButtons(){qa("[data-artifact]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();openArtifact(b.dataset.artifact)}))}qa("[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setView(a.dataset.view)}));q("#close-artifact").addEventListener("click",closeArtifact);q("#minimize-artifact").addEventListener("click",closeArtifact);q("#stage-draft").addEventListener("click",()=>{if(currentArtifact){q("#artifact-tags").textContent="Status  staged · "+currentArtifact.tags}});q("#discard-draft").addEventListener("click",()=>{if(currentArtifact){q("#artifact-tags").textContent="Status  discarded draft · "+currentArtifact.tags}});q("#chart-artifact").addEventListener("click",()=>{if(!currentArtifact)return;if(currentArtifact.blocked){q("#artifact-tags").textContent="Blocked  scan/attestation required · "+currentArtifact.tags;return}closeArtifact();qa("[data-artifact='"+currentArtifact.id+"'] .worklist-meta").forEach(el=>el.textContent="charted")});q("#agent-open").addEventListener("click",()=>{const willOpen=q("#agent-chat").hidden;setDockOpen(willOpen);if(willOpen)setView("agent")});function renderAgentSuggestion(){const draft=data.mockDraftResponse.suggestedDrafts[0];const lane=q('[data-role="agent-suggestions"]');lane.hidden=false;q("#agent-suggestion-title").textContent=draft.kind+" suggestion";q("#agent-suggestion-body").textContent=draft.body}q("#agent-chat").addEventListener("submit",e=>{e.preventDefault();setDockOpen(true);const intent=(q('input[name="agent-intent"]:checked')||{}).value||"documentation";const response=q("#agent-response");response.hidden=false;if(intent==="documentation"){renderAgentSuggestion();response.querySelector("span").textContent="Draft suggestion parked in the advisory lane. Accept is required before it can become clinical work."}else{q('[data-role="agent-suggestions"]').hidden=true;response.querySelector("span").textContent=data.blockedAdminResponse.banner}setView("agent")});window.addEventListener("pi-chart:vitals-shift",()=>{if(!currentArtifact)return;const refs=currentArtifact.sourceRefs||[];if(refs.some(ref=>String(ref).startsWith("vitals://"))){q("#artifact-titlebar").dataset.freshness="stale";q("#artifact-freshness").textContent="stale"}});wireButtons();`;
+}
+
+function renderAgentCanvasContextFixture() {
+  return {
+    generatedAt: new Date(asOfIso).toISOString(),
+    patientId: patient002Scope.patientId,
+    encounterId,
+    sourceViewRefs: [
+      "currentState(axis=vitals,asOf)",
+      "openLoops(asOf)",
+      "trend(metric=spo2|heart_rate|respiratory_rate)",
+      "narrative(to=asOf)",
+      "memoryProof(asOf)",
+    ],
+    views: chartViews.map((view) => ({ id: view.id, density: view.density, bundle: buildContextBundle(view.id) })),
+    latestVitals: clinicalData.latestVitals,
+    trends: clinicalData.trends,
+    openLoop: clinicalData.openLoop,
+    evidenceRefs: clinicalData.evidenceRefs,
+    artifacts: artifacts.map((artifact) => ({
+      id: artifact.id,
+      sourceRefs: artifact.sourceRefs ?? [],
+      freshness: artifact.freshness ?? "current",
+      provenance: artifact.provenance,
+    })),
+  };
 }
 
 function renderHtml(): string {
@@ -325,7 +477,11 @@ function renderHtml(): string {
 `;
 }
 
+applyClinicalData(await loadPatient002ClinicalData());
 await mkdir(path.dirname(output), { recursive: true });
+await mkdir(path.dirname(contextOutput), { recursive: true });
 const html = renderHtml();
 await writeFile(output, html, "utf8");
+await writeFile(contextOutput, `${JSON.stringify(renderAgentCanvasContextFixture(), null, 2)}\n`, "utf8");
 console.log(`wrote ${output}`);
+console.log(`wrote ${contextOutput}`);
