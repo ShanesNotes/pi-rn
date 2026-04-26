@@ -1,5 +1,4 @@
 import { ADVISORY_BANNER_COPY } from "./agent-canvas-constants.js";
-import { patient002ContextFixture } from "./agent-canvas-fixtures.js";
 import type {
   AgentDockRequest,
   AgentDockResponse,
@@ -28,25 +27,18 @@ const ALLOWED_TOOL_PREFIXES = new Set([
   "connect",
 ]);
 
-export function buildContextBundle(view: ChartViewId): ChartContextBundle {
+export function buildContextBundle(
+  view: ChartViewId,
+  input: Partial<Omit<ChartContextBundle, "view">> = {},
+): ChartContextBundle {
   return {
-    ...patient002ContextFixture,
     view,
-    mar: patient002ContextFixture.mar
-      ? { activeBlocks: patient002ContextFixture.mar.activeBlocks.map((block) => ({ ...block })) }
-      : undefined,
-    recentArtifacts: [
-      ...patient002ContextFixture.recentArtifacts.map((artifact) => ({
-        ...artifact,
-        sourceRefs: [...artifact.sourceRefs],
-      })),
-      {
-        kind: "clinical-note",
-        id: "sbar-draft",
-        sourceRefs: [],
-      },
-    ],
-    requiresReview: [...patient002ContextFixture.requiresReview],
+    ...(input.mar ? { mar: { activeBlocks: input.mar.activeBlocks.map((block) => ({ ...block })) } } : {}),
+    recentArtifacts: (input.recentArtifacts ?? [{ kind: "clinical-note", id: "sbar-draft", sourceRefs: [] }]).map((artifact) => ({
+      ...artifact,
+      sourceRefs: [...artifact.sourceRefs],
+    })),
+    requiresReview: [...(input.requiresReview ?? [])],
   };
 }
 
@@ -63,16 +55,14 @@ export function mockAgentRespond(request: AgentDockRequest): AgentDockResponse {
   }
 
   if (request.intent === "documentation") {
+    const sourceRefs = sourceRefsFromBundle(request.contextBundle);
     return {
       kind: "draft",
       suggestedDrafts: [
         {
           kind: "clinical-note",
-          body: "Draft suggestion: update next-shift handoff with 09:50 respiratory reassessment status after source-data verification.",
-          sourceRefs: [
-            "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
-            "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
-          ],
+          body: "Draft suggestion: update next-shift handoff with respiratory reassessment status after source-data verification.",
+          sourceRefs,
         },
       ],
     };
@@ -82,6 +72,10 @@ export function mockAgentRespond(request: AgentDockRequest): AgentDockResponse {
     kind: "advisory",
     banner: `${ADVISORY_BANNER_COPY} I can organize source context, propose drafts, or answer clarification questions, but I cannot create chart truth.`,
   };
+}
+
+function sourceRefsFromBundle(bundle: ChartContextBundle): string[] {
+  return [...new Set(bundle.recentArtifacts.flatMap((artifact) => artifact.sourceRefs))];
 }
 
 export function isToolAllowed(name: string): boolean {

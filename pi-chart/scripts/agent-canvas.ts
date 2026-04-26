@@ -2,8 +2,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { currentState, memoryProof, narrative, openLoops, trend } from "../src/views/index.js";
 import { ADVISORY_BANNER_COPY, INTENTS } from "./agent-canvas-constants.js";
+import { buildAgentCanvasContext, vitalSourceRef } from "./agent-canvas-context.js";
+import type { AgentCanvasClinicalData } from "./agent-canvas-context.js";
 import { buildContextBundle, deriveMarState, mockAgentRespond } from "./agent-canvas-connector.js";
 import { chartViews } from "./agent-canvas-fixtures.js";
 
@@ -41,19 +42,17 @@ type Artifact = {
   };
 };
 
-type CanvasClinicalData = {
-  latestVitals: Record<string, { value?: unknown; unit?: string; sample_key?: string; context?: Record<string, unknown> }>;
-  trends: Record<string, { value?: unknown; sample_key?: string }[]>;
-  openLoop: { title: string; detail: string; meta: string; dueDeltaMinutes?: number };
-  handoffExcerpt: string;
-  evidenceRefs: string[];
-};
+type CanvasClinicalData = AgentCanvasClinicalData;
 
 const output = path.resolve(import.meta.dirname, "..", "docs", "prototypes", "pi-chart-agent-canvas.html");
 const contextOutput = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "agent-canvas-context.json");
-const patient002Scope = { chartRoot: path.resolve(import.meta.dirname, ".."), patientId: "patient_002" };
-const encounterId = "enc_p002_001";
-const asOfIso = "2026-04-19T09:36:00-05:00";
+const demoAgentCanvasParams = {
+  chartRoot: path.resolve(import.meta.dirname, ".."),
+  patientId: "patient_002",
+  encounterId: "enc_p002_001",
+  asOf: "2026-04-19T09:36:00-05:00",
+  trendFrom: "2026-04-19T09:00:00-05:00",
+} as const;
 
 const patient = {
   id: "Patient 002",
@@ -197,6 +196,8 @@ let worklist: WorklistItem[] = [
   { section: "Charted / Done", title: "Bedside WoB documented", detail: "Accessory muscle use present", meta: "done 09:20", status: "done" },
 ];
 
+let agentCanvasContext: Awaited<ReturnType<typeof buildAgentCanvasContext>> | null = null;
+
 let clinicalData: CanvasClinicalData = {
   latestVitals: {
     spo2: { value: 89, unit: "%", sample_key: "vital_647c98955de3bdeb", context: { o2_device: "simple_mask", o2_flow_lpm: 6 } },
@@ -226,38 +227,6 @@ function escapeJsonForHtml(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e").replaceAll("&", "\\u0026");
 }
 
-async function loadPatient002ClinicalData(): Promise<CanvasClinicalData> {
-  const [state, loops, spo2Trend, hrTrend, rrTrend, notes, proof] = await Promise.all([
-    currentState({ scope: patient002Scope, axis: "vitals", asOf: asOfIso }),
-    openLoops({ scope: patient002Scope, asOf: asOfIso }),
-    trend({ scope: patient002Scope, metric: "spo2", from: "2026-04-19T09:00:00-05:00", to: "2026-04-19T09:30:00-05:00", encounterId }),
-    trend({ scope: patient002Scope, metric: "heart_rate", from: "2026-04-19T09:00:00-05:00", to: "2026-04-19T09:30:00-05:00", encounterId }),
-    trend({ scope: patient002Scope, metric: "respiratory_rate", from: "2026-04-19T09:00:00-05:00", to: "2026-04-19T09:30:00-05:00", encounterId }),
-    narrative({ scope: patient002Scope, to: asOfIso, encounterId }),
-    memoryProof({ scope: patient002Scope, asOf: asOfIso, encounterId }),
-  ]);
-  const vitalsState = state.axis === "vitals" ? state.items : {};
-  const ordinaryLoop = loops.find((loop) => !("kind" in loop) || loop.kind !== "contested_claim");
-  const dueDeltaMinutes = typeof ordinaryLoop?.dueDeltaMinutes === "number" ? ordinaryLoop.dueDeltaMinutes : 14;
-  const handoff = notes.find((note) => note.path.includes("0930_handoff"))?.body ?? clinicalData.handoffExcerpt;
-  return {
-    latestVitals: vitalsState,
-    trends: {
-      spo2: spo2Trend.map((point) => ({ value: point.value, sample_key: point.sample_key })),
-      heart_rate: hrTrend.map((point) => ({ value: point.value, sample_key: point.sample_key })),
-      respiratory_rate: rrTrend.map((point) => ({ value: point.value, sample_key: point.sample_key })),
-    },
-    openLoop: {
-      title: "Reassess oxygen response & WoB",
-      detail: `Due 09:50 · high priority · Escalate if SpO₂ < 90% or accessory muscle use persists`,
-      meta: dueDeltaMinutes > 0 ? `in ${dueDeltaMinutes}m` : "overdue",
-      dueDeltaMinutes,
-    },
-    handoffExcerpt: handoff.split("\n").slice(0, 2).join(" "),
-    evidenceRefs: proof.sections.evidence.map((evidence) => evidence.ref).slice(0, 5),
-  };
-}
-
 function trendDelta(metric: keyof CanvasClinicalData["trends"]): string {
   return (clinicalData.trends[metric] ?? []).map((point) => String(point.value)).join(" → ");
 }
@@ -275,8 +244,8 @@ function applyClinicalData(data: CanvasClinicalData): void {
   worklist = worklist.map((item) => item.artifactId === "resp-reassessment"
     ? { ...item, title: data.openLoop.title, detail: data.openLoop.detail, meta: data.openLoop.meta }
     : item);
-  const spo2Ref = data.latestVitals.spo2?.sample_key ? `vitals://enc_p002_001/spo2#${data.latestVitals.spo2.sample_key}` : "vitals://enc_p002_001/spo2";
-  const rrRef = data.latestVitals.respiratory_rate?.sample_key ? `vitals://enc_p002_001/respiratory_rate#${data.latestVitals.respiratory_rate.sample_key}` : "vitals://enc_p002_001/respiratory_rate";
+  const spo2Ref = vitalSourceRef(demoAgentCanvasParams.encounterId, "spo2", data.latestVitals.spo2);
+  const rrRef = vitalSourceRef(demoAgentCanvasParams.encounterId, "respiratory_rate", data.latestVitals.respiratory_rate);
   const respArtifact = artifacts.find((artifact) => artifact.id === "resp-reassessment");
   if (respArtifact) {
     respArtifact.sourceRefs = [spo2Ref, rrRef];
@@ -290,7 +259,7 @@ function applyClinicalData(data: CanvasClinicalData): void {
   const handoffArtifact = artifacts.find((artifact) => artifact.id === "handoff-draft");
   if (handoffArtifact) {
     handoffArtifact.context = [
-      "Sources: 09:30 handoff note · latest vitals sample keys · memoryProof evidence",
+      "Sources: handoff note · latest vitals sample keys · memoryProof evidence",
       data.handoffExcerpt,
       "Not chart truth until RN reviews and Charts",
     ];
@@ -422,22 +391,19 @@ function clientScript(): string {
 }
 
 function renderAgentCanvasContextFixture() {
+  const context = agentCanvasContext;
+  if (!context) throw new Error("agent canvas context not loaded");
   return {
-    generatedAt: new Date(asOfIso).toISOString(),
-    patientId: patient002Scope.patientId,
-    encounterId,
-    sourceViewRefs: [
-      "currentState(axis=vitals,asOf)",
-      "openLoops(asOf)",
-      "trend(metric=spo2|heart_rate|respiratory_rate)",
-      "narrative(to=asOf)",
-      "memoryProof(asOf)",
-    ],
-    views: chartViews.map((view) => ({ id: view.id, density: view.density, bundle: buildContextBundle(view.id) })),
-    latestVitals: clinicalData.latestVitals,
-    trends: clinicalData.trends,
-    openLoop: clinicalData.openLoop,
-    evidenceRefs: clinicalData.evidenceRefs,
+    generatedAt: context.generatedAt,
+    patientId: context.patientId,
+    encounterId: context.encounterId,
+    asOf: context.asOf,
+    sourceViewRefs: context.sourceViewRefs,
+    views: context.views,
+    latestVitals: context.clinical.latestVitals,
+    trends: context.clinical.trends,
+    openLoop: context.clinical.openLoop,
+    evidenceRefs: context.clinical.evidenceRefs,
     artifacts: artifacts.map((artifact) => ({
       id: artifact.id,
       sourceRefs: artifact.sourceRefs ?? [],
@@ -450,7 +416,15 @@ function renderAgentCanvasContextFixture() {
 function renderHtml(): string {
   const views = storyboardViews();
   const viewDensities = Object.fromEntries(chartViews.map((view) => [view.id, view.density]));
-  const contextBundle = buildContextBundle("overview");
+  const contextBundle = buildContextBundle("overview", {
+    mar: { activeBlocks: [{ kind: "clinical-note", reason: "Medication administration requires bedside scan and clinician attestation before MAR documentation." }] },
+    recentArtifacts: artifacts.map((artifact) => ({
+      kind: artifact.id === "resp-reassessment" ? "open-loop-disposition" : "clinical-note",
+      id: artifact.id,
+      sourceRefs: artifact.sourceRefs ?? [],
+    })),
+    requiresReview: ["clinical-note", "open-loop-disposition"],
+  });
   const marState = deriveMarState(contextBundle);
   const sourceRefCounts = Object.fromEntries(contextBundle.recentArtifacts.map((artifact) => [artifact.id, artifact.sourceRefs.length]));
   const mockDraftResponse = mockAgentRespond({ view: "overview", intent: "documentation", marState, prompt: "Organize my shift and tell me what I should pay attention to.", contextBundle });
@@ -477,7 +451,8 @@ function renderHtml(): string {
 `;
 }
 
-applyClinicalData(await loadPatient002ClinicalData());
+agentCanvasContext = await buildAgentCanvasContext(demoAgentCanvasParams);
+applyClinicalData(agentCanvasContext.clinical);
 await mkdir(path.dirname(output), { recursive: true });
 await mkdir(path.dirname(contextOutput), { recursive: true });
 const html = renderHtml();

@@ -20,7 +20,9 @@ test("connector keeps pinned intent order", () => {
 });
 
 test("MAR-blocked administration requests are advisory only", () => {
-  const contextBundle = buildContextBundle("overview");
+  const contextBundle = buildContextBundle("overview", {
+    mar: { activeBlocks: [{ kind: "clinical-note", reason: "scan required" }] },
+  });
   const response = mockAgentRespond({
     view: "overview",
     intent: "administration",
@@ -36,7 +38,9 @@ test("MAR-blocked administration requests are advisory only", () => {
 });
 
 test("documentation requests can return source-linked draft suggestions", () => {
-  const contextBundle = buildContextBundle("notes");
+  const contextBundle = buildContextBundle("notes", {
+    recentArtifacts: [{ kind: "clinical-note", id: "handoff-draft", sourceRefs: ["vitals://enc/s/abc"] }],
+  });
   const response = mockAgentRespond({
     view: "notes",
     intent: "documentation",
