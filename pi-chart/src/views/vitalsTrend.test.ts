@@ -109,11 +109,10 @@ test("vitalsTrend reports 'event_ref' shape when supports point to observation.v
 });
 
 test("vitalsTrend reports 'none' shape for vital-topic trend with no vital evidence link (failing invariant)", async () => {
-  // HITL-PENDING: this is the failing case a future V-VITALS-01 would
-  // flag. Strictness between Test 1 (vitals_window) and Test 2
-  // (event_ref) remains an open invariant decision and is deferred to
-  // a TB-V slice. This test only asserts the projection surfaces the
-  // 'none' shape so HITL has a concrete signal to disposition against.
+  // V-VITALS-01 (validate.ts) flags this exact shape per HITL
+  // disposition #2 (memos/hitl-decisions-26042026.md): permissive
+  // strictness — vitals_window OR event-ref to observation.vital_sign
+  // both satisfy; only "no vital evidence at all" is invalid.
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", {
     id: "evt_trend_textonly",

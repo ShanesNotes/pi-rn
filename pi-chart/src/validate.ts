@@ -233,6 +233,27 @@ const RESULT_OBSERVATION_SUBTYPES = new Set([
   "diagnostic_result",
 ]);
 
+const VITAL_METRIC_NAMES = new Set([
+  "spo2",
+  "heart_rate",
+  "respiratory_rate",
+  "blood_pressure",
+  "temperature",
+]);
+
+const VITAL_TEXT_TOKENS: ReadonlyArray<RegExp> = [
+  /\bspo2\b/i,
+  /\bo2\s*sat(uration)?\b/i,
+  /\bheart[\s_-]?rate\b/i,
+  /\bhr\b/i,
+  /\brespiratory[\s_-]?rate\b/i,
+  /\brr\b/i,
+  /\bblood[\s_-]?pressure\b/i,
+  /\bbp\b/i,
+  /\btemperature\b/i,
+  /\btemp\b/i,
+];
+
 const EXAM_FINDING_STATES = new Set([
   "present",
   "absent",
@@ -1229,6 +1250,7 @@ async function checkReferentialIntegrity(state: State) {
     validateStatusTransitions(state, where, ev, envelopesById);
     validateIntervalClosure(state, where, ev, envelopesById);
     validateExamFindingSemantics(state, where, ev);
+    validateVitalsTrendEvidence(state, where, ev, envelopesById);
 
     // Invariant 10 / ADR 003: fulfillment typing.
     if ((links.fulfills ?? []).length && ev.type !== "action") {
@@ -1947,6 +1969,67 @@ function validateExamFindingSemantics(
       "observation.exam_finding data.finding_state must be one of: present, absent, not_assessed",
     );
   }
+}
+
+// V-VITALS-01: assessment.trend events whose reasoning concerns vital
+// signs must cite at least one vital evidence link in links.supports[].
+// Permissive shape per HITL disposition (memos/hitl-decisions-26042026.md
+// #2): a vitals_window evidence-ref OR an event-ref to an
+// observation.vital_sign satisfies. Only the "no vital evidence at all"
+// shape is flagged.
+function validateVitalsTrendEvidence(
+  state: State,
+  where: string,
+  ev: any,
+  envelopesById: Map<string, any>,
+) {
+  if (ev?.type !== "assessment" || ev?.subtype !== "trend") return;
+  if (!referencesVitalMetric(ev)) return;
+  if (hasVitalEvidenceLink(ev?.links?.supports ?? [], envelopesById)) return;
+  ruleErr(
+    state,
+    where,
+    "V-VITALS-01",
+    "assessment.trend referencing vital signs must cite at least one vitals_window or event-ref to observation.vital_sign in links.supports",
+  );
+}
+
+function referencesVitalMetric(ev: any): boolean {
+  const summary = typeof ev?.data?.summary === "string" ? ev.data.summary : "";
+  const differential = Array.isArray(ev?.data?.differential)
+    ? ev.data.differential
+        .map((item: any) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && typeof item.condition === "string") return item.condition;
+          return "";
+        })
+        .join(" ")
+    : "";
+  const text = `${summary} ${differential}`;
+  if (!text.trim()) return false;
+  for (const token of VITAL_TEXT_TOKENS) {
+    if (token.test(text)) return true;
+  }
+  return false;
+}
+
+function hasVitalEvidenceLink(
+  supports: unknown[],
+  envelopesById: Map<string, any>,
+): boolean {
+  for (const raw of supports) {
+    const ref = parseEvidenceRef(raw);
+    if (!ref) continue;
+    if (ref.kind === "vitals_window") return true;
+    if (ref.kind === "event") {
+      const target = envelopesById.get(ref.ref);
+      if (target?.type === "observation" && target?.subtype === "vital_sign") {
+        const name = typeof target?.data?.name === "string" ? target.data.name.toLowerCase() : null;
+        if (name && VITAL_METRIC_NAMES.has(name)) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function findEventEnvelope(

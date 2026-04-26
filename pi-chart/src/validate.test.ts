@@ -512,7 +512,7 @@ test("v0.2 back-compat: V-EVIDENCE-03 detects normalized derived_from cycles at 
   });
   const r = await validateChart(scope);
   assert.deepEqual(
-    r.errors.map((e) => e.message),
+    r.errors.filter((e) => e.message.startsWith("V-EVIDENCE-03")).map((e) => e.message),
     [`V-EVIDENCE-03: derived_from cycle detected at vitals_window:${vitalsRef}.`],
   );
 });
@@ -531,7 +531,8 @@ test("V-EVIDENCE-03 allows derived_from depth 8", async () => {
     ];
   });
   const r = await validateChart(scope);
-  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+  const evidence03 = r.errors.filter((e) => e.message.startsWith("V-EVIDENCE-03"));
+  assert.equal(evidence03.length, 0, JSON.stringify(evidence03, null, 2));
 });
 
 test("V-EVIDENCE-03 rejects derived_from depth 9", async () => {
@@ -565,7 +566,8 @@ test("V-EVIDENCE-03 stays silent for empty derived_from arrays", async () => {
     ];
   });
   const r = await validateChart(scope);
-  assert.equal(r.errors.length, 0, JSON.stringify(r.errors, null, 2));
+  const evidence03 = r.errors.filter((e) => e.message.startsWith("V-EVIDENCE-03"));
+  assert.equal(evidence03.length, 0, JSON.stringify(evidence03, null, 2));
 });
 
 test("V-TRANSFORM-01 rejects import activity with non-import source kind", async () => {
@@ -2171,4 +2173,127 @@ test("V-ATTEST-04: scribe attestation requires on_behalf_of", async () => {
   await appendTimelineEvents(goodScope, adr17AttestationEvent({ id: "adr17_attest_scribe_valid", data: { attestation_role: "scribe", on_behalf_of: "md_lee" } }));
   const good = await validateChart(goodScope);
   assert(!good.errors.some((e) => e.message.includes("V-ATTEST-04")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-VITALS-01 rejects vital-topic trend with no vital evidence link", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, {
+    id: "evt_trend_no_vital_link",
+    type: "assessment",
+    subtype: "trend",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    author: { id: "pi-agent", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "final",
+    data: { summary: "SpO2 trending down without supporting evidence link." },
+    links: { supports: [] },
+  });
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /V-VITALS-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-VITALS-01 accepts vital-topic trend with vitals_window evidence", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, {
+    id: "evt_trend_vitals_window",
+    type: "assessment",
+    subtype: "trend",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    author: { id: "pi-agent", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "final",
+    data: { summary: "HR climbing 88 to 108." },
+    links: {
+      supports: [
+        {
+          ref: "vitals://enc_001?name=heart_rate&from=2026-04-18T09:00:00-05:00&to=2026-04-18T09:30:00-05:00",
+          kind: "vitals_window",
+          selection: {
+            metric: "heart_rate",
+            from: "2026-04-18T09:00:00-05:00",
+            to: "2026-04-18T09:30:00-05:00",
+            encounterId: "enc_001",
+          },
+        },
+      ],
+    },
+  });
+  const r = await validateChart(scope);
+  assert(
+    !r.errors.some((e) => /V-VITALS-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-VITALS-01 accepts vital-topic trend with event-ref to observation.vital_sign (permissive)", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, {
+    id: "evt_trend_eventref_vital_obs",
+    type: "observation",
+    subtype: "vital_sign",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "monitor_extension" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "respiratory_rate", value: 22, unit: "bpm" },
+    links: { supports: [] },
+  }, {
+    id: "evt_trend_eventref",
+    type: "assessment",
+    subtype: "trend",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    author: { id: "pi-agent", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "final",
+    data: { summary: "RR rising on stable settings." },
+    links: { supports: [{ ref: "evt_trend_eventref_vital_obs", kind: "event" }] },
+  });
+  const r = await validateChart(scope);
+  assert(
+    !r.errors.some((e) => /V-VITALS-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-VITALS-01 ignores non-vital-topic trend assessments", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, {
+    id: "evt_trend_nonvital_validator",
+    type: "assessment",
+    subtype: "trend",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    author: { id: "pi-agent", role: "rn_agent" },
+    source: { kind: "agent_inference" },
+    certainty: "inferred",
+    status: "final",
+    data: { summary: "Wound bed improving with granulation tissue." },
+    links: { supports: [] },
+  });
+  const r = await validateChart(scope);
+  assert(
+    !r.errors.some((e) => /V-VITALS-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
 });
