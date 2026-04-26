@@ -137,11 +137,11 @@ test("V-PROFILE-01: event with unregistered profile emits a warning, not an erro
   const scope = await copyFixture();
   await appendTimelineEvents(scope, phase4Event({
     id: "v03s4_profile_unregistered",
-    profile: "action.claim_review.v1",
+    profile: "example.unregistered_profile.v1",
   }));
   const r = await validateChart(scope);
   assert.ok(!r.errors.some((e) => e.message.includes("V-PROFILE-01")),
-    "unregistered profile must NOT error (registry is empty in V03-S4)");
+    "unregistered profile must NOT error");
   assert.ok(r.warnings.some((w) => w.message.includes("V-PROFILE-01") && w.message.includes("not in")),
     "unregistered profile must warn");
 });
@@ -1971,4 +1971,204 @@ test("artifact_ref missing patient-local file is rejected", async () => {
     r.errors.some((e) => /does not exist/.test(e.message)),
     JSON.stringify(r.errors, null, 2),
   );
+});
+
+function adr17ReviewEvent(overrides: Record<string, any> = {}) {
+  return phase4Event({
+    id: "adr17_review_base",
+    type: "action",
+    subtype: "claim_review",
+    profile: "action.claim_review.v1",
+    certainty: "performed",
+    status: "final",
+    recorded_at: "2026-04-18T09:30:00-05:00",
+    effective_at: "2026-04-18T09:30:00-05:00",
+    author: { id: "rn_amy", role: "rn" },
+    source: { kind: "nurse_charted" },
+    ...overrides,
+    data: {
+      review_decision: "accepted",
+      reviewed_refs: ["evt_20260418T0815_01"],
+      ...(overrides.data ?? {}),
+    },
+    links: {
+      supports: [{ kind: "event", ref: "evt_20260418T0815_01" }],
+      ...(overrides.links ?? {}),
+    },
+  });
+}
+
+function adr17AttestationEvent(overrides: Record<string, any> = {}) {
+  return phase4Event({
+    id: "adr17_attestation_base",
+    type: "communication",
+    subtype: "attestation",
+    profile: "communication.attestation.v1",
+    certainty: "performed",
+    status: "final",
+    recorded_at: "2026-04-18T09:35:00-05:00",
+    effective_at: "2026-04-18T09:35:00-05:00",
+    author: { id: "md_lee", role: "md" },
+    source: { kind: "clinician_chart_action" },
+    ...overrides,
+    data: {
+      status_detail: "sent",
+      attests_to: "evt_20260418T0815_01",
+      attestation_role: "cosign",
+      ...(overrides.data ?? {}),
+    },
+    links: {
+      supports: [{ kind: "event", ref: "evt_20260418T0815_01" }],
+      ...(overrides.links ?? {}),
+    },
+  });
+}
+
+test("V-REVIEW-01: claim_review without reviewed target errors; reviewed_refs/supports/contradicts pass", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17ReviewEvent({ id: "adr17_review_no_target", data: { review_decision: "accepted", reviewed_refs: [] }, links: { supports: [] } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-REVIEW-01")), JSON.stringify(bad.errors, null, 2));
+
+  for (const [id, data, links] of [
+    ["adr17_review_refs_ok", { review_decision: "accepted", reviewed_refs: ["evt_20260418T0815_01"] }, { supports: [] }],
+    ["adr17_review_supports_ok", { review_decision: "accepted", reviewed_refs: [] }, { supports: [{ kind: "event", ref: "evt_20260418T0815_01" }] }],
+    ["adr17_review_contradicts_ok", { review_decision: "rejected", reviewed_refs: [], rationale: "not consistent" }, { supports: [], contradicts: [{ ref: "evt_20260418T0815_01", basis: "counterexample" }] }],
+  ] as const) {
+    const scope = await copyFixture();
+    await appendTimelineEvents(scope, adr17ReviewEvent({ id, data, links }));
+    const r = await validateChart(scope);
+    assert(!r.errors.some((e) => e.message.includes("V-REVIEW-01")), `${id}\n${JSON.stringify(r.errors, null, 2)}`);
+  }
+});
+
+test("V-REVIEW-02: claim_review decision must be allowed", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17ReviewEvent({ id: "adr17_review_bad_decision", data: { review_decision: "rubber_stamp" } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-REVIEW-02")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17ReviewEvent({ id: "adr17_review_good_decision", data: { review_decision: "needs_revision" } }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-REVIEW-02")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-REVIEW-03: accountability outcomes by agent reviewer warn, clinician reviewer does not", async () => {
+  const agentScope = await copyFixture();
+  await appendTimelineEvents(agentScope, adr17ReviewEvent({
+    id: "adr17_review_agent_reviewer",
+    author: { id: "pi", role: "agent" },
+    source: { kind: "agent_review" },
+    data: { review_decision: "accepted" },
+  }));
+  const agent = await validateChart(agentScope);
+  assert(agent.warnings.some((w) => w.message.includes("V-REVIEW-03")), JSON.stringify(agent.warnings, null, 2));
+
+  const clinicianScope = await copyFixture();
+  await appendTimelineEvents(clinicianScope, adr17ReviewEvent({ id: "adr17_review_human_reviewer", source: { kind: "clinician_chart_action" }, author: { id: "md", role: "md" } }));
+  const clinician = await validateChart(clinicianScope);
+  assert(!clinician.warnings.some((w) => w.message.includes("V-REVIEW-03")), JSON.stringify(clinician.warnings, null, 2));
+});
+
+test("V-REVIEW-04: rejected claim_review requires rationale or contradicts basis", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17ReviewEvent({ id: "adr17_review_rejected_no_rationale", data: { review_decision: "rejected" }, links: { supports: [{ kind: "event", ref: "evt_20260418T0815_01" }] } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-REVIEW-04")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17ReviewEvent({ id: "adr17_review_rejected_basis", data: { review_decision: "rejected" }, links: { supports: [], contradicts: [{ ref: "evt_20260418T0815_01", basis: "not supported" }] } }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-REVIEW-04")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-REVIEW-05: verified claim_review requires explicit basis", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17ReviewEvent({ id: "adr17_review_verified_no_basis", data: { review_decision: "verified" } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-REVIEW-05")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17ReviewEvent({ id: "adr17_review_verified_basis", data: { review_decision: "verified", review: { basis: "checked primary vitals" } } }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-REVIEW-05")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-REVIEW-06: co_signed claim_review requires target and human reviewer", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17ReviewEvent({
+    id: "adr17_review_cosign_agent",
+    author: { id: "pi", role: "agent" },
+    source: { kind: "agent_review" },
+    data: { review_decision: "co_signed" },
+  }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-REVIEW-06")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17ReviewEvent({ id: "adr17_review_cosign_human", data: { review_decision: "co_signed" }, source: { kind: "clinician_chart_action" }, author: { id: "md", role: "md" } }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-REVIEW-06")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-REVIEW-07: claim_review must not use data.status_detail", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17ReviewEvent({ id: "adr17_review_status_detail", data: { review_decision: "accepted", status_detail: "accepted" } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-REVIEW-07")), JSON.stringify(bad.errors, null, 2));
+});
+
+test("V-ATTEST-01: attestation requires attests_to and attestation_role", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17AttestationEvent({ id: "adr17_attest_missing_fields", data: { status_detail: "sent", attests_to: undefined, attestation_role: undefined } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-ATTEST-01")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17AttestationEvent({ id: "adr17_attest_required_fields" }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-ATTEST-01")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-ATTEST-02: attestation role must be in the allowed enum", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17AttestationEvent({ id: "adr17_attest_bad_role", data: { attestation_role: "rubber_stamp" } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-ATTEST-02")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17AttestationEvent({ id: "adr17_attest_witness", data: { attestation_role: "witness" } }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-ATTEST-02")), JSON.stringify(good.errors, null, 2));
+});
+
+test("V-ATTEST-03: verify/cosign/countersign by non-clinician source warns only", async () => {
+  const agentScope = await copyFixture();
+  await appendTimelineEvents(agentScope, adr17AttestationEvent({
+    id: "adr17_attest_agent_verify",
+    author: { id: "pi", role: "agent" },
+    source: { kind: "agent_review" },
+    data: { attestation_role: "verify" },
+  }));
+  const agent = await validateChart(agentScope);
+  assert(!agent.errors.some((e) => e.message.includes("V-ATTEST-03")), JSON.stringify(agent.errors, null, 2));
+  assert(agent.warnings.some((w) => w.message.includes("V-ATTEST-03")), JSON.stringify(agent.warnings, null, 2));
+
+  const clinicianScope = await copyFixture();
+  await appendTimelineEvents(clinicianScope, adr17AttestationEvent({ id: "adr17_attest_clinician_verify", data: { attestation_role: "verify" }, source: { kind: "clinician_chart_action" }, author: { id: "md", role: "md" } }));
+  const clinician = await validateChart(clinicianScope);
+  assert(!clinician.warnings.some((w) => w.message.includes("V-ATTEST-03")), JSON.stringify(clinician.warnings, null, 2));
+});
+
+test("V-ATTEST-04: scribe attestation requires on_behalf_of", async () => {
+  const badScope = await copyFixture();
+  await appendTimelineEvents(badScope, adr17AttestationEvent({ id: "adr17_attest_scribe_missing", data: { attestation_role: "scribe" } }));
+  const bad = await validateChart(badScope);
+  assert(bad.errors.some((e) => e.message.includes("V-ATTEST-04")), JSON.stringify(bad.errors, null, 2));
+
+  const goodScope = await copyFixture();
+  await appendTimelineEvents(goodScope, adr17AttestationEvent({ id: "adr17_attest_scribe_valid", data: { attestation_role: "scribe", on_behalf_of: "md_lee" } }));
+  const good = await validateChart(goodScope);
+  assert(!good.errors.some((e) => e.message.includes("V-ATTEST-04")), JSON.stringify(good.errors, null, 2));
 });

@@ -106,6 +106,78 @@ const SOURCE_KIND_CANONICAL = new Set([
   "manual_scenario",
 ]);
 
+const AGENT_REVIEWER_SOURCE_KINDS = new Set<string>([
+  "agent_inference",
+  "agent_synthesis",
+  "agent_bedside_observation",
+  "agent_action",
+  "agent_review",
+  "agent_reasoning",
+]);
+
+const HUMAN_REVIEWER_SOURCE_KINDS = new Set<string>([
+  "nurse_charted",
+  "clinician_chart_action",
+  "patient_statement",
+  "admission_intake",
+  "manual_lab_entry",
+  "dictation_system",
+]);
+
+const CLINICIAN_FAMILY_SOURCE_KINDS = new Set<string>([
+  "nurse_charted",
+  "clinician_chart_action",
+  "manual_lab_entry",
+  "dictation_system",
+]);
+
+const CLINICIAN_FAMILY_AUTHOR_ROLES = new Set<string>([
+  "rn",
+  "lpn",
+  "np",
+  "pa",
+  "md",
+  "do",
+  "hospitalist",
+  "physician",
+  "clinician",
+  "resident",
+  "fellow",
+  "pharmacist",
+  "rt",
+  "therapist",
+]);
+
+const REVIEW_DECISIONS = new Set<string>([
+  "verified",
+  "accepted",
+  "rejected",
+  "needs_revision",
+  "deferred",
+  "co_signed",
+]);
+
+const REVIEW_ACCOUNTABILITY_DECISIONS = new Set<string>([
+  "verified",
+  "accepted",
+  "rejected",
+  "co_signed",
+]);
+
+const ATTESTATION_ROLES = new Set<string>([
+  "verify",
+  "cosign",
+  "countersign",
+  "witness",
+  "scribe",
+]);
+
+const CLINICIAN_ATTESTATION_ROLES = new Set<string>([
+  "verify",
+  "cosign",
+  "countersign",
+]);
+
 // Import-family source.kind values per DESIGN §1.1.
 // Subset of SOURCE_KIND_CANONICAL consumed by V-TRANSFORM-01.
 // manual_scenario is intentionally excluded: it is fixture provenance, not machine import provenance.
@@ -373,6 +445,205 @@ function validateProfile(state: State, where: string, ev: any) {
       `profile=${ev.profile} not in schemas/profiles/index.json registry`,
     );
   }
+}
+
+
+function validateAdr17ProfileRules(state: State, where: string, ev: any) {
+  validateClaimReviewRules(state, where, ev);
+  validateAttestationRules(state, where, ev);
+}
+
+function validateClaimReviewRules(state: State, where: string, ev: any) {
+  if (!isClaimReviewEvent(ev)) return;
+
+  const reviewedTargets = claimReviewTargetRefs(ev);
+  const decision = reviewDecision(ev);
+
+  // V-REVIEW-01: claim reviews must identify at least one reviewed target.
+  if (reviewedTargets.length === 0) {
+    ruleErr(
+      state,
+      where,
+      "V-REVIEW-01",
+      "action.claim_review.v1 must identify a reviewed target via data.reviewed_refs, links.supports, or links.contradicts",
+    );
+  }
+
+  // V-REVIEW-02: review_decision / legacy review.outcome is closed to the handoff enum.
+  if (!decision || !REVIEW_DECISIONS.has(decision)) {
+    ruleErr(
+      state,
+      where,
+      "V-REVIEW-02",
+      `review_decision must be one of ${[...REVIEW_DECISIONS].join(", ")}`,
+    );
+  }
+
+  // V-REVIEW-03: accountability outcomes require non-agent reviewer provenance (warning-first).
+  if (decision && REVIEW_ACCOUNTABILITY_DECISIONS.has(decision) && isAgentReviewer(ev)) {
+    ruleWarn(
+      state,
+      where,
+      "V-REVIEW-03",
+      "accepted/verified/rejected/co_signed claim reviews should be authored by a non-agent reviewer",
+    );
+  }
+
+  // V-REVIEW-04: rejection requires rationale or contradiction basis.
+  if (decision === "rejected" && !hasReviewRationale(ev)) {
+    ruleErr(
+      state,
+      where,
+      "V-REVIEW-04",
+      "rejected claim reviews require data.rationale, data.review.rationale, or links.contradicts[].basis",
+    );
+  }
+
+  // V-REVIEW-05: verified reviews require explicit evidence basis in this lane.
+  if (decision === "verified" && !hasReviewBasis(ev)) {
+    ruleErr(
+      state,
+      where,
+      "V-REVIEW-05",
+      "verified claim reviews require data.review.basis or data.basis",
+    );
+  }
+
+  // V-REVIEW-06: co-signing requires a target and human reviewer.
+  if (decision === "co_signed" && (reviewedTargets.length === 0 || !isHumanReviewer(ev))) {
+    ruleErr(
+      state,
+      where,
+      "V-REVIEW-06",
+      "co_signed claim reviews require at least one target and a human/clinician reviewer",
+    );
+  }
+
+  // V-REVIEW-07: claim_review has no status_detail rule yet.
+  if (ev?.data?.status_detail !== undefined && ev?.data?.status_detail !== null) {
+    ruleErr(
+      state,
+      where,
+      "V-REVIEW-07",
+      "action.claim_review.v1 must not use data.status_detail until a status rule is registered",
+    );
+  }
+}
+
+function validateAttestationRules(state: State, where: string, ev: any) {
+  if (!isAttestationEvent(ev)) return;
+
+  const role = ev?.data?.attestation_role;
+  const hasAttestsTo = typeof ev?.data?.attests_to === "string" && ev.data.attests_to.length > 0;
+  const hasRole = typeof role === "string" && role.length > 0;
+
+  // V-ATTEST-01: attestation requires canonical target and role fields.
+  if (!hasAttestsTo || !hasRole) {
+    ruleErr(
+      state,
+      where,
+      "V-ATTEST-01",
+      "communication.attestation.v1 requires data.attests_to and data.attestation_role",
+    );
+  }
+
+  // V-ATTEST-02: role is closed to the ADR17 handoff enum.
+  if (hasRole && !ATTESTATION_ROLES.has(role)) {
+    ruleErr(
+      state,
+      where,
+      "V-ATTEST-02",
+      `attestation_role must be one of ${[...ATTESTATION_ROLES].join(", ")}`,
+    );
+  }
+
+  // V-ATTEST-03: clinician-family provenance for verify/cosign/countersign is warning-first.
+  if (hasRole && CLINICIAN_ATTESTATION_ROLES.has(role) && !isClinicianFamilyReviewer(ev)) {
+    ruleWarn(
+      state,
+      where,
+      "V-ATTEST-03",
+      "verify/cosign/countersign attestations should be authored by clinician-family provenance",
+    );
+  }
+
+  // V-ATTEST-04: scribe attestations must name the represented actor.
+  if (role === "scribe" && !(typeof ev?.data?.on_behalf_of === "string" && ev.data.on_behalf_of.length > 0)) {
+    ruleErr(
+      state,
+      where,
+      "V-ATTEST-04",
+      "scribe attestations require data.on_behalf_of",
+    );
+  }
+}
+
+function isClaimReviewEvent(ev: any): boolean {
+  return ev?.profile === "action.claim_review.v1" || (ev?.type === "action" && ev?.subtype === "claim_review");
+}
+
+function isAttestationEvent(ev: any): boolean {
+  return ev?.profile === "communication.attestation.v1" || (ev?.type === "communication" && ev?.subtype === "attestation");
+}
+
+function reviewDecision(ev: any): string | null {
+  for (const value of [ev?.data?.review_decision, ev?.data?.review?.outcome]) {
+    if (typeof value === "string") return value;
+  }
+  return null;
+}
+
+function claimReviewTargetRefs(ev: any): string[] {
+  return [
+    ...refsFromUnknown(ev?.data?.reviewed_refs),
+    ...refsFromUnknown(ev?.links?.supports),
+    ...refsFromUnknown(ev?.links?.contradicts),
+  ];
+}
+
+function hasReviewRationale(ev: any): boolean {
+  if (typeof ev?.data?.rationale === "string" && ev.data.rationale.length > 0) return true;
+  if (typeof ev?.data?.review?.rationale === "string" && ev.data.review.rationale.length > 0) return true;
+  return Array.isArray(ev?.links?.contradicts) && ev.links.contradicts.some(
+    (entry: unknown) => !!entry && typeof entry === "object" && typeof (entry as { basis?: unknown }).basis === "string",
+  );
+}
+
+function hasReviewBasis(ev: any): boolean {
+  return (typeof ev?.data?.basis === "string" && ev.data.basis.length > 0) ||
+    (typeof ev?.data?.review?.basis === "string" && ev.data.review.basis.length > 0);
+}
+
+function isAgentReviewer(ev: any): boolean {
+  const kind = typeof ev?.source?.kind === "string" ? ev.source.kind : "";
+  const role = typeof ev?.author?.role === "string" ? ev.author.role : "";
+  return AGENT_REVIEWER_SOURCE_KINDS.has(kind) || isAgentRole(role);
+}
+
+function isHumanReviewer(ev: any): boolean {
+  const kind = typeof ev?.source?.kind === "string" ? ev.source.kind : "";
+  return HUMAN_REVIEWER_SOURCE_KINDS.has(kind) && !isAgentReviewer(ev);
+}
+
+function isClinicianFamilyReviewer(ev: any): boolean {
+  const kind = typeof ev?.source?.kind === "string" ? ev.source.kind : "";
+  const role = typeof ev?.author?.role === "string" ? ev.author.role : "";
+  return CLINICIAN_FAMILY_SOURCE_KINDS.has(kind) || CLINICIAN_FAMILY_AUTHOR_ROLES.has(role);
+}
+
+function isAgentRole(role: string): boolean {
+  return role === "agent" || role === "rn_agent" || role.endsWith("_agent");
+}
+
+function refsFromUnknown(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (typeof entry === "string") return [entry];
+    if (entry && typeof entry === "object" && typeof (entry as { ref?: unknown }).ref === "string") {
+      return [(entry as { ref: string }).ref];
+    }
+    return [];
+  });
 }
 
 function validateTimeSemantics(state: State, where: string, ev: any) {
@@ -724,6 +995,7 @@ async function validateStructuralMarkdown(
   }
   validateSourceKind(state, rel, normalized);
   validateProfile(state, rel, normalized);
+  validateAdr17ProfileRules(state, rel, normalized);
   validateTimeSemantics(state, rel, normalized);
   validateIntervalSemantics(state, rel, normalized);
   validateStatusDetailSemantics(state, rel, normalized);
@@ -803,6 +1075,7 @@ async function validateTimeline(
         checkAuthorSentinel(state, where, ev?.author);
         validateSourceKind(state, where, ev);
         validateProfile(state, where, ev);
+        validateAdr17ProfileRules(state, where, ev);
         validateTimeSemantics(state, where, ev);
         validateIntervalSemantics(state, where, ev);
         validateStatusDetailSemantics(state, where, ev);

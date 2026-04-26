@@ -1,4 +1,7 @@
 {
   "version": 1,
-  "profiles": []
+  "profiles": [
+    "action.claim_review.v1",
+    "communication.attestation.v1"
+  ]
 }
