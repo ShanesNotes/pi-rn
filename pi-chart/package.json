@@ -13,6 +13,7 @@
     "dashboard:dev": "tsx scripts/dashboard-dev.ts",
     "agent-canvas": "node --import tsx scripts/agent-canvas.ts",
     "screenshot:prototype": "node scripts/screenshot-prototype.mjs",
+    "test:prototype": "npm run agent-canvas && node tests/e2e/agent-canvas-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test --import tsx 'src/**/*.test.ts' 'scripts/**/*.test.ts'"
   },

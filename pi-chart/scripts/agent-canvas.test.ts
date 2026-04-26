@@ -58,3 +58,25 @@ test("prototype copy uses Chart product language only", () => {
   const bannedWord = new RegExp("\\b[Cc]om" + "mit(?:ted)?\\b");
   assert.doesNotMatch(html, bannedWord);
 });
+
+test("agent dock is a chart-side advisory shell with a mock prompt", () => {
+  assert.match(html, /aria-label="Pi-agent dock"/);
+  assert.match(html, /id="agent-prompt"/);
+  assert.match(html, /Organize my shift and tell me what I should pay attention to\./);
+  assert.match(html, /advisory only · Chart requires clinician action/);
+  assert.match(html, /Co-pilot advice only\. Chart truth changes only through clinician final clinical write\./);
+});
+
+test("clinician journey storyboard exposes chart navigation states", () => {
+  for (const required of [
+    "Handoff report",
+    "previous-shift trend",
+    "Medication administration cannot be auto-charted",
+    "Provider assessment / plan",
+    "Lactate 2.8 mmol/L",
+    "CXR report",
+    "Pi-agent shift organization",
+  ]) {
+    assert.ok(html.includes(required), `missing storyboard content: ${required}`);
+  }
+});
