@@ -1,0 +1,3014 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>pi-chart — agent canvas</title>
+<meta name="viewport" content="width=1480" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --ink-2: #4a4a4a;
+    --ink-3: #8a8a8a;
+    --ink-4: #c4c4c4;
+    --paper: #f4f2ee;
+    --paper-2: #ebe8e2;
+    --card: #fbfaf7;
+    --card-2: #f7f5f0;
+    --line: #1a1a1a;
+    --hair: rgba(26,26,26,0.18);
+    --hair-2: rgba(26,26,26,0.10);
+    --grid: rgba(26,26,26,0.06);
+    --accent: oklch(0.62 0.16 25);
+    --accent-soft: oklch(0.62 0.16 25 / 0.10);
+    --accent-line: oklch(0.62 0.16 25 / 0.30);
+    --draft: oklch(0.62 0.14 70);          /* amber-ish for staged */
+    --draft-soft: oklch(0.62 0.14 70 / 0.12);
+    --draft-line: oklch(0.62 0.14 70 / 0.40);
+    --ok: oklch(0.55 0.10 150);
+    --sans: "Inter Tight", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at 20% 0%, #efece6 0%, var(--paper) 50%) fixed,
+      var(--paper);
+    font-size: 13px;
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; color: inherit; }
+
+  /* ------------- frame ------------- */
+  .stage {
+    width: 1480px;
+    margin: 0 auto;
+    padding: 18px 22px 28px;
+    transition: width 180ms ease, margin 180ms ease, padding 180ms ease;
+  }
+  body[data-scratch-layout="side"] .stage {
+    width: calc(100vw - 360px);
+    max-width: 1480px;
+    margin-left: 0;
+    margin-right: auto;
+  }
+  body[data-scratch-layout="side"] .agent-dock,
+  body[data-scratch-layout="side"] .dock-rail { right: 360px; }
+
+  .meta-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ------------- doc band ------------- */
+  .docband {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .docband .left .crumb {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 5px;
+  }
+  .docband h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .docband h1 .pi {
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+  .docband h1 .sep {
+    color: var(--ink-3);
+    font-weight: 400;
+    margin: 0 8px;
+  }
+  .docband h1 .ctx {
+    font-size: 14px;
+    color: var(--ink-2);
+    font-weight: 400;
+    letter-spacing: 0;
+    font-family: var(--mono);
+  }
+  .docband .right {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .docband .right .row { display: flex; gap: 18px; justify-content: flex-end; }
+  .docband .right .row span b { color: var(--ink); font-weight: 500; }
+  .docband .right .stamp {
+    margin-top: 5px;
+    display: inline-block;
+    border: 1px solid var(--line);
+    padding: 2px 8px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .docband .right .stamp.draft {
+    border-color: var(--draft);
+    color: var(--draft);
+  }
+
+  /* ------------- patient banner ------------- */
+  .phead-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    background: var(--paper);
+    margin: 0 -22px 12px;
+    padding: 0 22px 0;
+    border-bottom: 1px solid var(--ink);
+    box-shadow: 0 6px 0 rgba(0,0,0,0.04), 0 1px 0 var(--hair);
+  }
+  .phead {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr 1.1fr 0.9fr;
+    border: 1px solid var(--line);
+    background: var(--card);
+    margin-bottom: 12px;
+  }
+  .phead > div {
+    padding: 10px 13px 11px;
+    border-right: 1px solid var(--hair);
+    min-height: 76px;
+  }
+  .phead > div:last-child { border-right: 0; }
+
+  /* compact vitals strip in the banner — always visible, streams continuously */
+  .phead-vitals {
+    display: grid;
+    grid-template-columns: max-content repeat(5, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+    border-top: 0;
+    background: var(--card);
+    margin: -1px 0 0;
+  }
+  .phead-vitals .pv-label {
+    align-self: stretch;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-right: 1px solid var(--hair);
+    background: var(--card-2);
+    display: flex; align-items: center;
+    writing-mode: horizontal-tb;
+  }
+  .phead-vitals .pv {
+    padding: 6px 12px 7px;
+    border-right: 1px solid var(--hair);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 1px 8px;
+    align-items: baseline;
+    color: var(--ink);
+    position: relative;
+  }
+  .phead-vitals .pv:last-child { border-right: 0; }
+  .phead-vitals .pv-name {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .phead-vitals .pv-val {
+    grid-column: 1;
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .phead-vitals .pv-val .num {
+    font-family: var(--sans);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .phead-vitals .pv-val .unit {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .phead-vitals .pv-spark {
+    grid-column: 2;
+    grid-row: 2;
+    width: 56px; height: 22px;
+    color: var(--ink-3);
+    align-self: center;
+  }
+  .phead-vitals .pv-delta {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+  .phead-vitals .pv.signal .pv-val .num { color: var(--accent); }
+  .phead-vitals .pv.signal .pv-spark { color: var(--accent); }
+  .phead-vitals .pv.signal .pv-delta { color: var(--accent); }
+  .phead-vitals .pv.signal::after {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--accent);
+  }
+  .phead .k {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 5px;
+  }
+  .phead .v { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+  .name-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .name-row .name { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+  .name-row .mrn { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .demo-line { margin-top: 5px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .demo-line span + span::before { content: "·"; margin: 0 7px; color: var(--ink-4); }
+
+  .acu {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 8px 4px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .acu .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .acu-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-top: 5px; }
+
+  .constraint-list {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+    margin-top: 1px;
+    line-height: 1.55;
+  }
+  .constraint-list .c {
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .constraint-list .c::before {
+    content: "■";
+    font-size: 8px;
+    color: var(--ink);
+    transform: translateY(-1px);
+  }
+  .constraint-list .c.warn::before { color: var(--accent); }
+
+  .code-pill {
+    display: inline-block;
+    border: 1px solid var(--line);
+    padding: 2px 7px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .status-mini {
+    display: flex; flex-direction: column; gap: 3px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  }
+  .status-mini b { color: var(--ink); font-weight: 500; }
+
+  .cycle-box {
+    display: flex; flex-direction: column; gap: 3px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  }
+  .cycle-line {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cycle-line .swatch {
+    width: 9px; height: 9px;
+    border: 1px solid var(--line);
+  }
+  .cycle-line .swatch.draft {
+    background: var(--draft-soft); border-color: var(--draft);
+  }
+  .cycle-line .swatch.committed { background: var(--ink); }
+  .cycle-line b { color: var(--ink); font-weight: 500; }
+  .cycle-line .num {
+    margin-left: auto;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .cycle-line .num.draft { color: var(--draft); }
+
+  /* ------------- body grid ------------- */
+  .body {
+    display: grid;
+    grid-template-columns: 196px 1fr 360px;
+    gap: 12px;
+  }
+
+  /* left nav */
+  .nav {
+    border: 1px solid var(--line);
+    background: var(--card);
+    padding: 8px 0 10px;
+    align-self: start;
+  }
+  .nav .group {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 0 13px 5px;
+    margin-top: 12px;
+  }
+  .nav .group:first-child { margin-top: 0; }
+  .nav a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 13px 6px 11px;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+  .nav a:hover { background: var(--paper-2); }
+  .nav a.active {
+    border-left-color: var(--ink);
+    background: var(--paper-2);
+    font-weight: 500;
+  }
+  .nav a .ct {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .nav a.alert .ct { color: var(--accent); font-weight: 600; }
+  .nav a.draft .ct { color: var(--draft); font-weight: 600; }
+  .nav-foot {
+    margin-top: 18px;
+    padding: 9px 13px 0;
+    border-top: 1px solid var(--hair);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    line-height: 1.6;
+  }
+
+  /* ------------- center ------------- */
+  .center { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+  /* vitals row */
+  .vitals-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .vital {
+    padding: 9px 11px 11px;
+    border-right: 1px solid var(--hair);
+    position: relative;
+  }
+  .vital:last-child { border-right: 0; }
+  .vital .name {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .vital .now {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-top: 4px;
+  }
+  .vital .now small {
+    font-size: 11px; color: var(--ink-2); font-weight: 400; margin-left: 4px; letter-spacing: 0;
+  }
+  .vital .delta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-2);
+    margin-top: 3px;
+  }
+  .vital.signal .now { color: var(--accent); }
+  .vital.signal .delta { color: var(--accent); }
+  .vital svg { display: block; margin-top: 6px; }
+
+  /* generic panel */
+  .panel {
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .panel .ph {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 10px 13px 9px;
+    border-bottom: 1px solid var(--hair);
+    gap: 10px;
+  }
+  .panel .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .panel .ph .ct {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .panel .ph .tabs { display: flex; gap: 12px; margin-left: auto; }
+  .panel .ph .tabs a {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    cursor: pointer;
+    padding-bottom: 2px;
+    border-bottom: 1px solid transparent;
+  }
+  .panel .ph .tabs a.on { color: var(--ink); border-bottom-color: var(--ink); }
+  .panel .body-wrap { padding: 10px 13px 12px; }
+
+  /* event stream / list items */
+  .item {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    gap: 9px;
+    padding: 7px 0;
+    border-top: 1px solid var(--hair);
+    align-items: start;
+  }
+  .item:first-child { border-top: 0; padding-top: 3px; }
+  .item .marker {
+    margin-top: 4px;
+    width: 8px; height: 8px;
+    border: 1px solid var(--ink);
+  }
+  .item .marker.dot { border-radius: 50%; }
+  .item .marker.fill { background: var(--ink); }
+  .item .marker.signal { border-color: var(--accent); }
+  .item .marker.signal.fill { background: var(--accent); }
+  .item .marker.draft { border-color: var(--draft); border-style: dashed; }
+  .item .marker.draft.fill { background: var(--draft); border-style: solid; }
+  .item .ttl { font-size: 12.5px; font-weight: 500; letter-spacing: -0.005em; }
+  .item .sub {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+  .item .meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .item .meta b { color: var(--ink); font-weight: 500; }
+  .item.alert .meta b { color: var(--accent); }
+
+  .draft-tag {
+    display: inline-block;
+    margin-left: 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--draft);
+    border: 1px solid var(--draft-line);
+    padding: 1px 5px;
+    transform: translateY(-1px);
+  }
+
+  /* note block */
+  .note .body-wrap p {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .note .body-wrap p:last-child { margin-bottom: 0; }
+  .cite {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    border-bottom: 1px dotted var(--ink-4);
+    cursor: help;
+    padding-bottom: 1px;
+  }
+
+  /* ------------- AGENT CANVAS center ------------- */
+  .agent-stack {
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+
+  /* canvas detail */
+  .canvas-detail {
+    border: 1px solid var(--line);
+    background: var(--card);
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+  }
+  .canvas-detail .ph {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px 10px;
+    border-bottom: 1px solid var(--hair);
+    gap: 12px;
+  }
+  .canvas-detail .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .canvas-detail .ph .pill {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border: 1px solid var(--draft);
+    color: var(--draft);
+    font-weight: 600;
+  }
+  .canvas-detail .ph .pill.committed {
+    border-color: var(--ok); color: var(--ok);
+  }
+  .canvas-detail .ph .pill.discarded {
+    border-color: var(--ink-3); color: var(--ink-3);
+  }
+  .canvas-detail .ph .runmeta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    margin-left: auto;
+  }
+
+  .canvas-meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--hair);
+  }
+  .canvas-meta > div {
+    padding: 8px 14px;
+    border-right: 1px solid var(--hair);
+  }
+  .canvas-meta > div:last-child { border-right: 0; }
+  .canvas-meta .k {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .canvas-meta .v {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink);
+    margin-top: 2px;
+  }
+  .canvas-meta .v.signal { color: var(--accent); }
+  .canvas-meta .v.draft { color: var(--draft); }
+  .canvas-meta .v.committed { color: var(--ok); }
+
+  .canvas-doc {
+    padding: 14px 16px 16px;
+    background: repeating-linear-gradient(
+      0deg,
+      var(--card) 0px, var(--card) 26px,
+      var(--card-2) 26px, var(--card-2) 27px
+    );
+    min-height: 240px;
+    position: relative;
+  }
+  .canvas-doc[data-status="committed"] {
+    background: var(--card);
+  }
+  .canvas-doc[data-status="discarded"] {
+    background: var(--card);
+    color: var(--ink-3);
+  }
+  .canvas-doc[data-status="discarded"] .doc-body {
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-4);
+  }
+  .canvas-doc .watermark {
+    position: absolute;
+    top: 14px; right: 18px;
+    font-family: var(--mono);
+    font-size: 56px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--draft);
+    opacity: 0.10;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+  .canvas-doc[data-status="committed"] .watermark { color: var(--ok); }
+  .canvas-doc[data-status="discarded"] .watermark { color: var(--ink-3); }
+
+  .doc-section {
+    margin-bottom: 14px;
+  }
+  .doc-section:last-child { margin-bottom: 0; }
+  .doc-section .label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 4px;
+  }
+  .doc-section .text {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  .doc-section .kv {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    row-gap: 4px;
+    column-gap: 12px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink);
+  }
+  .doc-section .kv span:nth-child(odd) {
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+
+  /* uncertainty bar inside canvas */
+  .uncert {
+    display: grid;
+    grid-template-columns: 160px 1fr 60px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .uncert .lab { color: var(--ink-2); }
+  .uncert .bar {
+    height: 5px;
+    background: var(--paper-2);
+    position: relative;
+    border: 1px solid var(--hair);
+  }
+  .uncert .bar > span {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: var(--ink);
+  }
+  .uncert .pct { color: var(--ink-2); text-align: right; }
+
+  /* canvas action bar */
+  .canvas-actions {
+    display: flex; gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--hair);
+    background: var(--card-2);
+    align-items: center;
+  }
+  .canvas-actions .left {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  .canvas-actions .right {
+    margin-left: auto;
+    display: flex; gap: 8px;
+  }
+  .btn {
+    border: 1px solid var(--line);
+    background: var(--card);
+    padding: 7px 12px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    color: var(--ink);
+  }
+  .btn:hover { background: var(--paper-2); }
+  .btn.primary { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .btn.primary:hover { background: #000; }
+  .btn.ghost { border-color: var(--hair); color: var(--ink-2); background: transparent; }
+  .btn.danger { border-color: var(--accent); color: var(--accent); }
+  .btn.danger:hover { background: var(--accent-soft); }
+  .btn .key {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 9px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  .btn.primary .key { color: rgba(255,255,255,0.55); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* chat (process, lives at bottom) */
+  .chat {
+    border: 1px solid var(--line);
+    background: var(--card);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 320px;
+  }
+  .chat .ph {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .chat .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .chat .ph .legend {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .chat .ph .legend b { color: var(--ink); font-weight: 500; }
+  .chat-history {
+    overflow: auto;
+    padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .msg {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 12px;
+  }
+  .msg .who {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    line-height: 1.55;
+    padding-top: 1px;
+  }
+  .msg.agent .who { color: var(--ink-2); }
+  .msg.user .who { color: var(--ink); font-weight: 500; }
+  .msg .body {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .msg .body .stamp {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+    margin-right: 8px;
+  }
+  .msg .body .ref-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 4px 4px 0 0;
+    border: 1px solid var(--draft-line);
+    background: var(--draft-soft);
+    padding: 2px 7px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--draft);
+    cursor: pointer;
+  }
+  .msg .body .ref-chip:hover { background: oklch(0.62 0.14 70 / 0.18); }
+  .msg .body .ref-chip::before {
+    content: "▢";
+    font-size: 9px;
+  }
+  .msg .body .traces {
+    margin: 6px 0 0;
+    display: flex; flex-direction: column;
+    gap: 3px;
+  }
+  .msg .body .trace {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    border-left: 1px solid var(--hair);
+    padding: 2px 0 2px 10px;
+    line-height: 1.5;
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .msg .body .trace .tk {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    display: inline-flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  .msg .body .trace .tk::before {
+    content: ""; width: 6px; height: 6px;
+    border: 1px solid var(--ink-3);
+    background: transparent;
+    flex: 0 0 auto;
+  }
+  .msg .body .trace[data-kind="anchor"]      .tk { color: var(--ink-2); }
+  .msg .body .trace[data-kind="anchor"]      .tk::before { background: var(--ink-2); border-color: var(--ink-2); }
+  .msg .body .trace[data-kind="weight"]      .tk::before { background: var(--ink-3); border-radius: 50%; }
+  .msg .body .trace[data-kind="scope"]       .tk::before { border-style: dashed; }
+  .msg .body .trace[data-kind="skipped"]     .tk { color: var(--ink-4); }
+  .msg .body .trace[data-kind="skipped"]     .tk::before { background: transparent; border-style: dotted; }
+  .msg .body .trace[data-kind="revised"]     .tk { color: var(--draft); }
+  .msg .body .trace[data-kind="revised"]     .tk::before { background: var(--draft-soft); border-color: var(--draft); }
+  .msg .body .trace[data-kind="uncertainty"] .tk { color: var(--draft); }
+  .msg .body .trace[data-kind="uncertainty"] .tk::before {
+    background: transparent; border-color: var(--draft);
+    box-shadow: inset 0 0 0 1px var(--card);
+  }
+  /* fallback for legacy single-line reasoning */
+  .msg .body .reasoning {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    border-left: 1px solid var(--hair);
+    padding: 2px 0 2px 10px;
+    margin: 6px 0 0;
+  }
+  .msg.system .body {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+
+  .chat-input-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 9px 11px;
+    border-top: 1px solid var(--hair);
+    background: var(--card-2);
+    align-items: center;
+  }
+  .chat-input {
+    border: 1px solid var(--hair);
+    background: var(--card);
+    padding: 8px 10px;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.4;
+    outline: none;
+    resize: none;
+    min-height: 36px;
+  }
+  .chat-input:focus { border-color: var(--ink); }
+  .chat-input::placeholder { color: var(--ink-3); }
+  .chat-send {
+    display: flex; gap: 6px;
+  }
+  .chat-hint {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+    display: flex; gap: 16px;
+  }
+  .chat-hint .key {
+    border: 1px solid var(--hair);
+    padding: 1px 5px;
+    margin-right: 4px;
+    color: var(--ink);
+  }
+
+  /* ------------- right: artifact scratchpad ------------- */
+  .scratchpad {
+    border: 1px solid var(--line);
+    background: var(--card);
+    display: flex; flex-direction: column;
+    align-self: start;
+    position: sticky;
+    top: 14px;
+  }
+  .scratchpad .ph {
+    padding: 10px 13px 9px;
+    border-bottom: 1px solid var(--hair);
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .scratchpad .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .scratchpad .ph .ct {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .scratchpad .sub-ph {
+    padding: 7px 13px 9px;
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    line-height: 1.5;
+    background: var(--card-2);
+  }
+  .scratchpad .sub-ph .legend-row {
+    display: flex; gap: 14px; margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .scratchpad .sub-ph .legend-row .l {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .scratchpad .sub-ph .legend-row .l .sw {
+    width: 8px; height: 8px;
+    border: 1px solid var(--ink);
+  }
+  .scratchpad .sub-ph .legend-row .l .sw.draft {
+    background: var(--draft-soft); border-color: var(--draft);
+  }
+  .scratchpad .sub-ph .legend-row .l .sw.staged {
+    background: var(--draft); border-color: var(--draft);
+  }
+  .scratchpad .sub-ph .legend-row .l .sw.committed {
+    background: var(--ink);
+  }
+  .scratchpad .filter-bar {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .scratchpad .filter-bar a {
+    flex: 1;
+    text-align: center;
+    padding: 7px 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-right: 1px solid var(--hair);
+    cursor: pointer;
+    user-select: none;
+  }
+  .scratchpad .filter-bar a:last-child { border-right: 0; }
+  .scratchpad .filter-bar a:hover { background: var(--paper-2); }
+  .scratchpad .filter-bar a.on {
+    color: var(--ink);
+    background: var(--paper-2);
+    font-weight: 600;
+  }
+  .scratchpad .filter-bar a .ct { color: var(--ink-3); margin-left: 4px; }
+  .scratchpad .filter-bar a.on .ct { color: var(--ink-2); }
+
+  .artifact-list {
+    overflow: auto;
+    max-height: calc(100vh - 80px);
+  }
+  .artifact {
+    border-bottom: 1px solid var(--hair);
+    padding: 10px 13px 11px;
+    cursor: pointer;
+    position: relative;
+  }
+  .artifact:hover { background: var(--paper-2); }
+  .artifact.selected {
+    background: var(--paper-2);
+  }
+  .artifact.selected::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--ink);
+  }
+  .artifact .row1 {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px;
+  }
+  .artifact .kind {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .artifact .status {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--draft);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .artifact .status::before {
+    content: ""; width: 7px; height: 7px;
+    border: 1px solid var(--draft);
+    background: var(--draft-soft);
+  }
+  .artifact .status.staged { color: var(--draft); }
+  .artifact .status.staged::before { background: var(--draft); border-color: var(--draft); }
+  .artifact .status.committed { color: var(--ok); }
+  .artifact .status.committed::before { background: var(--ok); border-color: var(--ok); }
+  .artifact .status.discarded { color: var(--ink-3); }
+  .artifact .status.discarded::before { background: transparent; border-color: var(--ink-3); border-style: dashed; }
+  .artifact .ttl {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .artifact.discarded .ttl {
+    color: var(--ink-3);
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-4);
+  }
+  .artifact .preview {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .artifact .meta {
+    margin-top: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    gap: 8px;
+  }
+  .artifact .meta .refs {
+    display: flex; gap: 6px;
+    color: var(--ink-3);
+  }
+  .artifact .meta .refs b { color: var(--ink); font-weight: 500; }
+  .artifact .meta .conf {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .artifact .meta .conf .bar {
+    width: 32px; height: 4px;
+    border: 1px solid var(--hair);
+    position: relative; background: var(--paper-2);
+  }
+  .artifact .meta .conf .bar > span {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: var(--ink);
+  }
+
+  /* footer rail */
+  .rail {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 4px 0;
+    border-top: 1px solid var(--hair);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  .rail .keys { display: flex; gap: 14px; }
+  .rail .keys span b {
+    border: 1px solid var(--hair);
+    padding: 1px 5px;
+    margin-right: 4px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* timeline (overview) */
+  .tl-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid var(--hair);
+    padding: 7px 0;
+    min-height: 36px;
+  }
+  .tl-row:first-child { border-top: 0; }
+  .tl-row .lane {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .tl-track {
+    position: relative;
+    height: 22px;
+  }
+  .tl-track .ev {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 18px;
+    display: inline-flex; align-items: center;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+  .tl-track .ev.signal { border-color: var(--accent); color: var(--accent); }
+  .tl-track .ev.fill { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .tl-track .ev.draft {
+    border-color: var(--draft);
+    color: var(--draft);
+    border-style: dashed;
+  }
+  .tl-track .ev.dot {
+    width: 8px; height: 8px; padding: 0; border-radius: 50%; background: var(--ink); border-color: var(--ink);
+  }
+  .tl-track .ev.dot.signal { background: var(--accent); border-color: var(--accent); }
+  .tl-axis {
+    position: relative;
+    height: 18px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .tl-axis .tlabel {
+    position: absolute; top: 0;
+    transform: translateX(-50%);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  }
+
+  /* commit toast */
+  .toast {
+    position: fixed;
+    left: 50%; bottom: 28px;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--card);
+    border: 1px solid var(--ink);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    z-index: 100;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    animation: toast-in 180ms ease-out;
+  }
+  .toast .marker {
+    width: 8px; height: 8px;
+    background: var(--ok);
+    border: 1px solid var(--ok);
+  }
+  .toast b { color: #fff; font-weight: 500; }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  /* tab fade */
+  .tabview { animation: tab-in 160ms ease-out; }
+  @keyframes tab-in {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* =============== ambient agent dock (persistent across tabs) ================ */
+  .stage.agent-on { padding-bottom: 320px; }
+  .stage.agent-on.dock-collapsed { padding-bottom: 60px; }
+  .stage.agent-on.scratch-open .body { padding-right: 0; }
+
+  .agent-dock {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--card);
+    border-top: 2px solid var(--ink);
+    z-index: 50;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    height: 300px;
+    box-shadow: 0 -6px 24px rgba(0,0,0,0.06);
+    transition: height 180ms ease;
+  }
+  .agent-dock.scratch-closed {
+    grid-template-columns: 1fr 0px;
+  }
+  .agent-dock.collapsed {
+    height: 42px;
+    grid-template-columns: 1fr;
+  }
+  .agent-dock.collapsed .dock-chat,
+  .agent-dock.collapsed .dock-scratch { display: none; }
+
+  .dock-rail {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 42px;
+    z-index: 49;
+    background: var(--card);
+    border-top: 2px solid var(--ink);
+    display: flex; align-items: center;
+    padding: 0 16px;
+    gap: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    pointer-events: none;
+  }
+  .dock-rail > * { pointer-events: auto; }
+  .dock-rail .pi-mark {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+  }
+  .dock-rail .run-state {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ink);
+  }
+  .dock-rail .run-state .pulse {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .dock-rail .run-state.idle .pulse { background: var(--ink-3); box-shadow: 0 0 0 3px rgba(0,0,0,0.06); animation: none; }
+
+  /* Posture-driven pulse rhythm */
+  body[data-run-pulse="off"] .dock-rail .run-state .pulse {
+    animation: none; opacity: 0.7;
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  body[data-posture="copilot"] .dock-rail .run-state .pulse {
+    animation: pulse 1.1s ease-in-out infinite;
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  body[data-posture="background"] .dock-rail .run-state {
+    color: var(--ink-3);
+  }
+
+  /* Mood overrides for chrome that uses raw colors */
+  body[data-mood="nightshift"], body[data-mood="trauma"] {
+    color-scheme: dark;
+  }
+  body[data-mood="nightshift"] .toast,
+  body[data-mood="trauma"] .toast {
+    background: var(--card-2); color: var(--ink); border: 1px solid var(--line);
+  }
+  body[data-mood="trauma"] .dock-rail .run-state .pulse {
+    animation: pulse 0.7s ease-in-out infinite;
+  }
+
+  /* Density: nudge gaps and paddings via the --pad token where used */
+  body[data-density="scan"] { letter-spacing: 0.005em; }
+  body[data-density="dictate"] { letter-spacing: -0.005em; }
+  .dock-rail .counts {
+    display: flex; gap: 14px;
+    margin-left: auto;
+  }
+  .dock-rail .counts .c {
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer;
+    padding: 2px 7px;
+    border: 1px solid transparent;
+  }
+  .dock-rail .counts .c:hover { border-color: var(--hair); }
+  .dock-rail .counts .c .sw { width: 8px; height: 8px; border: 1px solid var(--ink); }
+  .dock-rail .counts .c .sw.draft { background: var(--draft-soft); border-color: var(--draft); }
+  .dock-rail .counts .c .sw.staged { background: var(--draft); border-color: var(--draft); }
+  .dock-rail .counts .c .sw.committed { background: var(--ink); }
+  .dock-rail .counts .c b { color: var(--ink); font-weight: 600; }
+  .dock-rail .dock-toggle {
+    border: 1px solid var(--line);
+    background: var(--card);
+    padding: 4px 10px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.10em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .dock-rail .dock-toggle:hover { background: var(--paper-2); }
+  .dock-rail .dock-toggle.primary { background: var(--ink); color: var(--card); }
+
+  .dock-chat {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    border-right: 1px solid var(--hair);
+    overflow: hidden;
+  }
+  .dock-chat .ph {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--hair);
+    gap: 10px;
+  }
+  .dock-chat .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .dock-chat .ph .legend {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    margin-left: auto;
+    margin-right: 12px;
+  }
+  .dock-chat .ph .legend b { color: var(--ink); font-weight: 500; }
+  .dock-chat .ph .ph-actions { display: flex; gap: 6px; }
+  .dock-chat .ph .ph-actions a {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    cursor: pointer; padding: 2px 6px; border: 1px solid transparent;
+    letter-spacing: 0.06em;
+  }
+  .dock-chat .ph .ph-actions a:hover { color: var(--ink); border-color: var(--hair); }
+  .dock-chat .ph .ph-actions a.on { color: var(--ink); border-color: var(--line); }
+
+  .dock-scratch {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* slide-over scratchpad mode (right side, tall) */
+  .scratch-side {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 360px;
+    background: var(--card);
+    border-left: 1px solid var(--line);
+    box-shadow: -2px 0 0 var(--hair);
+    z-index: 30;
+    display: flex; flex-direction: column;
+    animation: slide-in 220ms ease-out;
+  }
+
+  /* floating focus card (top-right) */
+  .scratch-float {
+    position: fixed;
+    top: 14px; right: 14px;
+    width: 380px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 2px 0 rgba(0,0,0,0.04);
+    z-index: 40;
+    font-family: var(--mono);
+    animation: slide-in 200ms ease-out;
+  }
+  .scratch-float .sf-strip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--hair);
+    background: var(--card-2);
+  }
+  .scratch-float .sf-mark {
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3); padding-right: 6px; border-right: 1px solid var(--hair);
+  }
+  .scratch-float .sf-tabs {
+    display: flex; gap: 4px; flex: 1; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .scratch-float .sf-tabs::-webkit-scrollbar { display: none; }
+  .scratch-float .sf-tab {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 7px;
+    font-size: 10px; letter-spacing: 0.04em;
+    color: var(--ink-3);
+    border: 1px solid var(--hair);
+    background: var(--paper);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .scratch-float .sf-tab .sf-dot {
+    width: 6px; height: 6px;
+    background: var(--draft-soft);
+    border: 1px solid var(--draft);
+  }
+  .scratch-float .sf-tab.staged .sf-dot { background: var(--draft); }
+  .scratch-float .sf-tab.committed .sf-dot { background: var(--ok); border-color: var(--ok); }
+  .scratch-float .sf-tab.on {
+    color: var(--ink); border-color: var(--ink); background: var(--paper-2);
+  }
+  .scratch-float .sf-close {
+    cursor: pointer; color: var(--ink-3); padding: 0 4px;
+  }
+  .scratch-float .sf-close:hover { color: var(--ink); }
+  .scratch-float .sf-body { padding: 11px 13px 13px; }
+  .scratch-float .sf-row1 {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .scratch-float .sf-row1 .status { display: inline-flex; align-items: center; gap: 5px; }
+  .scratch-float .sf-row1 .status::before {
+    content: ""; width: 7px; height: 7px;
+    border: 1px solid var(--draft); background: var(--draft-soft);
+  }
+  .scratch-float .sf-row1 .status.staged::before { background: var(--draft); }
+  .scratch-float .sf-row1 .status.committed { color: var(--ok); }
+  .scratch-float .sf-row1 .status.committed::before { background: var(--ok); border-color: var(--ok); }
+  .scratch-float .sf-title {
+    margin-top: 5px; font-family: var(--sans); font-size: 14px; font-weight: 600;
+    line-height: 1.32; color: var(--ink);
+  }
+  .scratch-float .sf-preview {
+    margin-top: 6px; font-size: 11px; color: var(--ink-2); line-height: 1.5;
+    border-left: 2px solid var(--hair); padding-left: 8px;
+  }
+  .scratch-float .sf-meta {
+    margin-top: 9px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: var(--ink-3);
+  }
+  .scratch-float .sf-meta .conf { display: inline-flex; align-items: center; gap: 5px; }
+  .scratch-float .sf-meta .conf .bar {
+    width: 38px; height: 4px; border: 1px solid var(--hair); position: relative;
+    background: var(--paper-2);
+  }
+  .scratch-float .sf-meta .conf .bar > span {
+    position: absolute; top: 0; bottom: 0; left: 0; background: var(--ink);
+  }
+  .scratch-float .sf-actions {
+    margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--hair);
+    display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap;
+  }
+  .scratch-float .sf-committed {
+    font-size: 10px; color: var(--ok); letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  /* slide-over scratchpad mode (right side, tall) */
+  .scratch-slideover {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 420px;
+    background: var(--card);
+    border-left: 2px solid var(--ink);
+    z-index: 60;
+    display: flex; flex-direction: column;
+    box-shadow: -8px 0 28px rgba(0,0,0,0.10);
+    animation: slide-in 200ms ease-out;
+  }
+  @keyframes slide-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .scratch-slideover .ph {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--hair);
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px;
+  }
+  .scratch-slideover .ph h2 {
+    margin: 0;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    font-weight: 500;
+  }
+  .scratch-slideover .closer {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); cursor: pointer;
+    border: 1px solid var(--hair);
+    padding: 2px 8px;
+  }
+  .scratch-slideover .closer:hover { color: var(--ink); }
+
+  /* in-canvas detail (large) when artifact selected and canvas tab active */
+  .canvas-large .canvas-doc { min-height: 420px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* =========================================================
+   DATA — patient_002, derived from /uploads/patient_002/*
+   ========================================================= */
+const PATIENT = {
+  name: "Patient 002",
+  mrn: "MRN 0002",
+  dob: "1957-02-11",
+  age: 69,
+  sex: "F",
+  language: "Eng",
+  hxLine: "CAP day 1 · prior independent",
+  baseline: "Sp ~ 96% RA baseline",
+  acuity: "Watcher · Resp ↑",
+  acuityMeta: "Δ30m · trend signal · auto-flag",
+  constraints: [
+    { text: "Full code", warn: false },
+    { text: "Avoid excess sedation if possible", warn: true },
+  ],
+  encounter: "enc_p002_001",
+  loc: "Step-down · 7-North · 712A",
+  los: "day 1 · O₂ simple mask 6L",
+  asOf: "2026-04-19 09:30 CT",
+};
+
+const VITALS = [
+  { name: "SpO₂ · 6L mask", val: "89", unit: "%", delta: "↓ trigger met", signal: true,
+    points: "0,4 32,7 64,11 96,14 128,17 160,21" },
+  { name: "Heart rate", val: "112", unit: "bpm", delta: "↑ 14 / 30m · sinus tachy", signal: true,
+    points: "0,18 32,16 64,12 96,9 128,6 160,3" },
+  { name: "Resp rate", val: "30", unit: "/min", delta: "↑ 6 / 30m · accessory use", signal: true,
+    points: "0,18 32,15 64,11 96,7 128,7 160,5" },
+  { name: "BP", val: "128", unit: "/74", delta: "stable · MAP 92", signal: false,
+    points: "0,8 32,9 64,9 96,10 128,8 160,9" },
+  { name: "Temp", val: "37.8", unit: "°C", delta: "low-grade · stable", signal: false,
+    points: "0,12 32,11 64,12 96,11 128,10 160,11" },
+];
+
+const EVENT_STREAM = [
+  { t: "09:30", who: "stepdown-monitor", title: "Vitals · SpO₂ 89% · RR 30 · HR 112",
+    sub: "trigger met: SpO₂ < 90 sustained 4 min", signal: true, draft: false },
+  { t: "09:30", who: "pi-agent / rn_agent", title: "Care plan staged · next-shift watch",
+    sub: "reassess by 09:50 · escalate if SpO2 < 90 / RR ≥ 30", draft: true },
+  { t: "09:25", who: "lab", title: "ABG / lactate · resulted",
+    sub: "lactate 2.8 · pH 7.36 · pCO₂ 44", signal: false },
+  { t: "09:10", who: "bedside_rn", title: "Focused respiratory note",
+    sub: "moderately ↑ WoB · accessory muscle use · O₂ response uncertain", signal: false },
+  { t: "09:05", who: "bedside_rn", title: "Bedside exam · WoB",
+    sub: "accessory muscle use noted · semi-Fowler · cough productive", signal: false },
+  { t: "09:00", who: "patient", title: "Patient report",
+    sub: "“more short of breath than at breakfast”", signal: true },
+  { t: "07:00", who: "admitting_rn", title: "Admission intake",
+    sub: "CAP · 6L simple mask · prior independent", signal: false },
+];
+
+const OPEN_LOOPS = [
+  { id: "L1", title: "Reassess oxygen response & WoB", due: "09:50", in: "−20m",
+    sub: "care_plan · pending · escalate if SpO₂ <90 or RR ≥30", signal: true, draft: false },
+  { id: "L2", title: "Notify covering MD",
+    sub: "SBAR draft staged by agent · awaiting RN review", draft: true,
+    due: "—", in: "+0m" },
+  { id: "L3", title: "Confirm O₂ titration ceiling",
+    sub: "current 6L NRB — non-rebreather option flagged", draft: false,
+    due: "10:00", in: "−30m" },
+];
+
+/* artifacts — the scratchpad core */
+const INITIAL_ARTIFACTS = [
+  {
+    id: "A1",
+    kind: "Reassessment draft",
+    title: "Resp reassessment · 09:30",
+    status: "draft",      // draft | staged | committed | discarded
+    runId: "run_p002_0930",
+    confidence: 0.78,
+    uncertainty: 0.22,
+    refs: 5,
+    preview: "Worsening respiratory status: SpO₂ 96→89% over 30 min on 6L simple mask; RR 24→30 with new accessory muscle use. Trend supports worsening pneumonia >> mucus plugging > new PE.",
+    sections: [
+      { label: "Subjective", kind: "text",
+        text: "Patient reports increased dyspnea since breakfast. States “more short of breath than at breakfast.”",
+        cites: [{token:"more short of breath", id:"evt_p002_0900_report"}] },
+      { label: "Objective", kind: "text",
+        text: "SpO₂ 96 → 89% on 6L simple mask over 30 min. HR 98 → 112. RR 24 → 30. WoB moderately increased with new accessory muscle use. ABG: lactate 2.8, pH 7.36, pCO₂ 44.",
+        cites: [
+          {token:"96 → 89%", id:"vitals_window · spo2"},
+          {token:"WoB moderately increased", id:"evt_p002_0905_wob"},
+          {token:"ABG: lactate 2.8", id:"evt_p002_0925_abg_result"},
+        ] },
+      { label: "Assessment · differential", kind: "diff", rows: [
+          { label: "Worsening pneumonia", pct: 0.78, qual: "high" },
+          { label: "Mucus plugging", pct: 0.42, qual: "moderate" },
+          { label: "New pulmonary embolus", pct: 0.24, qual: "low–mod" },
+        ] },
+      { label: "Plan", kind: "text",
+        text: "Reassess SpO₂, RR, and accessory muscle use by 09:50. Escalate to covering MD/RT if SpO₂ <90% or RR ≥30 at reassessment. Hold sedation (constraint). Consider non-rebreather titration and chest imaging." },
+    ],
+  },
+  {
+    id: "A2",
+    kind: "Handoff draft",
+    title: "Next-shift handoff · 09:30",
+    status: "staged",
+    runId: "run_p002_0930",
+    confidence: 0.84,
+    uncertainty: 0.16,
+    refs: 4,
+    preview: "ABG/lactate has resulted but bedside work-of-breathing finding remains the anchor for the watch item. Reassess SpO2, RR, accessory muscle use by 09:50.",
+    sections: [
+      { label: "Situation", kind: "text",
+        text: "69F admitted 07:00 today for CAP, on simple mask 6L. Watcher acuity, resp ↑." },
+      { label: "Background", kind: "text",
+        text: "Prior independent, no home O₂. Day 1 of admission. ABG resulted 09:25." },
+      { label: "Assessment", kind: "text",
+        text: "Trend supports worsening respiratory status; differential anchored on worsening pneumonia. ABG result does not yet change the watch item — bedside WoB remains the live finding." },
+      { label: "Recommendation", kind: "text",
+        text: "Reassess SpO₂, RR, and accessory muscle use by 09:50. If SpO₂ <90% or RR ≥30, call covering MD/RT and prepare escalation pathway." },
+    ],
+  },
+  {
+    id: "A3",
+    kind: "Note addendum",
+    title: "Addendum to 09:10 nursing note",
+    status: "draft",
+    runId: "run_p002_0930",
+    confidence: 0.71,
+    uncertainty: 0.29,
+    refs: 3,
+    preview: "Adds 09:25 ABG result and 09:30 vitals trend to existing focused respiratory note. Does not change the open watch item.",
+    sections: [
+      { label: "Addendum text", kind: "text",
+        text: "ABG (09:25): pH 7.36, pCO₂ 44, lactate 2.8. Vitals at 09:30 on 6L simple mask: SpO₂ 89%, HR 112, RR 30 with continued accessory muscle use. Trend remains consistent with worsening pneumonia; oxygen response uncertain. Watch item from 09:30 stands." },
+      { label: "Attaches to", kind: "kv", rows: [
+          ["parent_note", "note_20260419T0910_nursing"],
+          ["author", "bedside_rn (cosign req'd)"],
+          ["effective_at", "2026-04-19T09:30:00-05:00"],
+        ] },
+    ],
+  },
+  {
+    id: "A4",
+    kind: "Open-loop update",
+    title: "Open loop · escalate-on-trigger",
+    status: "draft",
+    runId: "run_p002_0930",
+    confidence: 0.92,
+    uncertainty: 0.08,
+    refs: 2,
+    preview: "Updates loop L1 due 09:50 with explicit success/failure criteria and contingency to call covering MD if SpO₂ <90 or RR ≥30 at reassessment.",
+    sections: [
+      { label: "Loop", kind: "kv", rows: [
+          ["loop_id", "L1 — reassess oxygen response & WoB"],
+          ["due_by", "2026-04-19T09:50:00-05:00 (in 20 min)"],
+          ["status", "pending"],
+        ] },
+      { label: "Success criteria", kind: "text",
+        text: "SpO₂ ≥ 90% on simple mask. RR ≤ 26. Accessory muscle use improved." },
+      { label: "Contingencies", kind: "text",
+        text: "If SpO₂ < 90% or RR ≥ 30 at reassessment: call covering MD/RT and prepare escalation pathway (non-rebreather, possible HFNC)." },
+    ],
+  },
+  {
+    id: "A5",
+    kind: "Reassessment draft",
+    title: "Resp reassessment · 09:00",
+    status: "committed",
+    runId: "run_p002_0900",
+    confidence: 0.69,
+    uncertainty: 0.31,
+    refs: 3,
+    committedAt: "09:02 · note_20260419T0902_assess",
+    preview: "Earlier reassessment cycle. Committed to chart at 09:02 by rn_agent + bedside_rn cosign.",
+    sections: [
+      { label: "Assessment", kind: "text",
+        text: "Worsening respiratory status emerging: SpO₂ 94 → 92%, RR 22, mild WoB. Continue monitoring; reassess in 30 min." },
+    ],
+  },
+  {
+    id: "A6",
+    kind: "Note addendum",
+    title: "Addendum · 08:30 admission summary",
+    status: "discarded",
+    runId: "run_p002_0820",
+    confidence: 0.42,
+    uncertainty: 0.58,
+    refs: 2,
+    preview: "Discarded by rn_shane at 08:32 — duplicate of admission intake content.",
+    sections: [
+      { label: "Discarded", kind: "text",
+        text: "Discarded — content duplicated existing admission intake; superseded." },
+    ],
+  },
+];
+
+/* chat — visible "process" */
+const INITIAL_CHAT = [
+  { role: "system", text: "Run run_p002_0930 started · scope patient_002 / enc_p002_001 · cycle #4 · 09:29:48 CT." },
+  { role: "user", who: "rn_shane", text: "She looks worse on the mask. Pull together a reassessment using the 09:25 ABG and the vitals window since shift start." },
+  { role: "agent", who: "pi-agent",
+    text: "Pulled the vitals window (07:00→09:30) and the 09:25 ABG. Drafted reassessment + handoff + open-loop update.",
+    traces: [
+      { kind: "anchor",   text: "Anchored on bedside WoB finding (09:05) — ABG lactate 2.8 is consistent but does not supersede." },
+      { kind: "weight",   text: "Differential weights worsening pneumonia at 0.78 given trend trajectory; CHF retained at 0.12." },
+      { kind: "scope",    text: "Read-only on Meds and MAR. Did not propose orders." },
+      { kind: "skipped",  text: "Skipped pre-shift vitals (06:00, 04:00) — outside reassessment window per policy." },
+    ],
+    refs: [
+      { id: "A1", label: "Reassessment draft" },
+      { id: "A2", label: "Handoff draft" },
+      { id: "A4", label: "Open-loop update" },
+    ] },
+  { role: "user", who: "rn_shane", text: "Add the addendum to the 09:10 nursing note. Don't touch the parent." },
+  { role: "agent", who: "pi-agent",
+    text: "Drafted addendum that attaches to note_20260419T0910_nursing without modifying it. Cosign required from bedside_rn before commit.",
+    traces: [
+      { kind: "scope",    text: "Append-only · parent note is immutable. The addendum carries its own author + effective_at." },
+      { kind: "uncertainty", text: "Confidence 71% · ABG lactate 2.8 reading was retried once; first draw flagged hemolyzed." },
+      { kind: "revised",  text: "Reverted an earlier phrase (\"likely sepsis\") — not supported by current evidence chain." },
+    ],
+    refs: [{ id: "A3", label: "Note addendum" }] },
+];
+
+/* =========================================================
+   COMPONENTS
+   ========================================================= */
+function DocBand({ tab, draftCount, stagedCount }) {
+  return (
+    <div className="docband">
+      <div className="left">
+        <div className="crumb">pi-chart · v0.4.0 · clinical cockpit + agent canvas</div>
+        <h1>
+          <span className="pi">π</span>-chart
+          <span className="sep">/</span>
+          <span className="ctx">{tab === "overview" ? "overview" : "agent canvas"}</span>
+        </h1>
+      </div>
+      <div className="right">
+        <div className="row">
+          <span>chart clock <b>sim_time</b></span>
+          <span>tz <b>America/Chicago</b></span>
+          <span>now <b>09:30 · 19 Apr 2026</b></span>
+        </div>
+        <div className="row" style={{marginTop:4}}>
+          <span>session <b>rn_shane / rn</b></span>
+          <span>scope <b>patient_002 / enc_p002_001</b></span>
+        </div>
+        <div style={{marginTop:6, display:"flex", gap:6, justifyContent:"flex-end"}}>
+          <span className="stamp">cockpit · v0.4</span>
+          {(draftCount + stagedCount) > 0 && (
+            <span className="stamp draft">{draftCount + stagedCount} agent draft{(draftCount+stagedCount)===1?"":"s"} pending</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PatientBanner({ draftCount, stagedCount, committedCount }) {
+  return (
+    <header className="phead-wrap">
+    <div className="phead">
+      <div>
+        <div className="k">Patient</div>
+        <div className="name-row">
+          <span className="name">{PATIENT.name}</span>
+          <span className="mrn">{PATIENT.mrn} · DOB {PATIENT.dob} · {PATIENT.age} y / {PATIENT.sex}</span>
+        </div>
+        <div className="demo-line">
+          <span>{PATIENT.language}</span>
+          <span>{PATIENT.hxLine}</span>
+          <span>{PATIENT.baseline}</span>
+        </div>
+      </div>
+      <div>
+        <div className="k">Acuity</div>
+        <div className="acu"><span className="dot"></span><span>{PATIENT.acuity}</span></div>
+        <div className="acu-meta">{PATIENT.acuityMeta}</div>
+      </div>
+      <div>
+        <div className="k">Constraints</div>
+        <div className="constraint-list">
+          {PATIENT.constraints.map((c, i) => (
+            <div key={i} className={"c" + (c.warn ? " warn" : "")}>{c.text}</div>
+          ))}
+        </div>
+        <div className="acu-meta" style={{marginTop:6}}>
+          <span className="code-pill">FULL CODE</span>
+        </div>
+      </div>
+      <div>
+        <div className="k">As of</div>
+        <div className="status-mini">
+          <span><b>{PATIENT.asOf}</b></span>
+          <span>append-only · cycle #4</span>
+          <span>last write 09:30:12 · pi-agent</span>
+        </div>
+      </div>
+      <div>
+        <div className="k">Encounter</div>
+        <div className="status-mini">
+          <span><b>{PATIENT.encounter}</b></span>
+          <span>{PATIENT.loc}</span>
+          <span>{PATIENT.los}</span>
+        </div>
+      </div>
+      <div>
+        <div className="k">Cycle state</div>
+        <div className="cycle-box">
+          <div className="cycle-line">
+            <span className="swatch draft"></span>
+            <span>draft</span>
+            <span className="num draft">{draftCount}</span>
+          </div>
+          <div className="cycle-line">
+            <span className="swatch" style={{background:"var(--draft)", borderColor:"var(--draft)"}}></span>
+            <span>staged</span>
+            <span className="num draft">{stagedCount}</span>
+          </div>
+          <div className="cycle-line">
+            <span className="swatch committed"></span>
+            <span>committed</span>
+            <span className="num">{committedCount}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <VitalsStrip />
+    </header>
+  );
+}
+
+function VitalsStrip() {
+  return (
+    <div className="phead-vitals">
+      <div className="pv-label">vitals · streaming · 30s</div>
+      {VITALS.map((v, i) => (
+        <div key={i} className={"pv" + (v.signal ? " signal" : "")}>
+          <div className="pv-name">{v.name}</div>
+          <div className="pv-val">
+            <span className="num">{v.val}</span>
+            <span className="unit">{v.unit}</span>
+          </div>
+          <svg className="pv-spark" viewBox="0 0 160 24" preserveAspectRatio="none">
+            <polyline points={v.points} fill="none" stroke="currentColor" strokeWidth="1.4" vectorEffect="non-scaling-stroke"/>
+          </svg>
+          <div className="pv-delta">{v.delta}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LeftNav({ tab, setTab, draftCount, stagedCount, onOpenScratchpad, onOpenTweaks }) {
+  return (
+    <aside className="nav">
+      <div className="group">Chart</div>
+      <a className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")}>
+        <span>Overview</span><span className="ct">⌘1</span>
+      </a>
+      <a className={(tab === "agent" ? "active" : "") + ((draftCount+stagedCount)>0 ? " draft" : "")}
+         onClick={() => setTab("agent")}>
+        <span>Agent Canvas</span>
+        <span className="ct">{(draftCount+stagedCount)>0 ? `${draftCount+stagedCount} ↻` : "⌘2"}</span>
+      </a>
+      <a><span>Problems</span><span className="ct">2</span></a>
+      <a><span>Constraints</span><span className="ct">2</span></a>
+      <a><span>Encounters</span><span className="ct">1</span></a>
+
+      <div className="group">Streams</div>
+      <a><span>Vitals · flowsheet</span><span className="ct">31</span></a>
+      <a><span>Labs / dx</span><span className="ct">3 new</span></a>
+      <a><span>Meds · MAR</span><span className="ct">2</span></a>
+      <a><span>Orders / intents</span><span className="ct">3</span></a>
+      <a className="alert"><span>Open loops</span><span className="ct">3 ↻</span></a>
+
+      <div className="group">Narrative</div>
+      <a><span>Notes</span><span className="ct">3</span></a>
+      <a><span>Communications</span><span className="ct">1 SBAR</span></a>
+      <a><span>Assessment</span><span className="ct">2</span></a>
+      <a><span>Care plan / handoff</span><span className="ct">1</span></a>
+
+      <div className="group">Provenance</div>
+      <a><span>Evidence chain</span><span className="ct">graph</span></a>
+      <a><span>Audit / authors</span><span className="ct">·</span></a>
+
+      <div className="nav-foot">
+        <div>append-only</div>
+        <div>schema 0.4.0</div>
+        <div>run run_p002_0930</div>
+        <div style={{marginTop:6}}>
+          <a onClick={onOpenScratchpad} style={{display:"block", padding:"4px 0", cursor:"pointer", color:"var(--ink)", borderBottom:"1px solid var(--hair)"}}>Open scratchpad ↗</a>
+          <a onClick={onOpenTweaks} style={{display:"block", padding:"4px 0", cursor:"pointer", color:"var(--ink)"}}>Tweaks ⚙</a>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function VitalsRow() {
+  return (
+    <section className="vitals-row">
+      {VITALS.map((v, i) => (
+        <div key={i} className={"vital" + (v.signal ? " signal" : "")}>
+          <div className="name">{v.name}</div>
+          <div className="now">{v.val}<small>{v.unit}</small></div>
+          <div className="delta">{v.delta}</div>
+          <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" strokeWidth="1.4"
+              points={v.points} style={{color: v.signal ? "var(--accent)" : "var(--ink)"}}/>
+            <line x1="0" y1="14" x2="160" y2="14" stroke="var(--hair)" strokeDasharray="2 3"/>
+          </svg>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/* ================== OVERVIEW ================== */
+function OverviewView({ artifacts, onJumpToCanvas }) {
+  const draftIds = artifacts.filter(a => a.status === "draft" || a.status === "staged");
+  return (
+    <main className="center tabview">
+      {/* vitals moved into the always-visible patient banner */}
+
+      {/* problem-oriented timeline */}
+      <section className="panel">
+        <div className="ph">
+          <h2>Problem-oriented timeline · enc_p002_001</h2>
+          <div className="tabs">
+            <a className="on">Today</a><a>Encounter</a><a>30d</a>
+          </div>
+          <span className="ct">window 07:00 → 09:30</span>
+        </div>
+        <div className="body-wrap">
+          <div className="tl-axis">
+            {["07:00","07:30","08:00","08:30","09:00","09:30"].map((t,i)=>(
+              <span key={i} className="tlabel" style={{left: `${i * 20}%`}}>{t}</span>
+            ))}
+          </div>
+          <div className="tl-row">
+            <div className="lane">Vitals · SpO₂</div>
+            <div className="tl-track">
+              <span className="ev dot" style={{left:"0%"}}></span>
+              <span className="ev dot" style={{left:"30%"}}></span>
+              <span className="ev dot" style={{left:"55%"}}></span>
+              <span className="ev dot signal" style={{left:"78%"}}></span>
+              <span className="ev dot signal" style={{left:"100%"}}></span>
+              <span className="meta-tag" style={{position:"absolute", left:"1%", top:"-2px"}}>96 → 89%</span>
+            </div>
+          </div>
+          <div className="tl-row">
+            <div className="lane">Patient report</div>
+            <div className="tl-track">
+              <span className="ev signal" style={{left:"66%"}}>↑ dyspnea · self-report</span>
+            </div>
+          </div>
+          <div className="tl-row">
+            <div className="lane">Bedside exam</div>
+            <div className="tl-track">
+              <span className="ev" style={{left:"70%"}}>WoB ↑ · accessory muscle use</span>
+            </div>
+          </div>
+          <div className="tl-row">
+            <div className="lane">Labs</div>
+            <div className="tl-track">
+              <span className="ev" style={{left:"85%"}}>ABG · lactate 2.8</span>
+            </div>
+          </div>
+          <div className="tl-row">
+            <div className="lane">Assessment</div>
+            <div className="tl-track">
+              <span className="ev fill" style={{left:"50%"}}>Worsening resp · 09:00 (committed)</span>
+              <span className="ev draft" style={{left:"100%"}} onClick={()=>onJumpToCanvas("A1")}>
+                Reassessment · 09:30 · DRAFT
+              </span>
+            </div>
+          </div>
+          <div className="tl-row">
+            <div className="lane">Intent / plan</div>
+            <div className="tl-track">
+              <span className="ev draft" style={{left:"100%"}} onClick={()=>onJumpToCanvas("A4")}>
+                care_plan · due 09:50 · DRAFT
+              </span>
+            </div>
+          </div>
+          <div className="tl-row">
+            <div className="lane">Communication</div>
+            <div className="tl-track">
+              <span className="ev draft" style={{left:"100%"}} onClick={()=>onJumpToCanvas("A2")}>
+                SBAR handoff · STAGED
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* event stream + open loops + narrative */}
+      <section style={{display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:12}}>
+        <div className="panel">
+          <div className="ph">
+            <h2>Event stream</h2>
+            <span className="ct">today · 7 events</span>
+          </div>
+          <div className="body-wrap">
+            {EVENT_STREAM.map((e, i) => (
+              <div key={i} className={"item" + (e.signal ? " alert" : "")}>
+                <div className={"marker" + (e.draft ? " draft fill" : (e.signal ? " signal fill" : " fill"))}></div>
+                <div>
+                  <div className="ttl">
+                    {e.title}
+                    {e.draft && <span className="draft-tag">staged draft</span>}
+                  </div>
+                  <div className="sub">{e.who} · {e.sub}</div>
+                </div>
+                <div className="meta">
+                  <b>{e.t}</b><br/>
+                  {i === 0 ? "now" : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:"flex", flexDirection:"column", gap:12}}>
+          <div className="panel">
+            <div className="ph">
+              <h2>Open loops</h2>
+              <span className="ct">3 · openLoops()</span>
+            </div>
+            <div className="body-wrap">
+              {OPEN_LOOPS.map((l, i) => (
+                <div key={i} className={"item" + (l.signal ? " alert" : "")}>
+                  <div className={"marker dot" + (l.draft ? " draft" : (l.signal ? " signal fill" : ""))}></div>
+                  <div>
+                    <div className="ttl">{l.title}{l.draft && <span className="draft-tag">staged</span>}</div>
+                    <div className="sub">{l.sub}</div>
+                  </div>
+                  <div className="meta">
+                    due <b>{l.due}</b><br/>{l.in}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel note">
+            <div className="ph">
+              <h2>Narrative · last committed</h2>
+              <span className="ct">note_…0910 · bedside_rn</span>
+            </div>
+            <div className="body-wrap">
+              <p>
+                Focused respiratory note: patient reports more dyspnea; <span className="cite" title="evt_p002_0905_wob">work of breathing is moderately increased with accessory muscle use</span>. Trend assessment opened ABG/lactate question and oxygen-response uncertainty.
+              </p>
+              <p style={{fontFamily:"var(--mono)", fontSize:"10.5px", color:"var(--ink-3)"}}>
+                <span style={{color:"var(--draft)"}}>↻ {draftIds.length} agent draft{draftIds.length===1?"":"s"} staged</span> for this encounter — review in <a style={{color:"var(--ink)", borderBottom:"1px solid var(--ink)", cursor:"pointer"}} onClick={()=>onJumpToCanvas(null)}>Agent Canvas</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+/* ================== AGENT CANVAS ================== */
+function ArtifactItem({ a, selected, onClick }) {
+  return (
+    <div className={"artifact " + (selected ? "selected " : "") + a.status}
+         onClick={onClick}>
+      <div className="row1">
+        <span className="kind">{a.kind}</span>
+        <span className={"status " + a.status}>{a.status}</span>
+      </div>
+      <div className="ttl">{a.title}</div>
+      <div className="preview">{a.preview}</div>
+      <div className="meta">
+        <span className="refs">supports <b>{a.refs}</b> · {a.runId}</span>
+        <span className="conf">
+          conf <span className="bar"><span style={{width: `${Math.round(a.confidence*100)}%`}}></span></span>
+          <span>{Math.round(a.confidence*100)}%</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ArtifactScratchpad({ artifacts, selectedId, onSelect, filter, setFilter, embedded }) {
+  const counts = useMemo(() => ({
+    all: artifacts.length,
+    draft: artifacts.filter(a => a.status === "draft").length,
+    staged: artifacts.filter(a => a.status === "staged").length,
+    committed: artifacts.filter(a => a.status === "committed").length,
+  }), [artifacts]);
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return artifacts;
+    return artifacts.filter(a => a.status === filter);
+  }, [artifacts, filter]);
+
+  return (
+    <aside className="scratchpad" style={embedded ? {position:"static", borderLeft:0, borderTop:0, borderRight:0, borderBottom:0, height:"100%", display:"flex", flexDirection:"column"} : null}>
+      <div className="ph">
+        <h2>Artifact scratchpad</h2>
+        <span className="ct">{filtered.length} of {artifacts.length}</span>
+      </div>
+      <div className="sub-ph">
+        <div>Generated by pi-agent. Not chart truth until committed.</div>
+        <div className="legend-row">
+          <span className="l"><span className="sw draft"></span>draft</span>
+          <span className="l"><span className="sw staged"></span>staged</span>
+          <span className="l"><span className="sw committed"></span>committed</span>
+        </div>
+      </div>
+      <div className="filter-bar">
+        {[["all","All"],["draft","Draft"],["staged","Staged"],["committed","Committed"]].map(([k, lab]) => (
+          <a key={k} className={filter === k ? "on" : ""} onClick={() => setFilter(k)}>
+            {lab} <span className="ct">{counts[k]}</span>
+          </a>
+        ))}
+      </div>
+      <div className="artifact-list">
+        {filtered.map(a => (
+          <ArtifactItem key={a.id} a={a}
+                        selected={a.id === selectedId}
+                        onClick={() => onSelect(a.id)}/>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+/* Floating focus scratchpad: shows the selected artifact as a card,
+   with a thin tab strip across the top for the others. Quiet by default. */
+function FloatingScratchpad({ artifacts, selectedId, setSelectedId, filter, setFilter, onClose, onCommit, onStage, onDiscard }) {
+  const visible = artifacts.filter(a => a.status !== "discarded");
+  const sel = visible.find(a => a.id === selectedId) || visible[0];
+  if (!sel) return null;
+  const statusOrder = { draft: 0, staged: 1, committed: 2 };
+  const sorted = [...visible].sort((a, b) =>
+    (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9));
+
+  return (
+    <div className="scratch-float">
+      <div className="sf-strip">
+        <span className="sf-mark">scratchpad</span>
+        <div className="sf-tabs">
+          {sorted.map(a => (
+            <span key={a.id}
+                  className={"sf-tab " + a.status + (a.id === sel.id ? " on" : "")}
+                  onClick={() => setSelectedId(a.id)}
+                  title={a.title}>
+              <span className="sf-dot"></span>
+              {a.kind.replace(/_/g, " ")}
+            </span>
+          ))}
+        </div>
+        <span className="sf-close" onClick={onClose}>✕</span>
+      </div>
+      <div className="sf-body">
+        <div className="sf-row1">
+          <span className="kind">{sel.kind}</span>
+          <span className={"status " + sel.status}>{sel.status}</span>
+        </div>
+        <div className="sf-title">{sel.title}</div>
+        {sel.preview && <div className="sf-preview">{sel.preview}</div>}
+        <div className="sf-meta">
+          <span className="refs"><b>{sel.refs ?? "—"}</b> refs · {sel.runId}</span>
+          <span className="conf">
+            <span className="bar"><span style={{width: `${Math.round(sel.confidence*100)}%`}}></span></span>
+            <span>{Math.round(sel.confidence*100)}% conf</span>
+          </span>
+        </div>
+        <div className="sf-actions">
+          {sel.status === "draft" && <>
+            <button className="btn ghost" onClick={() => onDiscard(sel.id)}>Discard</button>
+            <button className="btn" onClick={() => onStage(sel.id)}>Stage to chart</button>
+            <button className="btn primary" onClick={() => onCommit(sel.id)}>Commit to note</button>
+          </>}
+          {sel.status === "staged" && <>
+            <button className="btn ghost" onClick={() => onDiscard(sel.id)}>Discard</button>
+            <button className="btn primary" onClick={() => onCommit(sel.id)}>Commit to note</button>
+          </>}
+          {sel.status === "committed" && <span className="sf-committed">Committed · part of chart</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CanvasDoc({ a }) {
+  return (
+    <div className="canvas-doc" data-status={a.status}>
+      <div className="watermark">
+        {a.status === "draft" && "DRAFT"}
+        {a.status === "staged" && "STAGED"}
+        {a.status === "committed" && "COMMITTED"}
+        {a.status === "discarded" && "DISCARDED"}
+      </div>
+      {a.sections.map((s, i) => (
+        <div key={i} className="doc-section">
+          <div className="label">{s.label}</div>
+          {s.kind === "text" && (
+            <div className="text">
+              {(() => {
+                if (!s.cites || !s.cites.length) return s.text;
+                let out = s.text;
+                const parts = [];
+                let last = 0;
+                s.cites.forEach((c, ci) => {
+                  const idx = out.indexOf(c.token, last);
+                  if (idx === -1) return;
+                  parts.push(out.slice(last, idx));
+                  parts.push(<span key={ci} className="cite" title={c.id}>{c.token}</span>);
+                  last = idx + c.token.length;
+                });
+                parts.push(out.slice(last));
+                return parts;
+              })()}
+            </div>
+          )}
+          {s.kind === "diff" && (
+            <div>
+              {s.rows.map((r, ri) => (
+                <div key={ri} className="uncert">
+                  <span className="lab">{r.label}</span>
+                  <span className="bar"><span style={{width:`${Math.round(r.pct*100)}%`}}></span></span>
+                  <span className="pct">{r.qual}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {s.kind === "kv" && (
+            <div className="kv">
+              {s.rows.map((r, ri) => (
+                <React.Fragment key={ri}>
+                  <span>{r[0]}</span><span>{r[1]}</span>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CanvasDetail({ artifact, onCommit, onStage, onDiscard, onEdit }) {
+  if (!artifact) {
+    return (
+      <div className="canvas-detail">
+        <div className="ph"><h2>Canvas detail</h2></div>
+        <div style={{padding:"40px 20px", textAlign:"center", fontFamily:"var(--mono)", fontSize:11, color:"var(--ink-3)", letterSpacing:"0.06em"}}>
+          select an artifact from the scratchpad →
+        </div>
+      </div>
+    );
+  }
+  const a = artifact;
+  return (
+    <div className="canvas-detail">
+      <div className="ph">
+        <h2>{a.kind} · {a.id}</h2>
+        <span className={"pill " + a.status}>{a.status}</span>
+        <span className="runmeta">{a.runId} · cosign: bedside_rn</span>
+      </div>
+      <div className="canvas-meta">
+        <div>
+          <div className="k">Provenance</div>
+          <div className="v">supports {a.refs} refs · vitals_window + bedside</div>
+        </div>
+        <div>
+          <div className="k">Confidence</div>
+          <div className="v signal">{Math.round(a.confidence*100)}%</div>
+        </div>
+        <div>
+          <div className="k">Uncertainty</div>
+          <div className="v">{Math.round(a.uncertainty*100)}% · {a.uncertainty < 0.2 ? "low" : a.uncertainty < 0.35 ? "moderate" : "high"}</div>
+        </div>
+        <div>
+          <div className="k">Status</div>
+          <div className={"v " + a.status}>
+            {a.status === "draft" && "draft · not chart truth"}
+            {a.status === "staged" && "staged · awaiting commit"}
+            {a.status === "committed" && `committed · ${a.committedAt || "now"}`}
+            {a.status === "discarded" && "discarded · superseded"}
+          </div>
+        </div>
+      </div>
+      <CanvasDoc a={a} />
+      <div className="canvas-actions">
+        <span className="left">
+          {a.status !== "committed" && a.status !== "discarded" &&
+            "Uncommitted output is not chart truth — commit attaches to note + writes append-only event."}
+          {a.status === "committed" && `Committed at ${a.committedAt}.`}
+          {a.status === "discarded" && "Discarded — no chart effect."}
+        </span>
+        <span className="right">
+          {a.status !== "committed" && a.status !== "discarded" && (
+            <>
+              <button className="btn ghost" onClick={() => onEdit(a.id)}>Edit</button>
+              <button className="btn danger" onClick={() => onDiscard(a.id)}>Discard</button>
+              {a.status === "draft" && (
+                <button className="btn" onClick={() => onStage(a.id)}>Stage to chart <span className="key">⌘S</span></button>
+              )}
+              <button className="btn primary" onClick={() => onCommit(a.id)}>Commit to note <span className="key">⌘↵</span></button>
+            </>
+          )}
+          {a.status === "committed" && (
+            <>
+              <button className="btn ghost">Open committed note</button>
+              <button className="btn ghost">View evidence chain</button>
+            </>
+          )}
+          {a.status === "discarded" && (
+            <button className="btn ghost">Restore</button>
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ChatHistory({ chat, onJumpRef }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+  }, [chat]);
+  return (
+    <div className="chat-history" ref={ref}>
+      {chat.map((m, i) => (
+        <div key={i} className={"msg " + m.role}>
+          <span className="who">
+            {m.role === "system" ? "system" : (m.role === "user" ? m.who : "pi-agent")}
+          </span>
+          <div className="body">
+            <span className="stamp">09:{29 + Math.floor(i/2)}</span>
+            {m.text}
+            {m.reasoning && <div className="reasoning">↳ {m.reasoning}</div>}
+            {m.traces && m.traces.length > 0 && (
+              <div className="traces">
+                {m.traces.map((t, ti) => (
+                  <div key={ti} className="trace" data-kind={t.kind}>
+                    <span className="tk">{t.kind}</span>
+                    <span>{t.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {m.refs && (
+              <div style={{marginTop: 4}}>
+                {m.refs.map(r => (
+                  <span key={r.id} className="ref-chip" onClick={() => onJumpRef(r.id)}>
+                    {r.label} · {r.id}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* Agent canvas (tab content): the canvas detail goes BIG here.
+   Chat lives in the persistent dock at the app bottom — not inside the tab. */
+function AgentCanvasView({ artifacts, selectedId, onCommit, onStage, onDiscard, onEdit }) {
+  const sel = artifacts.find(a => a.id === selectedId);
+  return (
+    <main className="center tabview canvas-large">
+      <CanvasDetail
+        artifact={sel}
+        onCommit={onCommit}
+        onStage={onStage}
+        onDiscard={onDiscard}
+        onEdit={onEdit}
+      />
+    </main>
+  );
+}
+
+/* Persistent dock: chat (left) + scratchpad (right), always available.
+   On Overview tab and Agent Canvas tab. */
+function AgentDock({ collapsed, setCollapsed, scratchOpen, setScratchOpen,
+                     chat, onSendChat,
+                     artifacts, selectedId, setSelectedId, filter, setFilter,
+                     onCommit, onStage, onDiscard, onEdit,
+                     draftCount, stagedCount, committedCount, runState,
+                     scratchpadLayout }) {
+  const [draft, setDraft] = useState("");
+  const onSubmit = (e) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    onSendChat(draft.trim());
+    setDraft("");
+  };
+
+  if (collapsed) {
+    return (
+      <div className="dock-rail">
+        <span className="pi-mark">π</span>
+        <span className="run-state">
+          <span className="pulse"></span>
+          pi-agent · {runState}
+        </span>
+        <span style={{color:"var(--ink-3)"}}>run_p002_0930 · cycle #4</span>
+        <div className="counts">
+          <span className="c" onClick={() => { setCollapsed(false); setFilter("draft"); setScratchOpen(true); }}>
+            <span className="sw draft"></span><b>{draftCount}</b> draft
+          </span>
+          <span className="c" onClick={() => { setCollapsed(false); setFilter("staged"); setScratchOpen(true); }}>
+            <span className="sw staged"></span><b>{stagedCount}</b> staged
+          </span>
+          <span className="c" onClick={() => { setCollapsed(false); setFilter("committed"); setScratchOpen(true); }}>
+            <span className="sw committed"></span><b>{committedCount}</b> committed today
+          </span>
+        </div>
+        <button className="dock-toggle primary" onClick={() => setCollapsed(false)}>
+          ↑ open agent
+        </button>
+      </div>
+    );
+  }
+
+  // when scratchpad layout is not 'rail', the dock is chat-only — never embeds the scratchpad
+  const dockEmbedsScratch = (scratchpadLayout || "rail") === "rail";
+  return (
+    <div className={"agent-dock " + ((scratchOpen && dockEmbedsScratch) ? "" : "scratch-closed")}>
+      <div className="dock-chat">
+        <div className="ph">
+          <h2>pi-agent · chat</h2>
+          <span className="legend"><b>Chat is process.</b> Chartable output lands in the scratchpad — never in chat.</span>
+          <div className="ph-actions">
+            <a className={scratchOpen ? "on" : ""} onClick={() => setScratchOpen(!scratchOpen)}>
+              {scratchOpen ? "hide scratchpad" : "show scratchpad"}
+            </a>
+            <a onClick={() => setCollapsed(true)}>↓ collapse</a>
+          </div>
+        </div>
+        <ChatHistory chat={chat} onJumpRef={(id) => { setSelectedId(id); setScratchOpen(true); }} />
+        <form className="chat-input-bar" onSubmit={onSubmit}>
+          <textarea
+            className="chat-input"
+            placeholder="Ask pi-agent to draft, refine, or attach. Output appears in the scratchpad — not in chat."
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSubmit(e);
+            }}
+            rows={2}
+          />
+          <div className="chat-send" style={{flexDirection:"column", gap:6}}>
+            <button type="submit" className="btn primary">Send <span className="key">⌘↵</span></button>
+            <button type="button" className="btn ghost" onClick={() => setDraft("")}>Clear</button>
+          </div>
+          <div className="chat-hint">
+            <span><span className="key">⌘↵</span> send</span>
+            <span><span className="key">⌘S</span> stage selected</span>
+            <span><span className="key">⌘⇧↵</span> commit selected</span>
+            <span><span className="key">⌘\</span> toggle dock</span>
+            <span style={{marginLeft:"auto"}}>scope: enc_p002_001 · append-only</span>
+          </div>
+        </form>
+      </div>
+      {scratchOpen && dockEmbedsScratch && (
+        <div className="dock-scratch">
+          <ArtifactScratchpad
+            artifacts={artifacts}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            filter={filter}
+            setFilter={setFilter}
+            embedded
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================== TWEAKS PANEL ================== */
+/* Three expressive presets that reshape posture, mood, and density together. */
+const POSTURES = {
+  ambient:   { dockMode: "docked", scratchOpen: true,  runLabel: "standing by",   pulse: false },
+  copilot:   { dockMode: "docked", scratchOpen: true,  runLabel: "actively drafting", pulse: true  },
+  background:{ dockMode: "rail",   scratchOpen: false, runLabel: "watching · ⌘\\ to summon", pulse: false },
+};
+const MOODS = {
+  daylight: {
+    paper:"#f4f2ee", paper2:"#ebe8e2", card:"#fbfaf7", card2:"#f7f5f0",
+    ink:"#1a1a1a", ink2:"#4a4a4a", ink3:"#8a8a8a", ink4:"#c4c4c4",
+    line:"#1a1a1a", hair:"rgba(26,26,26,0.18)", grid:"rgba(26,26,26,0.06)",
+    accentL: 0.62, accentC: 0.16, accentH: 25,
+    label: "daylight"
+  },
+  nightshift: {
+    paper:"#15171a", paper2:"#1d2024", card:"#1a1d20", card2:"#1f2226",
+    ink:"#e8e6df", ink2:"#a8a59c", ink3:"#6e6c66", ink4:"#3d3d3a",
+    line:"#e8e6df", hair:"rgba(232,230,223,0.18)", grid:"rgba(232,230,223,0.06)",
+    accentL: 0.72, accentC: 0.14, accentH: 200,
+    label: "night shift"
+  },
+  trauma: {
+    paper:"#0e0e0e", paper2:"#161616", card:"#121212", card2:"#181818",
+    ink:"#f6f4ec", ink2:"#bdb9aa", ink3:"#7a766a", ink4:"#444",
+    line:"#f6f4ec", hair:"rgba(246,244,236,0.22)", grid:"rgba(246,244,236,0.06)",
+    accentL: 0.66, accentC: 0.20, accentH: 18,
+    label: "trauma bay"
+  },
+};
+
+function TweaksPanel({ tweaks, setTweak, onClose }) {
+  const wrap = {
+    position: "fixed", right: 16, top: 16, width: 320, zIndex: 200,
+    background: "var(--card)", border: "1px solid var(--line)",
+    boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+    fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink)"
+  };
+  const h = { padding: "10px 14px", borderBottom: "1px solid var(--hair)",
+              display: "flex", justifyContent: "space-between", alignItems: "center" };
+  const sect = { padding: "12px 14px 14px", borderBottom: "1px solid var(--hair)" };
+  const lab = { fontSize: 9.5, letterSpacing: "0.16em", textTransform: "uppercase",
+                color: "var(--ink-3)", marginBottom: 8, display: "block" };
+  const card = (on) => ({
+    padding: "9px 10px",
+    border: "1px solid " + (on ? "var(--ink)" : "var(--hair)"),
+    background: on ? "var(--paper-2)" : "transparent",
+    cursor: "pointer",
+    display: "grid",
+    gridTemplateColumns: "auto 1fr",
+    gap: 8,
+    alignItems: "start",
+    marginBottom: 6,
+  });
+  const dot = (color) => ({
+    width: 10, height: 10, marginTop: 3,
+    background: color, border: "1px solid var(--ink)",
+  });
+  const cardTtl = { fontSize: 12, fontWeight: 600, letterSpacing: "-0.005em",
+                    color: "var(--ink)", textTransform: "none" };
+  const cardSub = { fontSize: 10, color: "var(--ink-3)", marginTop: 2,
+                    letterSpacing: "0.04em", lineHeight: 1.45 };
+
+  const moodSwatch = (m) => {
+    const M = MOODS[m];
+    return (
+      <div style={{display:"flex", marginTop:3}}>
+        <span style={{width:10, height:10, background: M.paper, border:"1px solid "+M.line}}></span>
+        <span style={{width:10, height:10, background: M.card, borderTop:"1px solid "+M.line, borderBottom:"1px solid "+M.line}}></span>
+        <span style={{width:10, height:10, background: `oklch(${M.accentL} ${M.accentC} ${M.accentH})`, border:"1px solid "+M.line}}></span>
+      </div>
+    );
+  };
+
+  return (
+    <div style={wrap}>
+      <div style={h}>
+        <b style={{fontSize:11, letterSpacing:"0.16em", textTransform:"uppercase"}}>Tweaks · pi-chart</b>
+        <span style={{cursor:"pointer", color:"var(--ink-3)"}} onClick={onClose}>✕</span>
+      </div>
+
+      {/* 1. Agent posture */}
+      <div style={sect}>
+        <span style={lab}>agent posture</span>
+        {[
+          ["ambient",   "Ambient",   "calm dock, drafts visible but quiet"],
+          ["copilot",   "Co-pilot",  "scratchpad open, run pulse loud"],
+          ["background","Background","rail-only, summon with ⌘\\"],
+        ].map(([k, ttl, sub]) => (
+          <div key={k} style={card(tweaks.posture === k)}
+               onClick={() => setTweak("posture", k)}>
+            <span style={dot(k === "copilot" ? "var(--accent)"
+                           : k === "ambient" ? "var(--ink)"
+                           : "transparent")}></span>
+            <div>
+              <div style={cardTtl}>{ttl}</div>
+              <div style={cardSub}>{sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 2. Clinical mood */}
+      <div style={sect}>
+        <span style={lab}>clinical mood</span>
+        {[
+          ["daylight",  "Daylight",   "warm paper, restrained accent"],
+          ["nightshift","Night shift","graphite + cool blue accent"],
+          ["trauma",    "Trauma bay", "max contrast, hot signal red"],
+        ].map(([k, ttl, sub]) => (
+          <div key={k} style={card(tweaks.mood === k)}
+               onClick={() => setTweak("mood", k)}>
+            {moodSwatch(k)}
+            <div>
+              <div style={cardTtl}>{ttl}</div>
+              <div style={cardSub}>{sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3. Density / reading mode */}
+      <div style={sect}>
+        <span style={lab}>information density · {["scan","read","dictate"][tweaks.densityStep]}</span>
+        <input type="range" min="0" max="2" step="1"
+               value={tweaks.densityStep}
+               onChange={e => setTweak("densityStep", +e.target.value)}
+               style={{width:"100%"}}/>
+        <div style={{display:"flex", justifyContent:"space-between", marginTop:4,
+                     fontSize:10, color:"var(--ink-3)", letterSpacing:"0.06em"}}>
+          <span>scan · radar</span>
+          <span>read</span>
+          <span>dictate · large</span>
+        </div>
+        <div style={{marginTop:8, fontSize:10, color:"var(--ink-3)", lineHeight:1.5}}>
+          {tweaks.densityStep === 0 && "Maximum information per square inch. Tight type, dense grids, small vitals — for visual triage at distance."}
+          {tweaks.densityStep === 1 && "Calm reading rhythm. Default cockpit posture for sustained chartwork."}
+          {tweaks.densityStep === 2 && "Large type, generous padding, oversized vitals. For dictation, handoff, or fatigue."}
+        </div>
+      </div>
+
+      {/* 4. Scratchpad layout */}
+      <div style={sect}>
+        <span style={lab}>scratchpad layout</span>
+        {[
+          ["rail",     "Dock rail",     "lives inside the bottom dock · cramped"],
+          ["side",     "Side panel",    "full-height right rail · best for triage"],
+          ["floating", "Floating card", "active artifact only · quiet"],
+        ].map(([k, ttl, sub]) => (
+          <div key={k} style={card(tweaks.scratchpadLayout === k)}
+               onClick={() => setTweak("scratchpadLayout", k)}>
+            <span style={dot(k === "side" ? "var(--ink)"
+                           : k === "floating" ? "var(--accent)"
+                           : "transparent")}></span>
+            <div>
+              <div style={cardTtl}>{ttl}</div>
+              <div style={cardSub}>{sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{padding:"10px 14px", color:"var(--ink-3)", lineHeight:1.5, fontSize:10.5}}>
+        Each preset reshapes posture, color, and rhythm together — not single properties.
+      </div>
+    </div>
+  );
+}
+
+/* ================== APP ================== */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "posture": "copilot",
+  "mood": "daylight",
+  "densityStep": 1,
+  "scratchpadLayout": "side"
+}/*EDITMODE-END*/;
+
+function useTweaksLocal(defaults) {
+  const [tweaks, setTweaks] = useState(defaults);
+  const setTweak = (k, v) => {
+    setTweaks(t => ({ ...t, [k]: v }));
+    try {
+      window.parent.postMessage({type: '__edit_mode_set_keys', edits: {[k]: v}}, '*');
+    } catch(e) {}
+  };
+  return [tweaks, setTweak];
+}
+
+function App() {
+  const [tweaks, setTweak] = useTweaksLocal(TWEAK_DEFAULTS);
+  const [tab, setTab] = useState("overview"); // start on Overview — agent is ambient now
+  const [artifacts, setArtifacts] = useState(INITIAL_ARTIFACTS);
+  const [selectedId, setSelectedId] = useState("A1");
+  const [filter, setFilter] = useState("all");
+  const [chat, setChat] = useState(INITIAL_CHAT);
+  const [toast, setToast] = useState(null);
+  const initPosture = POSTURES[tweaks.posture] || POSTURES.ambient;
+  const [dockCollapsed, setDockCollapsed] = useState(initPosture.dockMode === "rail");
+  const [scratchOpen, setScratchOpen] = useState(initPosture.scratchOpen);
+  const [scratchSlideover, setScratchSlideover] = useState(false);
+  const [tweaksPanelOpen, setTweaksPanelOpen] = useState(false);
+
+  // apply mood (paper, ink, accent) and density (type scale, padding) together
+  useEffect(() => {
+    const root = document.documentElement;
+    const M = MOODS[tweaks.mood] || MOODS.daylight;
+    root.style.setProperty("--paper", M.paper);
+    root.style.setProperty("--paper-2", M.paper2);
+    root.style.setProperty("--card", M.card);
+    root.style.setProperty("--card-2", M.card2);
+    root.style.setProperty("--ink", M.ink);
+    root.style.setProperty("--ink-2", M.ink2);
+    root.style.setProperty("--ink-3", M.ink3);
+    root.style.setProperty("--ink-4", M.ink4);
+    root.style.setProperty("--line", M.line);
+    root.style.setProperty("--hair", M.hair);
+    root.style.setProperty("--grid", M.grid);
+    const accentStr = `${M.accentL} ${M.accentC} ${M.accentH}`;
+    root.style.setProperty("--accent", `oklch(${accentStr})`);
+    root.style.setProperty("--accent-soft", `oklch(${accentStr} / 0.10)`);
+    root.style.setProperty("--accent-line", `oklch(${accentStr} / 0.30)`);
+
+    // density: scan / read / dictate — scales type, line-height, paddings, vital sizes
+    const d = tweaks.densityStep; // 0,1,2
+    const sizes = [
+      { base:"11.5px", lh:1.42, pad:"8px 10px",  vital:"36px", title:"15px" },
+      { base:"13px",   lh:1.5,  pad:"12px 14px", vital:"44px", title:"17px" },
+      { base:"15.5px", lh:1.62, pad:"18px 20px", vital:"58px", title:"21px" },
+    ];
+    const s = sizes[d] || sizes[1];
+    document.body.style.fontSize = s.base;
+    document.body.style.lineHeight = s.lh;
+    root.style.setProperty("--pad", s.pad);
+    root.style.setProperty("--vital-size", s.vital);
+    root.style.setProperty("--title-size", s.title);
+
+    // mood class on body for CSS hooks (e.g. graphite scrollbars)
+    document.body.dataset.mood = tweaks.mood;
+    document.body.dataset.density = ["scan","read","dictate"][d] || "read";
+  }, [tweaks.mood, tweaks.densityStep]);
+
+  // posture drives dock + scratchpad together
+  useEffect(() => {
+    const P = POSTURES[tweaks.posture] || POSTURES.ambient;
+    setDockCollapsed(P.dockMode === "rail");
+    setScratchOpen(P.scratchOpen);
+    document.body.dataset.posture = tweaks.posture;
+    document.body.dataset.runPulse = P.pulse ? "on" : "off";
+  }, [tweaks.posture]);
+
+  // scratchpad layout: rail / side / floating
+  useEffect(() => {
+    document.body.dataset.scratchLayout = tweaks.scratchpadLayout || "rail";
+  }, [tweaks.scratchpadLayout]);
+
+  const draftCount = artifacts.filter(a => a.status === "draft").length;
+  const stagedCount = artifacts.filter(a => a.status === "staged").length;
+  const committedCount = artifacts.filter(a => a.status === "committed").length;
+
+  const showToast = (text) => {
+    setToast(text);
+    setTimeout(() => setToast(null), 2400);
+  };
+
+  const updateStatus = (id, status, extra = {}) => {
+    setArtifacts(arts => arts.map(a => a.id === id ? { ...a, status, ...extra } : a));
+  };
+
+  const onCommit = (id) => {
+    const a = artifacts.find(x => x.id === id);
+    const stamp = "09:31 · note_20260419T0931_" + (a.kind.split(" ")[0].toLowerCase());
+    updateStatus(id, "committed", { committedAt: stamp });
+    setFilter("committed");
+    showToast(`Committed → ${a.title}. Append-only event written.`);
+    setChat(c => [...c, { role: "system", text: `Artifact ${id} committed → ${stamp}. Chart updated. (append-only)` }]);
+  };
+  const onStage = (id) => {
+    updateStatus(id, "staged");
+    showToast(`Staged · ${id} now visible on Overview as draft indicator.`);
+  };
+  const onDiscard = (id) => {
+    updateStatus(id, "discarded");
+    showToast(`Discarded · ${id}. No chart effect.`);
+  };
+  const onEdit = (id) => {
+    showToast(`Edit mode · ${id}. (prototype: not implemented)`);
+  };
+  const onJumpToCanvas = (id) => {
+    setTab("agent");
+    if (id) setSelectedId(id);
+  };
+  const onSendChat = (text) => {
+    setChat(c => [...c,
+      { role: "user", who: "rn_shane", text },
+      { role: "agent", who: "pi-agent",
+        text: "Acknowledged — I'll draft based on the current vitals window and bedside findings. New artifact will appear in the scratchpad when ready.",
+        traces: [
+          { kind: "scope",       text: "No chart writes will occur until you commit. Run will reuse current evidence chain." },
+          { kind: "anchor",      text: "Reusing context: vitals 07:00→09:30, ABG 09:25, bedside WoB 09:05." },
+          { kind: "uncertainty", text: "Will surface explicit confidence on the new artifact before staging." },
+        ],
+      }
+    ]);
+  };
+
+  // keyboard
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.metaKey && e.key === "1") { e.preventDefault(); setTab("overview"); }
+      if (e.metaKey && e.key === "2") { e.preventDefault(); setTab("agent"); }
+      if (e.metaKey && e.key === "\\") { e.preventDefault(); setDockCollapsed(c => !c); }
+      if (e.metaKey && e.key === ".") { e.preventDefault(); setScratchOpen(s => !s); }
+      if (selectedId) {
+        const a = artifacts.find(x => x.id === selectedId);
+        if (!a) return;
+        if (a.status === "draft" || a.status === "staged") {
+          if (e.metaKey && e.shiftKey && e.key === "Enter") { e.preventDefault(); onCommit(selectedId); }
+          else if (e.metaKey && e.key === "s") { e.preventDefault(); onStage(selectedId); }
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId, artifacts]);
+
+  const stageClasses = ["stage", "agent-on"];
+  if (dockCollapsed) stageClasses.push("dock-collapsed");
+
+  return (
+    <div className={stageClasses.join(" ")}>
+      <DocBand tab={tab} draftCount={draftCount} stagedCount={stagedCount}/>
+      <PatientBanner draftCount={draftCount} stagedCount={stagedCount} committedCount={committedCount}/>
+      <div className="body" data-screen-label={tab === "overview" ? "01 Overview" : "02 Agent Canvas"}>
+        <LeftNav tab={tab} setTab={setTab} draftCount={draftCount} stagedCount={stagedCount}
+                 onOpenScratchpad={() => setScratchSlideover(true)}
+                 onOpenTweaks={() => setTweaksPanelOpen(true)}/>
+        {tab === "overview" ? (
+          <OverviewView artifacts={artifacts} onJumpToCanvas={(id) => {
+            if (id) { setSelectedId(id); setScratchOpen(true); setDockCollapsed(false); }
+            setTab("agent");
+          }}/>
+        ) : (
+          <AgentCanvasView
+            artifacts={artifacts}
+            selectedId={selectedId}
+            onCommit={onCommit}
+            onStage={onStage}
+            onDiscard={onDiscard}
+            onEdit={onEdit}
+          />
+        )}
+        {/* right column placeholder — both tabs leave room for the dock-rooted scratchpad,
+            but on overview we offer a compact agent-activity rail too */}
+        {tab === "overview" && tweaks.scratchpadLayout === "rail" && (
+          <aside className="scratchpad" style={{position:"sticky", top:14, alignSelf:"start"}}>
+            <div className="ph">
+              <h2>Agent activity · ambient</h2>
+              <span className="ct">{draftCount + stagedCount} pending</span>
+            </div>
+            <div className="sub-ph">
+              <div>Pi-agent runs continuously on this encounter. Drafts here are <b>not chart truth</b> until committed below.</div>
+            </div>
+            <div className="filter-bar">
+              <a className="on" onClick={()=>{setTab("agent"); setScratchOpen(true);}}>Open canvas →</a>
+              <a onClick={()=>{setScratchOpen(true); setDockCollapsed(false);}}>Focus scratchpad ↓</a>
+            </div>
+            <div style={{padding:"4px 0", maxHeight: 360, overflow:"auto"}}>
+              {artifacts.filter(a => a.status !== "discarded").slice(0, 5).map(a => (
+                <div key={a.id} className={"artifact " + a.status} onClick={()=>{
+                  setSelectedId(a.id); setTab("agent"); setScratchOpen(true); setDockCollapsed(false);
+                }}>
+                  <div className="row1">
+                    <span className="kind">{a.kind}</span>
+                    <span className={"status " + a.status}>{a.status}</span>
+                  </div>
+                  <div className="ttl" style={{fontSize:12.5}}>{a.title}</div>
+                  <div className="meta">
+                    <span className="refs">{a.runId}</span>
+                    <span className="conf">
+                      <span className="bar"><span style={{width: `${Math.round(a.confidence*100)}%`}}></span></span>
+                      <span>{Math.round(a.confidence*100)}%</span>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+        )}
+      </div>
+
+      {/* persistent agent dock */}
+      <AgentDock
+        collapsed={dockCollapsed}
+        setCollapsed={setDockCollapsed}
+        scratchOpen={scratchOpen}
+        setScratchOpen={setScratchOpen}
+        chat={chat}
+        onSendChat={onSendChat}
+        artifacts={artifacts}
+        selectedId={selectedId}
+        setSelectedId={setSelectedId}
+        filter={filter}
+        setFilter={setFilter}
+        onCommit={onCommit}
+        onStage={onStage}
+        onDiscard={onDiscard}
+        onEdit={onEdit}
+        draftCount={draftCount}
+        stagedCount={stagedCount}
+        committedCount={committedCount}
+        runState={(POSTURES[tweaks.posture] || POSTURES.ambient).runLabel}
+        scratchpadLayout={tweaks.scratchpadLayout}
+      />
+
+      {/* Scratchpad as full-height side panel */}
+      {tweaks.scratchpadLayout === "side" && scratchOpen && (
+        <aside className="scratch-side">
+          <ArtifactScratchpad
+            artifacts={artifacts}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            filter={filter}
+            setFilter={setFilter}
+            embedded
+          />
+        </aside>
+      )}
+
+      {/* Scratchpad as floating focus card (selected artifact + thin tab strip) */}
+      {tweaks.scratchpadLayout === "floating" && scratchOpen && (
+        <FloatingScratchpad
+          artifacts={artifacts}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          filter={filter}
+          setFilter={setFilter}
+          onClose={() => setScratchOpen(false)}
+          onCommit={onCommit}
+          onStage={onStage}
+          onDiscard={onDiscard}
+        />
+      )}
+
+      {/* slide-over scratchpad (large) */}
+      {scratchSlideover && (
+        <div className="scratch-slideover">
+          <div className="ph">
+            <h2>Artifact scratchpad · full</h2>
+            <span className="closer" onClick={() => setScratchSlideover(false)}>close ✕</span>
+          </div>
+          <ArtifactScratchpad
+            artifacts={artifacts}
+            selectedId={selectedId}
+            onSelect={(id) => { setSelectedId(id); setTab("agent"); setScratchSlideover(false); setScratchOpen(true); }}
+            filter={filter}
+            setFilter={setFilter}
+            embedded
+          />
+        </div>
+      )}
+
+      {tweaksPanelOpen && (
+        <TweaksPanel tweaks={tweaks} setTweak={setTweak} onClose={() => setTweaksPanelOpen(false)}/>
+      )}
+
+      {toast && (
+        <div className="toast">
+          <span className="marker"></span>
+          <span><b>{toast}</b></span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
