@@ -115,6 +115,37 @@ function phase3Transform(
   };
 }
 
+// HANDOFF: V03-S4 profile foundation. ADR17-17b/17c will append profile ids to the registry later.
+
+test("V-PROFILE-01: event without profile field validates clean (profile is optional)", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, phase4Event({ id: "v03s4_profile_absent" }));
+  const r = await validateChart(scope);
+  assert.ok(!r.errors.some((e) => e.message.includes("V-PROFILE-01")));
+  assert.ok(!r.warnings.some((w) => w.message.includes("V-PROFILE-01")));
+});
+
+test("V-PROFILE-01: event with empty-string profile is rejected", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, phase4Event({ id: "v03s4_profile_empty", profile: "" }));
+  const r = await validateChart(scope);
+  assert.ok(r.errors.some((e) => e.message.includes("V-PROFILE-01")),
+    "empty profile must be rejected");
+});
+
+test("V-PROFILE-01: event with unregistered profile emits a warning, not an error", async () => {
+  const scope = await copyFixture();
+  await appendTimelineEvents(scope, phase4Event({
+    id: "v03s4_profile_unregistered",
+    profile: "action.claim_review.v1",
+  }));
+  const r = await validateChart(scope);
+  assert.ok(!r.errors.some((e) => e.message.includes("V-PROFILE-01")),
+    "unregistered profile must NOT error (registry is empty in V03-S4)");
+  assert.ok(r.warnings.some((w) => w.message.includes("V-PROFILE-01") && w.message.includes("not in")),
+    "unregistered profile must warn");
+});
+
 function phase4Event(overrides: Record<string, any> = {}) {
   const base = {
     id: "evt_phase4_base",

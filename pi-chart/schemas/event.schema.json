@@ -19,44 +19,103 @@
       "oneOf": [
         {
           "type": "object",
-          "required": ["ref", "kind"],
+          "required": [
+            "ref",
+            "kind"
+          ],
           "properties": {
-            "ref": { "type": "string", "minLength": 1 },
+            "ref": {
+              "type": "string",
+              "minLength": 1
+            },
             "kind": {
               "type": "string",
-              "enum": ["event", "vitals_window", "note", "artifact", "external", "vitals"]
+              "enum": [
+                "event",
+                "vitals_window",
+                "note",
+                "artifact",
+                "external",
+                "vitals"
+              ]
             },
             "role": {
               "type": "string",
-              "enum": ["primary", "context", "counterevidence", "trigger", "confirmatory"]
+              "enum": [
+                "primary",
+                "context",
+                "counterevidence",
+                "trigger",
+                "confirmatory"
+              ]
             },
-            "basis": { "type": "string", "maxLength": 500 },
-            "selection": { "type": "object" },
+            "basis": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "selection": {
+              "type": "object"
+            },
             "derived_from": {
               "type": "array",
-              "items": { "$ref": "#/$defs/EvidenceRef" }
+              "items": {
+                "$ref": "#/$defs/EvidenceRef"
+              }
             }
           },
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": ["kind", "id"],
+          "required": [
+            "kind",
+            "id"
+          ],
           "properties": {
-            "kind": { "type": "string", "enum": ["event", "note", "artifact"] },
-            "id": { "type": "string", "minLength": 1 }
+            "kind": {
+              "type": "string",
+              "enum": [
+                "event",
+                "note",
+                "artifact"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": ["kind", "metric", "from", "to"],
+          "required": [
+            "kind",
+            "metric",
+            "from",
+            "to"
+          ],
           "properties": {
-            "kind": { "type": "string", "enum": ["vitals"] },
-            "metric": { "type": "string" },
-            "from": { "type": "string", "format": "date-time" },
-            "to": { "type": "string", "format": "date-time" },
-            "encounterId": { "type": "string" }
+            "kind": {
+              "type": "string",
+              "enum": [
+                "vitals"
+              ]
+            },
+            "metric": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "to": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "encounterId": {
+              "type": "string"
+            }
           },
           "additionalProperties": false
         }
@@ -84,6 +143,10 @@
       ],
       "description": "Closed set. The first six are clinical claim types per CLAIM-TYPES.md. The last three are chart-structural types used by patient.md, constraints.md, and encounter headers."
     },
+    "profile": {
+      "type": "string",
+      "description": "Optional profile id; when set, must match an entry in schemas/profiles/index.json. See V-PROFILE-01."
+    },
     "subtype": {
       "type": "string",
       "description": "Open-ended, snake_case. See CLAIM-TYPES.md for conventional values per type."
@@ -103,7 +166,9 @@
     },
     "effective_period": {
       "type": "object",
-      "required": ["start"],
+      "required": [
+        "start"
+      ],
       "properties": {
         "start": {
           "type": "string",
@@ -124,10 +189,17 @@
     },
     "author": {
       "type": "object",
-      "required": ["id", "role"],
+      "required": [
+        "id",
+        "role"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "role": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
         "run_id": {
           "type": "string",
           "description": "For agent authors, the decision-cycle run identifier."
@@ -136,11 +208,13 @@
     },
     "source": {
       "type": "object",
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "description": "Provenance channel. Canonical registry lives in DESIGN.md §1.1; schema stays permissive so validator severity can evolve independently of schema."
+          "description": "Provenance channel. Canonical registry lives in DESIGN.md \u00a71.1; schema stays permissive so validator severity can evolve independently of schema."
         },
         "ref": {
           "type": "string",
@@ -150,18 +224,37 @@
     },
     "transform": {
       "type": "object",
-      "required": ["activity", "tool"],
+      "required": [
+        "activity",
+        "tool"
+      ],
       "properties": {
         "activity": {
           "type": "string",
-          "enum": ["import", "normalize", "extract", "summarize", "infer", "transcribe"]
+          "enum": [
+            "import",
+            "normalize",
+            "extract",
+            "summarize",
+            "infer",
+            "transcribe"
+          ]
         },
-        "tool": { "type": "string", "minLength": 1 },
-        "version": { "type": "string" },
-        "run_id": { "type": "string" },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
         "input_refs": {
           "type": "array",
-          "items": { "$ref": "#/$defs/EvidenceRef" }
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          }
         }
       },
       "additionalProperties": false,
@@ -169,12 +262,24 @@
     },
     "certainty": {
       "type": "string",
-      "enum": ["observed", "reported", "inferred", "planned", "performed"],
+      "enum": [
+        "observed",
+        "reported",
+        "inferred",
+        "planned",
+        "performed"
+      ],
       "description": "Epistemic grade of the claim itself."
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "active", "final", "superseded", "entered_in_error"],
+      "enum": [
+        "draft",
+        "active",
+        "final",
+        "superseded",
+        "entered_in_error"
+      ],
       "description": "Lifecycle of the claim within the chart."
     },
     "data": {
@@ -208,37 +313,57 @@
         },
         "supersedes": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "IDs of events this claim replaces."
         },
         "corrects": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "IDs of events flagged as erroneous and replaced by this one."
         },
         "fulfills": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "IDs of intent events this action or outcome fulfills. Validator enforces that targets are type:'intent' within the same patient."
         },
         "addresses": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Problem-targeting targets only. IDs of assessment/problem events this claim addresses. Validator enforces target typing; loop-closing uses links.resolves in later phases."
         },
         "resolves": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Open-loop-closing or contradiction-resolution target ids. Validator enforces target typing per ADR 009 / V-RESOLVES-01."
         },
         "contradicts": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["ref", "basis"],
+            "required": [
+              "ref",
+              "basis"
+            ],
             "properties": {
-              "ref": { "type": "string", "minLength": 1 },
-              "basis": { "type": "string", "minLength": 1, "maxLength": 500 }
+              "ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "basis": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
             },
             "additionalProperties": false
           },
@@ -249,12 +374,24 @@
   },
   "oneOf": [
     {
-      "required": ["effective_at"],
-      "not": { "required": ["effective_period"] }
+      "required": [
+        "effective_at"
+      ],
+      "not": {
+        "required": [
+          "effective_period"
+        ]
+      }
     },
     {
-      "required": ["effective_period"],
-      "not": { "required": ["effective_at"] }
+      "required": [
+        "effective_period"
+      ],
+      "not": {
+        "required": [
+          "effective_at"
+        ]
+      }
     }
   ],
   "allOf": [
@@ -272,10 +409,17 @@
             ]
           }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       },
       "then": {
-        "required": ["encounter_id", "certainty", "data", "links"]
+        "required": [
+          "encounter_id",
+          "certainty",
+          "data",
+          "links"
+        ]
       }
     }
   ]
