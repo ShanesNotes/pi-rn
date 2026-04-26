@@ -84,6 +84,10 @@
       ],
       "description": "Closed set. The first six are clinical claim types per CLAIM-TYPES.md. The last three are chart-structural types used by patient.md, constraints.md, and encounter headers."
     },
+    "profile": {
+      "type": "string",
+      "description": "Optional profile id; when set, must match an entry in schemas/profiles/index.json. See V-PROFILE-01."
+    },
     "subtype": {
       "type": "string",
       "description": "Open-ended, snake_case. See CLAIM-TYPES.md for conventional values per type."
