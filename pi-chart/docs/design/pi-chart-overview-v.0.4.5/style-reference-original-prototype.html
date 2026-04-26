@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>pi-chart — cockpit</title>
+<meta name="viewport" content="width=1480" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --ink-2: #4a4a4a;
+    --ink-3: #8a8a8a;
+    --ink-4: #c4c4c4;
+    --paper: #f4f2ee;     /* warm matte */
+    --paper-2: #ebe8e2;
+    --card: #fbfaf7;
+    --line: #1a1a1a;
+    --hair: rgba(26,26,26,0.18);
+    --grid: rgba(26,26,26,0.06);
+    --accent: oklch(0.62 0.16 25);     /* clinical signal */
+    --accent-soft: oklch(0.62 0.16 25 / 0.10);
+    --ok: oklch(0.55 0.10 150);
+    --sans: "Inter Tight", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --hand: "Caveat", "Inter Tight", cursive;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at 20% 0%, #efece6 0%, var(--paper) 50%) fixed,
+      var(--paper);
+    font-size: 13px;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- frame ---------- */
+  .stage {
+    width: 1480px;
+    margin: 0 auto;
+    padding: 22px 24px 36px;
+  }
+
+  /* sketchy "drawn on paper" border helper */
+  .sketch {
+    border: 1px solid var(--line);
+    background: var(--card);
+    position: relative;
+  }
+  .sketch::after {
+    content: "";
+    position: absolute; inset: 2px 2px 2px 2px;
+    border: 1px dashed transparent;
+    pointer-events: none;
+  }
+  .hairline { border: 1px solid var(--hair); background: var(--card); }
+
+  .meta-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .lbl-hand {
+    font-family: var(--hand);
+    font-size: 18px;
+    color: var(--ink-2);
+    line-height: 1;
+  }
+  .arrow-hand {
+    position: absolute;
+    font-family: var(--hand);
+    color: var(--ink-2);
+    font-size: 16px;
+    line-height: 1.05;
+    pointer-events: none;
+  }
+
+  /* ---------- top doc band ---------- */
+  .docband {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .docband .left .crumb {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .docband h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .docband h1 .pi {
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+  .docband .sub {
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-top: 4px;
+    max-width: 540px;
+  }
+  .docband .right {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .docband .right .row { display: flex; gap: 18px; justify-content: flex-end; }
+  .docband .right .row span b { color: var(--ink); font-weight: 500; }
+  .docband .right .stamp {
+    margin-top: 6px;
+    display: inline-block;
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- patient header ---------- */
+  .phead {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr 0.9fr;
+    border: 1px solid var(--line);
+    background: var(--card);
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .phead > div {
+    padding: 12px 14px 13px;
+    border-right: 1px solid var(--hair);
+    min-height: 78px;
+  }
+  .phead > div:last-child { border-right: 0; }
+  .phead .k {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .phead .v { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+  .phead .v small { font-weight: 400; color: var(--ink-2); font-size: 12px; margin-left: 6px; }
+
+  .name-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .name-row .name { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .name-row .mrn { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .demo-line { margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .demo-line span + span::before { content: "·"; margin: 0 8px; color: var(--ink-4); }
+
+  .acu {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 9px 5px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .acu .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .acu-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-top: 6px; }
+
+  .allergy {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 500;
+  }
+  .allergy::before {
+    content: "!";
+    width: 18px; height: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 12px;
+    transform: rotate(-2deg);
+  }
+  .allergy small { font-weight: 400; color: var(--ink-2); margin-left: auto; font-family: var(--mono); font-size: 10px; }
+
+  .code-pill {
+    display: inline-block;
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .status-mini {
+    display: flex; flex-direction: column; gap: 4px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  }
+  .status-mini b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- body grid ---------- */
+  .body {
+    display: grid;
+    grid-template-columns: 200px 1fr 360px;
+    gap: 14px;
+  }
+
+  /* ---------- left nav ---------- */
+  .nav { padding: 10px 0; }
+  .nav .group {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 0 14px 6px;
+    margin-top: 14px;
+  }
+  .nav .group:first-child { margin-top: 0; }
+  .nav a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px 7px 14px;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+  }
+  .nav a:hover { background: var(--paper-2); }
+  .nav a.active {
+    border-left-color: var(--ink);
+    background: var(--paper-2);
+    font-weight: 500;
+  }
+  .nav a .ct {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .nav a.alert .ct { color: var(--accent); font-weight: 600; }
+  .nav-foot {
+    margin-top: 22px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--hair);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    line-height: 1.6;
+  }
+
+  /* ---------- center ---------- */
+  .center { display: flex; flex-direction: column; gap: 14px; }
+
+  /* row of small panels */
+  .vitals-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .vital {
+    padding: 10px 12px 12px;
+    border-right: 1px solid var(--hair);
+    position: relative;
+  }
+  .vital:last-child { border-right: 0; }
+  .vital .name {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .vital .now {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-top: 4px;
+  }
+  .vital .now small {
+    font-size: 11px; color: var(--ink-2); font-weight: 400; margin-left: 4px; letter-spacing: 0;
+  }
+  .vital .delta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-2);
+    margin-top: 3px;
+  }
+  .vital.signal .now { color: var(--accent); }
+  .vital.signal .delta { color: var(--accent); }
+  .vital svg { display: block; margin-top: 6px; }
+
+  /* timeline */
+  .timeline {
+    border: 1px solid var(--line);
+    background: var(--card);
+    padding: 14px 16px 18px;
+    position: relative;
+  }
+  .panel-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .panel-head h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+  }
+  .panel-head .meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  .panel-head .tabs { display: flex; gap: 14px; }
+  .panel-head .tabs a {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-decoration: none;
+    cursor: pointer;
+    padding-bottom: 3px;
+    border-bottom: 1px solid transparent;
+  }
+  .panel-head .tabs a.on { color: var(--ink); border-bottom-color: var(--ink); }
+
+  .tl-axis { position: relative; height: 22px; margin: 4px 0 6px; }
+  .tl-axis .tick {
+    position: absolute; top: 0; bottom: 0; width: 1px; background: var(--hair);
+  }
+  .tl-axis .tlabel {
+    position: absolute; top: 0;
+    transform: translateX(-50%);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  }
+
+  .tl-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid var(--hair);
+    padding: 8px 0;
+    min-height: 38px;
+  }
+  .tl-row .lane {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .tl-track {
+    position: relative;
+    height: 22px;
+  }
+  .tl-track .ev {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 18px;
+    display: inline-flex; align-items: center;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .tl-track .ev.diamond {
+    width: 12px; height: 12px;
+    padding: 0; border-radius: 0;
+    transform: translate(-50%, -50%) rotate(45deg);
+    background: var(--card);
+  }
+  .tl-track .ev.signal { border-color: var(--accent); color: var(--accent); }
+  .tl-track .ev.fill { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .tl-track .ev.dot {
+    width: 8px; height: 8px; padding: 0; border-radius: 50%; background: var(--ink); border-color: var(--ink);
+  }
+  .tl-track .ev.dot.signal { background: var(--accent); border-color: var(--accent); }
+  .tl-track .span {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    height: 6px;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .tl-now {
+    position: absolute;
+    top: 30px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--accent);
+  }
+  .tl-now::before {
+    content: "NOW";
+    position: absolute;
+    top: -14px;
+    left: 50%; transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    background: var(--card);
+    padding: 0 4px;
+  }
+
+  /* trend chart card */
+  .trend {
+    border: 1px solid var(--line);
+    background: var(--card);
+    padding: 12px 14px 6px;
+  }
+  .trend .head { display: flex; justify-content: space-between; align-items: baseline; }
+  .trend .head h3 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .trend .head .now {
+    font-family: var(--mono);
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  .trend .head .now small { color: var(--ink-2); font-size: 11px; margin-left: 4px; }
+  .trend .head .now.signal { color: var(--accent); }
+
+  /* ---------- right column ---------- */
+  .right { display: flex; flex-direction: column; gap: 14px; }
+
+  .panel {
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .panel .ph {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 11px 14px 10px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .panel .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .panel .ph .ct {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .panel .body-wrap { padding: 10px 14px 12px; }
+
+  .item {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--hair);
+    align-items: start;
+  }
+  .item:first-child { border-top: 0; padding-top: 4px; }
+  .item .marker {
+    margin-top: 4px;
+    width: 10px; height: 10px;
+    border: 1px solid var(--ink);
+  }
+  .item .marker.dot { border-radius: 50%; }
+  .item .marker.fill { background: var(--ink); }
+  .item .marker.signal { border-color: var(--accent); }
+  .item .marker.signal.fill { background: var(--accent); }
+  .item .ttl { font-size: 13px; font-weight: 500; letter-spacing: -0.005em; }
+  .item .sub {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+  .item .meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .item .meta b { color: var(--accent); font-weight: 600; }
+
+  /* action panel — focused decision */
+  .decision {
+    border: 1px solid var(--line);
+    background: var(--card);
+    position: relative;
+  }
+  .decision .ph {
+    background: var(--ink);
+    color: var(--card);
+    padding: 11px 14px 10px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .decision .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .decision .ph .stamp {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    color: rgba(255,255,255,0.7);
+  }
+  .decision .body-wrap { padding: 12px 14px 14px; }
+
+  .decision .trig {
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 9px 11px;
+    margin-bottom: 10px;
+  }
+  .decision .trig .lab {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+  }
+  .decision .trig .ttl {
+    font-size: 14px; font-weight: 600; margin-top: 3px; letter-spacing: -0.01em;
+  }
+  .decision .trig .det {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-top: 4px;
+  }
+
+  .decision .opts { display: flex; flex-direction: column; gap: 0; margin-bottom: 10px; }
+  .decision .opt {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid var(--hair);
+    cursor: pointer;
+    align-items: center;
+  }
+  .decision .opt:first-child { border-top: 0; }
+  .decision .opt .rad {
+    width: 14px; height: 14px; border: 1px solid var(--ink); border-radius: 50%;
+    margin: 1px 0 0 2px;
+    position: relative;
+  }
+  .decision .opt.sel .rad::after {
+    content: ""; position: absolute; inset: 3px; background: var(--ink); border-radius: 50%;
+  }
+  .decision .opt .ttl { font-size: 13px; font-weight: 500; letter-spacing: -0.005em; }
+  .decision .opt .sub {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-top: 2px;
+  }
+  .decision .opt .key {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    border: 1px solid var(--hair);
+    padding: 2px 5px;
+  }
+  .decision .opt.recommended .ttl::after {
+    content: "RECOMMENDED";
+    margin-left: 8px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em;
+    color: var(--accent); font-weight: 600;
+  }
+
+  .decision .ev {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-2);
+    border-top: 1px solid var(--hair);
+    padding-top: 9px;
+    line-height: 1.6;
+  }
+  .decision .ev b { color: var(--ink); font-weight: 500; }
+
+  .decision .actions {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .btn {
+    flex: 1;
+    border: 1px solid var(--line);
+    background: var(--card);
+    padding: 9px 10px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    color: var(--ink);
+  }
+  .btn.primary { background: var(--ink); color: var(--card); }
+  .btn.danger { border-color: var(--accent); color: var(--accent); }
+  .btn .key {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 9px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  .btn.primary .key { color: rgba(255,255,255,0.55); }
+
+  /* assessment / note */
+  .note {
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .note .ph {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 11px 14px 10px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .note .ph h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .note .ph .auth {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .note .body-wrap { padding: 11px 14px 13px; }
+  .note p {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .note p .cite {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    border-bottom: 1px dotted var(--ink-4);
+    cursor: help;
+  }
+  .note .diff {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px 12px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--hair);
+    font-family: var(--mono); font-size: 11px;
+    align-items: center;
+  }
+  .note .diff .lab {
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .note .diff .bar {
+    height: 6px; background: var(--paper-2); position: relative;
+    border: 1px solid var(--hair);
+  }
+  .note .diff .bar > span {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: var(--ink);
+  }
+  .note .diff .pct { color: var(--ink-2); }
+
+  /* footer rail */
+  .rail {
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px 0;
+    border-top: 1px solid var(--hair);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  .rail .keys { display: flex; gap: 14px; }
+  .rail .keys span b {
+    border: 1px solid var(--hair);
+    padding: 1px 5px;
+    margin-right: 4px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* sketch lines for vitals row delineators (handwritten labels) */
+  .scrib {
+    position: absolute;
+    font-family: var(--hand);
+    color: var(--ink-2);
+    font-size: 16px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  /* annotation overlay (toggled via data-annot) */
+  body[data-annot="off"] .arrow-hand,
+  body[data-annot="off"] .scrib,
+  body[data-annot="off"] .lbl-hand { display: none; }
+
+</style>
+</head>
+<body data-annot="on">
+
+<div class="stage">
+
+  <!-- top doc band -->
+  <div class="docband">
+    <div class="left">
+      <div class="crumb">pi-chart · v0.3.0-partial · clinical cockpit / wireframe v1</div>
+      <h1><span class="pi">π</span>-chart — review surface</h1>
+      <div class="sub">Single-screen cockpit for an expert clinician under time pressure. Six view primitives — timeline, currentState, trend, evidenceChain, openLoops, narrative — composed into one calm, dense surface.</div>
+    </div>
+    <div class="right">
+      <div class="row">
+        <span>chart clock <b>sim_time</b></span>
+        <span>tz <b>America/Chicago</b></span>
+        <span>now <b>08:45 · 18 Apr 2026</b></span>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <span>session <b>rn_shane / rn</b></span>
+        <span>scope <b>patient_001 / enc_001</b></span>
+      </div>
+      <div class="stamp">cockpit · low-fi v1</div>
+    </div>
+  </div>
+
+  <!-- patient header -->
+  <div class="phead">
+    <div>
+      <div class="k">Patient</div>
+      <div class="name-row">
+        <span class="name">Patient&nbsp;001</span>
+        <span class="mrn">MRN 0001 · DOB 1973-09-14 · 52 y / M</span>
+      </div>
+      <div class="demo-line">
+        <span>Eng</span><span>HTN · HLD · 25 py smoker (q'18)</span><span>Sp ~ 94% RA baseline</span>
+      </div>
+      <span class="lbl-hand" style="position:absolute; top:-22px; left:14px;">demographics</span>
+    </div>
+
+    <div>
+      <div class="k">Acuity</div>
+      <div class="acu"><span class="dot"></span><span>Watcher · Resp ↑</span></div>
+      <div class="acu-meta">Δ40m · trend signal · auto-flag</div>
+    </div>
+
+    <div style="position:relative">
+      <div class="k">Allergies / intol.</div>
+      <div class="allergy">Penicillin <small>anaphylaxis ’98</small></div>
+      <div class="acu-meta" style="margin-top:6px">caution: broad β-lactam</div>
+      <span class="arrow-hand" style="top:-2px; right:-44px; width:60px;">↘ <em style="font-style:normal">hard stop</em></span>
+    </div>
+
+    <div>
+      <div class="k">Code · directives</div>
+      <div style="margin-top:2px"><span class="code-pill">FULL CODE</span></div>
+      <div class="acu-meta">no AD on file · proxy: spouse</div>
+    </div>
+
+    <div>
+      <div class="k">Status</div>
+      <div class="status-mini">
+        <span><b>Encounter</b> enc_001</span>
+        <span><b>Loc</b> Med-Surg / 4-East · 412B</span>
+        <span><b>LOS</b> day 1 · O₂ 2L NC</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY GRID -->
+  <div class="body">
+
+    <!-- LEFT NAV -->
+    <aside class="sketch nav" style="padding-top:0">
+      <div class="group">Chart</div>
+      <a class="active"><span>Overview</span><span class="ct">⌘1</span></a>
+      <a><span>Problems</span><span class="ct">3</span></a>
+      <a><span>Constraints</span><span class="ct">2</span></a>
+      <a><span>Encounters</span><span class="ct">1</span></a>
+
+      <div class="group">Streams</div>
+      <a><span>Vitals · flowsheet</span><span class="ct">25</span></a>
+      <a><span>Labs / dx</span><span class="ct">— pend</span></a>
+      <a><span>Meds · MAR</span><span class="ct">2</span></a>
+      <a><span>Orders / intents</span><span class="ct">3</span></a>
+      <a class="alert"><span>Open loops</span><span class="ct">2 ↻</span></a>
+
+      <div class="group">Narrative</div>
+      <a><span>Notes</span><span class="ct">4</span></a>
+      <a><span>Communications</span><span class="ct">1 SBAR</span></a>
+      <a><span>Assessment</span><span class="ct">1</span></a>
+      <a><span>Care plan / handoff</span><span class="ct">1</span></a>
+
+      <div class="group">Provenance</div>
+      <a><span>Evidence chain</span><span class="ct">graph</span></a>
+      <a><span>Audit / authors</span><span class="ct">·</span></a>
+
+      <div class="nav-foot">
+        <div>append-only</div>
+        <div>schema 0.3.0</div>
+        <div>6 of 6 views live</div>
+      </div>
+    </aside>
+
+    <!-- CENTER -->
+    <main class="center">
+
+      <!-- vitals row -->
+      <section class="vitals-row" style="position:relative">
+        <span class="lbl-hand" style="position:absolute; top:-22px; left:0;">currentState · vitals (latest, 40m sparkline)</span>
+
+        <div class="vital signal">
+          <div class="name">SpO₂ · 2L NC</div>
+          <div class="now">89<small>%</small></div>
+          <div class="delta">↓ 5 pts / 40m · trigger &lt;90</div>
+          <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" stroke-width="1.4"
+              points="0,4 32,7 64,11 96,14 128,17 160,21" style="color:var(--accent)"/>
+            <line x1="0" y1="14" x2="160" y2="14" stroke="var(--hair)" stroke-dasharray="2 3"/>
+          </svg>
+        </div>
+
+        <div class="vital signal">
+          <div class="name">Heart rate</div>
+          <div class="now">108<small>bpm</small></div>
+          <div class="delta">↑ 20 / 40m · sinus tachy</div>
+          <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" stroke-width="1.4"
+              points="0,18 32,16 64,12 96,9 128,6 160,3" style="color:var(--accent)"/>
+          </svg>
+        </div>
+
+        <div class="vital signal">
+          <div class="name">Resp rate</div>
+          <div class="now">24<small>/min</small></div>
+          <div class="delta">↑ 6 / 40m · tachypnea</div>
+          <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" stroke-width="1.4"
+              points="0,18 32,15 64,11 96,7 128,7 160,5" style="color:var(--accent)"/>
+          </svg>
+        </div>
+
+        <div class="vital">
+          <div class="name">BP</div>
+          <div class="now">130<small>/76</small></div>
+          <div class="delta">stable · MAP 94</div>
+          <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" stroke-width="1.2"
+              points="0,8 32,9 64,9 96,10 128,8 160,9"/>
+          </svg>
+        </div>
+
+        <div class="vital">
+          <div class="name">Temp</div>
+          <div class="now">37.4<small>°C</small></div>
+          <div class="delta">low-grade · stable</div>
+          <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" stroke-width="1.2"
+              points="0,12 32,11 64,12 96,11 128,10 160,11"/>
+          </svg>
+        </div>
+      </section>
+
+      <!-- problem-oriented timeline -->
+      <section class="timeline" style="position:relative">
+        <div class="panel-head">
+          <h2>Problem-oriented timeline · enc_001</h2>
+          <div class="tabs">
+            <a class="on">Today</a><a>Encounter</a><a>30d</a><a>All</a>
+          </div>
+          <div class="meta">window 08:00 → 09:00 · supersession off</div>
+        </div>
+
+        <!-- axis -->
+        <div class="tl-axis">
+          <div class="tick" style="left:0%"></div>     <div class="tlabel" style="left:0%">08:00</div>
+          <div class="tick" style="left:16.6%"></div>  <div class="tlabel" style="left:16.6%">08:10</div>
+          <div class="tick" style="left:33.3%"></div>  <div class="tlabel" style="left:33.3%">08:20</div>
+          <div class="tick" style="left:50%"></div>    <div class="tlabel" style="left:50%">08:30</div>
+          <div class="tick" style="left:66.6%"></div>  <div class="tlabel" style="left:66.6%">08:40</div>
+          <div class="tick" style="left:83.3%"></div>  <div class="tlabel" style="left:83.3%">08:50</div>
+          <div class="tick" style="left:100%"></div>   <div class="tlabel" style="left:100%">09:00</div>
+        </div>
+
+        <!-- now line -->
+        <div class="tl-now" style="left:calc(16px + (100% - 32px) * 0.75); margin-left:110px;"></div>
+
+        <div class="tl-row">
+          <div class="lane">Vitals · SpO₂</div>
+          <div class="tl-track">
+            <span class="ev dot" style="left:0%"></span>
+            <span class="ev dot" style="left:16.6%"></span>
+            <span class="ev dot" style="left:33.3%"></span>
+            <span class="ev dot signal" style="left:50%"></span>
+            <span class="ev dot signal" style="left:66.6%"></span>
+            <span class="span" style="left:0%; right:33.3%;"></span>
+            <span class="meta-tag" style="position:absolute; left:1%; top:-2px;">94 → 89%</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="lane">Patient report</div>
+          <div class="tl-track">
+            <span class="ev signal" style="left:25%">↑ WoB · self-report</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="lane">Bedside exam</div>
+          <div class="tl-track">
+            <span class="ev" style="left:33.3%">WoB mildly ↑ · semi-Fowler</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="lane">Assessment</div>
+          <div class="tl-track">
+            <span class="ev fill" style="left:50%">Trend: worsening resp · moderate</span>
+            <span class="meta-tag" style="position:absolute; left:50%; top:18px; transform:translateX(-50%); white-space:nowrap;">supports: 5 refs · vitals window</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="lane">Intent / plan</div>
+          <div class="tl-track">
+            <span class="span" style="left:50%; right:25%; border-color:var(--ink);"></span>
+            <span class="ev diamond" style="left:50%"></span>
+            <span class="meta-tag" style="position:absolute; left:50%; top:18px; transform:translateX(0); margin-left:10px;">care_plan · due 09:00 · open</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="lane">Action</div>
+          <div class="tl-track">
+            <span class="ev" style="left:75%">Provider notify · SBAR</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="lane">Communication</div>
+          <div class="tl-track">
+            <span class="ev" style="left:75%; margin-top:0;">SBAR → covering MD</span>
+          </div>
+        </div>
+
+        <div class="tl-row" style="border-top:1px dashed var(--hair)">
+          <div class="lane">Open loops</div>
+          <div class="tl-track">
+            <span class="ev signal" style="left:88%">⟳ ABG · pending order</span>
+            <span class="ev" style="left:55%">⟳ reassess @ 09:00</span>
+          </div>
+        </div>
+
+        <span class="arrow-hand" style="left:48%; top:6px;">↓ assessment ties trend → plan → SBAR</span>
+      </section>
+
+      <!-- two trends + assessment -->
+      <section style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+
+        <div class="trend">
+          <div class="head">
+            <h3>trend · spo2</h3>
+            <div class="now signal">89<small>% · ↓ 5 / 40m</small></div>
+          </div>
+          <svg viewBox="0 0 320 110" width="100%" height="110" preserveAspectRatio="none" style="margin-top:6px;">
+            <!-- gridlines -->
+            <g stroke="var(--grid)" stroke-width="1">
+              <line x1="0" y1="22" x2="320" y2="22"/>
+              <line x1="0" y1="55" x2="320" y2="55"/>
+              <line x1="0" y1="88" x2="320" y2="88"/>
+            </g>
+            <!-- threshold 90% -->
+            <line x1="0" y1="50" x2="320" y2="50" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 4"/>
+            <text x="318" y="48" font-family="JetBrains Mono" font-size="9" fill="var(--accent)" text-anchor="end">90% trigger</text>
+            <!-- line: 94,93,91,90,89 over 0..40m mapped to x 0..240 ; x to 320 reserved for future -->
+            <polyline fill="none" stroke="var(--ink)" stroke-width="1.6"
+              points="10,30 70,38 130,55 190,63 250,72"/>
+            <!-- markers -->
+            <g fill="var(--card)" stroke="var(--ink)" stroke-width="1.4">
+              <circle cx="10" cy="30" r="3"/>
+              <circle cx="70" cy="38" r="3"/>
+              <circle cx="130" cy="55" r="3"/>
+              <circle cx="190" cy="63" r="3"/>
+            </g>
+            <g fill="var(--accent)" stroke="var(--accent)" stroke-width="1.4">
+              <circle cx="250" cy="72" r="3.4"/>
+            </g>
+            <!-- axis labels -->
+            <g font-family="JetBrains Mono" font-size="9" fill="var(--ink-3)">
+              <text x="0" y="105">08:00</text>
+              <text x="115" y="105">08:20</text>
+              <text x="240" y="105">08:40</text>
+              <text x="0" y="20">96</text>
+              <text x="0" y="53">92</text>
+              <text x="0" y="86">88</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="trend">
+          <div class="head">
+            <h3>trend · hr / rr</h3>
+            <div class="now"><span style="color:var(--accent)">108</span> <small>bpm</small> · <span style="color:var(--accent)">24</span> <small>/min</small></div>
+          </div>
+          <svg viewBox="0 0 320 110" width="100%" height="110" preserveAspectRatio="none" style="margin-top:6px;">
+            <g stroke="var(--grid)" stroke-width="1">
+              <line x1="0" y1="22" x2="320" y2="22"/>
+              <line x1="0" y1="55" x2="320" y2="55"/>
+              <line x1="0" y1="88" x2="320" y2="88"/>
+            </g>
+            <!-- HR 88,92,98,104,108 -->
+            <polyline fill="none" stroke="var(--ink)" stroke-width="1.6"
+              points="10,70 70,64 130,56 190,48 250,42"/>
+            <!-- RR 18,20,22,24,24 (dashed) -->
+            <polyline fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="3 3"
+              points="10,80 70,76 130,72 190,68 250,68"/>
+            <g fill="var(--card)" stroke="var(--ink)" stroke-width="1.4">
+              <circle cx="10" cy="70" r="3"/><circle cx="70" cy="64" r="3"/>
+              <circle cx="130" cy="56" r="3"/><circle cx="190" cy="48" r="3"/>
+            </g>
+            <circle cx="250" cy="42" r="3.4" fill="var(--accent)" stroke="var(--accent)"/>
+            <g font-family="JetBrains Mono" font-size="9" fill="var(--ink-3)">
+              <text x="0" y="105">08:00</text>
+              <text x="115" y="105">08:20</text>
+              <text x="240" y="105">08:40</text>
+              <text x="260" y="40" fill="var(--ink-2)">HR ━</text>
+              <text x="260" y="86" fill="var(--ink-2)">RR ┄</text>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- assessment / note -->
+      <section class="note">
+        <div class="ph">
+          <h2>Assessment · narrative · 08:30</h2>
+          <span class="auth">pi-agent / rn_agent · agent_inference · supports&nbsp;5</span>
+        </div>
+        <div class="body-wrap">
+          <p>
+            Worsening respiratory status: <span class="cite" title="vitals_window · spo2 08:00→08:40">SpO₂ 94→89% over 40 min</span> on stable 2L NC;
+            <span class="cite" title="vitals_window · hr">HR 88→108</span>, <span class="cite" title="vitals_window · rr">RR 18→24</span>.
+            Patient reports increased work of breathing <span class="cite" title="evt_20260418T0815_01 · patient_statement">since waking</span>.
+            Bedside exam: <span class="cite" title="evt_20260418T0820_01 · agent_bedside_observation">WoB mildly ↑, no accessory muscle use, semi-Fowler</span>.
+          </p>
+          <div class="diff">
+            <span class="lab">Worsening pneumonia</span>
+            <span class="bar"><span style="width:78%"></span></span>
+            <span class="pct">high</span>
+
+            <span class="lab">Mucus plugging</span>
+            <span class="bar"><span style="width:48%"></span></span>
+            <span class="pct">moderate</span>
+
+            <span class="lab">New pulmonary embolus</span>
+            <span class="bar"><span style="width:30%"></span></span>
+            <span class="pct">low–mod</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT -->
+    <aside class="right">
+
+      <!-- focused decision -->
+      <section class="decision">
+        <div class="ph">
+          <h2>Focused decision · escalation</h2>
+          <span class="stamp">⌘K</span>
+        </div>
+        <div class="body-wrap">
+          <div class="trig">
+            <div class="lab">Trigger met · contingency #1</div>
+            <div class="ttl">SpO₂ 89% · approaching &lt;88 for &gt;2 min</div>
+            <div class="det">care_plan due 09:00 · O₂ 2L NC · last action: SBAR sent 08:45</div>
+          </div>
+
+          <div class="opts">
+            <div class="opt sel recommended">
+              <div class="rad"></div>
+              <div>
+                <div class="ttl">↑ FiO₂ to 4L NC + reassess 10 min</div>
+                <div class="sub">protocol_standing_order · RT pager · titrate to SpO₂ ≥92</div>
+              </div>
+              <div class="key">↵</div>
+            </div>
+            <div class="opt">
+              <div class="rad"></div>
+              <div>
+                <div class="ttl">Order ABG · stat</div>
+                <div class="sub">closes open loop · pending lab_interface_hl7</div>
+              </div>
+              <div class="key">A</div>
+            </div>
+            <div class="opt">
+              <div class="rad"></div>
+              <div>
+                <div class="ttl">Page covering MD · bedside eval</div>
+                <div class="sub">communication.sbar_call · supersedes 08:45 SBAR</div>
+              </div>
+              <div class="key">P</div>
+            </div>
+            <div class="opt">
+              <div class="rad"></div>
+              <div>
+                <div class="ttl">Hold · reassess in 5 min</div>
+                <div class="sub">defer · adds review-cycle event</div>
+              </div>
+              <div class="key">H</div>
+            </div>
+          </div>
+
+          <div class="ev">
+            <b>Evidence chain</b><br/>
+            ← assessment <i>evt_…0830_01</i> ← vitals_window spo2 / hr / rr ← exam <i>…0820_01</i> ← report <i>…0815_01</i>
+          </div>
+
+          <div class="actions">
+            <button class="btn">Defer</button>
+            <button class="btn primary">Commit cycle <span class="key">⌘↵</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- open loops -->
+      <section class="panel">
+        <div class="ph">
+          <h2>Open loops</h2>
+          <span class="ct">2 · openLoops()</span>
+        </div>
+        <div class="body-wrap">
+          <div class="item">
+            <div class="marker dot signal fill"></div>
+            <div>
+              <div class="ttl">Reassess respiratory status</div>
+              <div class="sub">care_plan · pending · addresses #worsening_resp</div>
+            </div>
+            <div class="meta">due <b>09:00</b><br/>−15m</div>
+          </div>
+          <div class="item">
+            <div class="marker dot"></div>
+            <div>
+              <div class="ttl">SBAR → covering MD</div>
+              <div class="sub">action sent · awaiting fulfillment</div>
+            </div>
+            <div class="meta">+0m<br/>08:45</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- meds & orders -->
+      <section class="panel">
+        <div class="ph">
+          <h2>Meds · orders</h2>
+          <span class="ct">timeline(types=intent,action)</span>
+        </div>
+        <div class="body-wrap">
+          <div class="item">
+            <div class="marker"></div>
+            <div>
+              <div class="ttl">O₂ — nasal cannula 2L</div>
+              <div class="sub">active · standing · titrate to SpO₂ ≥ 92</div>
+            </div>
+            <div class="meta">since<br/>06:00</div>
+          </div>
+          <div class="item">
+            <div class="marker fill"></div>
+            <div>
+              <div class="ttl">Lisinopril 10 mg PO daily</div>
+              <div class="sub">home med · MAR · due 09:00</div>
+            </div>
+            <div class="meta">due<br/>09:00</div>
+          </div>
+          <div class="item">
+            <div class="marker"></div>
+            <div>
+              <div class="ttl">Atorvastatin 20 mg PO QHS</div>
+              <div class="sub">home med · MAR · last 22:00</div>
+            </div>
+            <div class="meta">22:00<br/>given</div>
+          </div>
+          <div class="item">
+            <div class="marker dot signal"></div>
+            <div>
+              <div class="ttl">— ABG · stat <em style="font-style:normal;color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:.1em;">PROPOSED</em></div>
+              <div class="sub">awaiting commit · would close diag loop</div>
+            </div>
+            <div class="meta">·</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- footer rail -->
+  <div class="rail">
+    <div>append-only · 6 events · 25 vitals samples · last write 08:45:10 by pi-agent</div>
+    <div class="keys">
+      <span><b>⌘1</b>overview</span>
+      <span><b>T</b>timeline</span>
+      <span><b>L</b>labs</span>
+      <span><b>O</b>open loops</span>
+      <span><b>⌘K</b>decide</span>
+      <span><b>?</b>shortcuts</span>
+    </div>
+  </div>
+</div>
+
+<!-- React + Babel for tweaks -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "annotations": true,
+  "density": "comfortable",
+  "accentHue": 25,
+  "paperTone": "warm",
+  "decisionStyle": "accent",
+  "showVitalsTrend": true
+}/*EDITMODE-END*/;
+
+function PiTweaks() {
+  const { tweaks, setTweak } = window.useTweaks(TWEAK_DEFAULTS);
+
+  React.useEffect(() => {
+    document.body.dataset.annot = tweaks.annotations ? "on" : "off";
+  }, [tweaks.annotations]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--accent", `oklch(0.62 0.16 ${tweaks.accentHue})`);
+    root.style.setProperty("--accent-soft", `oklch(0.62 0.16 ${tweaks.accentHue} / 0.10)`);
+  }, [tweaks.accentHue]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (tweaks.paperTone === "cool") {
+      root.style.setProperty("--paper", "#eef0f3");
+      root.style.setProperty("--paper-2", "#e3e6ea");
+      root.style.setProperty("--card", "#f7f9fb");
+    } else if (tweaks.paperTone === "neutral") {
+      root.style.setProperty("--paper", "#f1f1f0");
+      root.style.setProperty("--paper-2", "#e6e6e5");
+      root.style.setProperty("--card", "#fafafa");
+    } else if (tweaks.paperTone === "graphite") {
+      root.style.setProperty("--paper", "#1c1c1c");
+      root.style.setProperty("--paper-2", "#262626");
+      root.style.setProperty("--card", "#1f1f1f");
+      root.style.setProperty("--ink", "#f0ede6");
+      root.style.setProperty("--ink-2", "#bfbcb4");
+      root.style.setProperty("--ink-3", "#807d76");
+      root.style.setProperty("--ink-4", "#4a4844");
+      root.style.setProperty("--line", "#f0ede6");
+      root.style.setProperty("--hair", "rgba(240,237,230,0.16)");
+      root.style.setProperty("--grid", "rgba(240,237,230,0.06)");
+      return;
+    } else {
+      // warm (default)
+      root.style.setProperty("--paper", "#f4f2ee");
+      root.style.setProperty("--paper-2", "#ebe8e2");
+      root.style.setProperty("--card", "#fbfaf7");
+    }
+    if (tweaks.paperTone !== "graphite") {
+      root.style.setProperty("--ink", "#1a1a1a");
+      root.style.setProperty("--ink-2", "#4a4a4a");
+      root.style.setProperty("--ink-3", "#8a8a8a");
+      root.style.setProperty("--ink-4", "#c4c4c4");
+      root.style.setProperty("--line", "#1a1a1a");
+      root.style.setProperty("--hair", "rgba(26,26,26,0.18)");
+      root.style.setProperty("--grid", "rgba(26,26,26,0.06)");
+    }
+  }, [tweaks.paperTone]);
+
+  React.useEffect(() => {
+    document.body.style.fontSize = tweaks.density === "compact" ? "12px"
+      : tweaks.density === "spacious" ? "14px" : "13px";
+  }, [tweaks.density]);
+
+  return (
+    <window.TweaksPanel title="Tweaks · pi-chart">
+      <window.TweakSection title="annotations">
+        <window.TweakToggle
+          label="hand-drawn labels"
+          value={tweaks.annotations}
+          onChange={v => setTweak("annotations", v)} />
+      </window.TweakSection>
+
+      <window.TweakSection title="surface">
+        <window.TweakRadio
+          label="paper tone"
+          value={tweaks.paperTone}
+          options={[
+            {value: "warm", label: "warm"},
+            {value: "neutral", label: "neutral"},
+            {value: "cool", label: "cool"},
+            {value: "graphite", label: "dark"},
+          ]}
+          onChange={v => setTweak("paperTone", v)} />
+        <window.TweakRadio
+          label="density"
+          value={tweaks.density}
+          options={[
+            {value: "compact", label: "compact"},
+            {value: "comfortable", label: "comfort"},
+            {value: "spacious", label: "spacious"},
+          ]}
+          onChange={v => setTweak("density", v)} />
+      </window.TweakSection>
+
+      <window.TweakSection title="signal">
+        <window.TweakSlider
+          label="accent hue"
+          value={tweaks.accentHue}
+          min={0} max={360} step={5}
+          onChange={v => setTweak("accentHue", v)} />
+      </window.TweakSection>
+    </window.TweaksPanel>
+  );
+}
+
+const tweakRoot = document.createElement("div");
+document.body.appendChild(tweakRoot);
+ReactDOM.createRoot(tweakRoot).render(<PiTweaks />);
+</script>
+
+</body>
+</html>
