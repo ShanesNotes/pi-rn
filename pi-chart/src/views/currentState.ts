@@ -37,6 +37,11 @@ import {
   openLoops,
 } from "./openLoops.js";
 import { formatSource } from "./source.js";
+import {
+  A1_CANONICAL_SHARED_METRICS,
+  isProfileRoutedTrainingMetric,
+  vitalQualityState,
+} from "../vitals.js";
 
 type ActiveContextReady = Awaited<ReturnType<typeof loadContext>>;
 
@@ -84,6 +89,11 @@ export async function currentState(params: CurrentStateParams): Promise<CurrentS
         axis: "vitals",
         items: await collectLatestVitals(params, asOf),
       };
+    case "context":
+      return {
+        axis: "context",
+        items: collectActiveContextSegments(ctx),
+      };
     case "all": {
       const constraints = collectConstraints(ctx);
       const problems = collectProblems(ctx);
@@ -92,6 +102,7 @@ export async function currentState(params: CurrentStateParams): Promise<CurrentS
         asOf,
       });
       const vitals = await collectLatestVitals(params, asOf);
+      const context = collectActiveContextSegments(ctx);
       const observations = collectObservations(ctx);
       return {
         axis: "all",
@@ -102,6 +113,7 @@ export async function currentState(params: CurrentStateParams): Promise<CurrentS
             !("kind" in loop) || loop.kind !== "contested_claim",
         ),
         vitals,
+        context,
         observations,
         contested: {
           constraints: contestedByAxis.constraints,
@@ -178,6 +190,30 @@ function collectObservations(
   return out;
 }
 
+function collectActiveContextSegments(
+  ctx: ActiveContextReady,
+): Record<string, EventEnvelope> {
+  const latest = new Map<string, { t: number; event: EventEnvelope }>();
+  for (const ev of ctx.events) {
+    if (ev.type !== "observation" || ev.subtype !== "context_segment") continue;
+    if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
+    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
+    const segmentType =
+      typeof ev.data?.segment_type === "string" ? ev.data.segment_type : null;
+    if (!segmentType) continue;
+    const t = Date.parse(eventStartIso(ev) ?? "");
+    const prior = latest.get(segmentType);
+    if (!prior || (Number.isFinite(t) && t > prior.t)) {
+      latest.set(segmentType, { t, event: ev });
+    }
+  }
+  return Object.fromEntries(
+    [...latest.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => [key, value.event]),
+  );
+}
+
 function selectContested(
   entries: ContestedRuntimeEntry[],
   axis: ContestedRuntimeEntry["axis"],
@@ -196,16 +232,24 @@ async function collectLatestVitals(
   for (const p of await globPerDayFile(pr, "vitals.jsonl")) {
     for await (const [, v] of iterNdjson(p)) {
       if (!v || typeof v.name !== "string") continue;
-      if (v.quality === "invalid") continue;
+      if (vitalQualityState(v.quality) === "invalid") continue;
+      if (A1_CANONICAL_SHARED_METRICS.has(v.name) && !isProfileRoutedTrainingMetric(v)) {
+        continue;
+      }
       const t = Date.parse(v.sampled_at ?? "");
       if (!Number.isFinite(t) || t > asOfMs) continue;
       const source = formatSource(v.source);
       const point: TrendPoint = {
         sampled_at: v.sampled_at,
+        recorded_at: v.recorded_at,
+        sample_key: v.sample_key,
         value: v.value,
         unit: v.unit,
         source,
         context: v.context,
+        quality: v.quality,
+        profile: v.profile,
+        training_label: v.training_label,
       };
       const prior = latest[v.name];
       if (!prior || t > prior.t) latest[v.name] = { t, point };

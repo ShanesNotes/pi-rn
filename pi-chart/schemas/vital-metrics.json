@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-rn.local/schemas/vital-metrics.json",
+  "title": "pi-chart vital metric registry",
+  "version": 1,
+  "metrics": [
+    { "name": "spo2", "unit": "%", "loinc": "2708-6", "kind": "core" },
+    { "name": "heart_rate", "unit": "/min", "loinc": "8867-4", "kind": "core" },
+    { "name": "respiratory_rate", "unit": "/min", "loinc": "9279-1", "kind": "core" },
+    { "name": "bp_systolic", "unit": "mm[Hg]", "kind": "core" },
+    { "name": "bp_diastolic", "unit": "mm[Hg]", "kind": "core" },
+    { "name": "map", "unit": "mm[Hg]", "loinc": "8478-0", "kind": "core" },
+    { "name": "temp_c", "unit": "Cel", "loinc": "8310-5", "kind": "core" },
+    { "name": "etco2_mmhg", "unit": "mm[Hg]", "kind": "core" },
+    { "name": "level_of_consciousness", "kind": "cross_artifact" },
+    { "name": "urine_ml_hr", "unit": "mL/h", "kind": "cross_artifact" },
+    { "name": "lactate_mmol_l", "unit": "mmol/L", "kind": "a1_canonical_sim_profile_only" },
+    { "name": "ph", "kind": "a1_canonical_sim_profile_only" },
+    { "name": "pao2_mmhg", "unit": "mm[Hg]", "kind": "a1_canonical_sim_profile_only" },
+    { "name": "paco2_mmhg", "unit": "mm[Hg]", "kind": "a1_canonical_sim_profile_only" },
+    { "name": "hgb_g_dl", "unit": "g/dL", "kind": "a1_canonical_sim_profile_only" }
+  ]
+}

@@ -35,6 +35,13 @@ import {
   parseIso,
 } from "./time.js";
 import { patientRoot } from "./types.js";
+import {
+  A1_CANONICAL_SHARED_METRICS,
+  CORE_VITAL_METRICS,
+  formatVitalSampleKey,
+  isProfileRoutedTrainingMetric,
+  vitalQualityState,
+} from "./vitals.js";
 import type { PatientScope, ReportEntry, ValidationReport } from "./types.js";
 
 type ProfileRegistry = {
@@ -64,6 +71,8 @@ interface State {
   chartRoot: string;                        // repo root (for schemas/)
   patientRoot: string;                      // patient dir (for data)
   patientId: string;
+  vitalMetricNames: Set<string>;
+  vitalSampleKeys: Map<string, string>;
 }
 
 function err(s: State, where: string, message: string) {
@@ -237,8 +246,12 @@ const VITAL_METRIC_NAMES = new Set([
   "spo2",
   "heart_rate",
   "respiratory_rate",
+  "bp_systolic",
+  "bp_diastolic",
+  "map",
   "blood_pressure",
   "temperature",
+  "temp_c",
 ]);
 
 const VITAL_TEXT_TOKENS: ReadonlyArray<RegExp> = [
@@ -393,6 +406,24 @@ const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
     },
   },
 };
+
+function loadVitalMetricNames(chartRoot: string): Set<string> {
+  const names = new Set<string>([...CORE_VITAL_METRICS, ...A1_CANONICAL_SHARED_METRICS]);
+  try {
+    const registryPath = path.join(chartRoot, "schemas", "vital-metrics.json");
+    const registry = JSON.parse(readFileSync(registryPath, "utf8")) as { metrics?: unknown };
+    if (Array.isArray(registry.metrics)) {
+      for (const entry of registry.metrics) {
+        if (entry && typeof entry === "object" && typeof (entry as { name?: unknown }).name === "string") {
+          names.add((entry as { name: string }).name);
+        }
+      }
+    }
+  } catch {
+    // Registry is additive while the corpus migrates; fall back to built-ins.
+  }
+  return names;
+}
 
 function ruleErr(state: State, where: string, code: string, message: string) {
   err(state, where, `${code}: ${message}`);
@@ -872,6 +903,8 @@ export async function validateChart(scope: PatientScope): Promise<ValidationRepo
     chartRoot: scope.chartRoot,
     patientRoot: pr,
     patientId: scope.patientId,
+    vitalMetricNames: loadVitalMetricNames(scope.chartRoot),
+    vitalSampleKeys: new Map(),
   };
 
   // Invariant 6: the directory is the authoritative identity. Every
@@ -1029,6 +1062,7 @@ async function validateTimeline(
   vitalsValidator: Awaited<ReturnType<typeof loadValidator>> | null,
 ) {
   const timelineRoot = path.join(state.patientRoot, "timeline");
+  const contextSegments = await loadContextSegmentsForValidation(state.patientRoot);
   let dayEntries: string[];
   try {
     dayEntries = await fs.readdir(timelineRoot);
@@ -1136,6 +1170,7 @@ async function validateTimeline(
             `sampled_at '${v.sampled_at}' does not start with day directory prefix '${day}'`,
           );
         }
+        validateVitalSampleRules(state, where, v, contextSegments);
       }
     } catch (e: any) {
       err(state, path.relative(state.patientRoot, vPath), `invalid JSON: ${e?.message ?? e}`);
@@ -1209,6 +1244,140 @@ async function validateNote(
     trackId(state, nid, rel);
     state.noteIds.add(nid);
   }
+}
+
+async function loadContextSegmentsForValidation(patientDir: string): Promise<any[]> {
+  const events: any[] = [];
+  for (const evPath of await globPerDayFile(patientDir, "events.ndjson")) {
+    try {
+      for await (const [, ev] of iterNdjson(evPath)) {
+        events.push(ev);
+      }
+    } catch {
+      // Timeline validation reports parse errors in its normal pass.
+    }
+  }
+  const replaced = new Set<string>();
+  for (const ev of events) {
+    for (const target of ev?.links?.supersedes ?? []) {
+      if (typeof target === "string") replaced.add(target);
+    }
+    for (const target of ev?.links?.corrects ?? []) {
+      if (typeof target === "string") replaced.add(target);
+    }
+  }
+  return events.filter(
+    (ev) =>
+      ev?.type === "observation" &&
+      ev?.subtype === "context_segment" &&
+      !replaced.has(ev.id) &&
+      ev.status !== "superseded" &&
+      ev.status !== "entered_in_error",
+  );
+}
+
+function validateVitalSampleRules(
+  state: State,
+  where: string,
+  v: any,
+  contextSegments: any[],
+) {
+  const sampledAt = parseIso(v?.sampled_at);
+  const recordedAt = parseIso(v?.recorded_at);
+  if (!recordedAt) {
+    ruleWarn(state, where, "V-VITAL-01", "vitals row should carry recorded_at chart-ingest/write time");
+  } else if (sampledAt && recordedAt.getTime() < sampledAt.getTime()) {
+    ruleErr(state, where, "V-VITAL-01", "vitals recorded_at must not be earlier than sampled_at");
+  }
+
+  const expectedSampleKey = formatVitalSampleKey(v);
+  if (expectedSampleKey === null) {
+    ruleErr(state, where, "V-VITAL-01", "vitals value/source fields must support deterministic sample_key generation");
+  }
+  if (!v?.sample_key) {
+    ruleWarn(state, where, "V-VITAL-01", "vitals row should carry deterministic sample_key");
+  } else if (typeof v.sample_key === "string") {
+    const prior = state.vitalSampleKeys.get(v.sample_key);
+    if (prior) {
+      ruleErr(state, where, "V-VITAL-01", `duplicate sample_key '${v.sample_key}' first seen at ${prior}`);
+    } else {
+      state.vitalSampleKeys.set(v.sample_key, where);
+    }
+    if (expectedSampleKey && v.sample_key !== expectedSampleKey && !v.sample_key.startsWith(`${expectedSampleKey}_`)) {
+      ruleErr(state, where, "V-VITAL-01", `sample_key '${v.sample_key}' does not match deterministic key '${expectedSampleKey}'`);
+    }
+  }
+
+  if (typeof v?.name === "string" && !state.vitalMetricNames.has(v.name)) {
+    ruleWarn(state, where, "V-VITAL-02", `vitals metric '${v.name}' is not in schemas/vital-metrics.json`);
+  }
+  if (typeof v?.name === "string" && A1_CANONICAL_SHARED_METRICS.has(v.name) && !isProfileRoutedTrainingMetric(v)) {
+    ruleWarn(
+      state,
+      where,
+      "V-VITAL-02",
+      `A1-canonical metric '${v.name}' in A3 vitals should be explicitly profile-routed/training-labeled`,
+    );
+  }
+
+  if (v?.name === "spo2") {
+    const activeO2 = activeOxygenContextSegment(contextSegments, v);
+    const inlineDevice = oxygenDeviceFrom(v?.context);
+    if (!inlineDevice && !activeO2) {
+      ruleWarn(
+        state,
+        where,
+        "V-VITAL-03",
+        "spo2 sample should carry inline oxygen context or have a covering o2_delivery context_segment",
+      );
+    }
+    const segmentDevice = oxygenDeviceFrom(activeO2?.data) ?? oxygenDeviceFrom(activeO2?.data?.payload);
+    if (inlineDevice && segmentDevice && inlineDevice !== segmentDevice) {
+      ruleWarn(
+        state,
+        where,
+        "V-VITAL-06",
+        `spo2 inline oxygen context '${inlineDevice}' disagrees with active context_segment '${segmentDevice}'`,
+      );
+    }
+  }
+
+  const quality = vitalQualityState(v?.quality);
+  if (quality === "invalid" && !qualityFlags(v?.quality).length && !v?.artifact) {
+    ruleWarn(state, where, "V-VITAL-01", "invalid vitals sample should explain artifact via quality.flags or artifact");
+  }
+}
+
+function activeOxygenContextSegment(segments: any[], sample: any): any | null {
+  const sampledAt = sample?.sampled_at;
+  if (typeof sampledAt !== "string") return null;
+  const sampleMs = Date.parse(sampledAt);
+  if (!Number.isFinite(sampleMs)) return null;
+  let best: { t: number; ev: any } | null = null;
+  for (const ev of segments) {
+    if (ev?.subject !== sample?.subject || ev?.encounter_id !== sample?.encounter_id) continue;
+    if (ev?.data?.segment_type !== "o2_delivery") continue;
+    const start = Date.parse(ev?.effective_period?.start ?? ev?.effective_at ?? "");
+    const endRaw = ev?.effective_period?.end;
+    const end = typeof endRaw === "string" ? Date.parse(endRaw) : Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(start) || start > sampleMs || end < sampleMs) continue;
+    if (!best || start > best.t) best = { t: start, ev };
+  }
+  return best?.ev ?? null;
+}
+
+function oxygenDeviceFrom(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.o2_device === "string") return record.o2_device;
+  if (record.room_air === true) return "room_air";
+  return null;
+}
+
+function qualityFlags(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  const flags = (value as { flags?: unknown }).flags;
+  return Array.isArray(flags) ? flags.filter((flag): flag is string => typeof flag === "string") : [];
 }
 
 async function checkReferentialIntegrity(state: State) {

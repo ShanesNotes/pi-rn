@@ -6,16 +6,21 @@ import {
   makeEmptyPatient,
   appendRawEvent,
   patientDir,
+  appendRawVital,
 } from "../test-helpers/fixture.js";
 import { validateChart } from "../validate.js";
 import { currentState } from "./currentState.js";
 import { openLoops } from "./openLoops.js";
-import type { ContestedClaim } from "../types.js";
+import type { ContestedClaim, VitalOpenLoop } from "../types.js";
 
 type OpenLoopEntry = Awaited<ReturnType<typeof openLoops>>[number];
 
 function isContestedClaim(loop: OpenLoopEntry): loop is ContestedClaim {
   return "kind" in loop && loop.kind === "contested_claim";
+}
+
+function isVitalLoop(loop: OpenLoopEntry | undefined, kind?: VitalOpenLoop["kind"]): loop is VitalOpenLoop {
+  return Boolean(loop && (kind ? loop.kind === kind : loop.kind === "vital_cadence" || loop.kind === "vital_alarm"));
 }
 
 function intent(
@@ -411,4 +416,123 @@ test("resolver event clears contested_claim and currentState contested data whil
 
   const afterLoops = await openLoops({ scope, asOf: "2026-04-18T09:30:00-05:00" });
   assert(!afterLoops.some(isContestedClaim));
+});
+
+test("monitoring_plan emits vital_cadence loop when ordered cadence is stale", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_monitor_spo2", "2026-04-18T08:00:00-05:00", {
+    subtype: "monitoring_plan",
+    data: { metrics: ["spo2"], required_cadence: "q15min" },
+  }));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 95,
+  });
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:30:00-05:00" });
+  const vitalLoop = loops.find((loop) => loop.kind === "vital_cadence");
+  assert.ok(isVitalLoop(vitalLoop, "vital_cadence"), JSON.stringify(loops, null, 2));
+  assert.equal(vitalLoop.metric, "spo2");
+  assert.equal(vitalLoop.state, "overdue");
+  assert.equal(vitalLoop.severity, "medium");
+});
+
+test("alarm-triggered monitoring_plan emits high-severity vital_alarm loop", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_monitor_alarm", "2026-04-18T08:00:00-05:00", {
+    subtype: "monitoring_plan",
+    data: { metric: "spo2", required_cadence: "15m", triggered_by_alarm: true },
+  }));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 85,
+  });
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:30:00-05:00" });
+  const vitalLoop = loops.find((loop) => loop.kind === "vital_alarm");
+  assert.ok(isVitalLoop(vitalLoop, "vital_alarm"), JSON.stringify(loops, null, 2));
+  assert.equal(vitalLoop.metric, "spo2");
+  assert.equal(vitalLoop.severity, "high");
+  assert.equal(vitalLoop.basis, "alarm-triggered temporary monitoring obligation is overdue");
+});
+
+test("final fulfillment closes vital monitoring loops", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_monitor_closed", "2026-04-18T08:00:00-05:00", {
+    subtype: "monitoring_plan",
+    data: { metric: "spo2", required_cadence: "15m", triggered_by_alarm: true },
+  }));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 85,
+  });
+  await appendRawEvent(scope, "2026-04-18", action("evt_monitor_pause", "2026-04-18T08:20:00-05:00", ["evt_monitor_closed"], {
+    subtype: "alarm_pause",
+    status: "final",
+    data: { action: "pause alarm-triggered monitoring", status_detail: "performed" },
+  }));
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:45:00-05:00" });
+  assert.equal(loops.some((loop) => loop.intent.id === "evt_monitor_closed"), false);
+});
+
+test("vital monitoring freshness is scoped to the intent encounter", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_monitor_enc1", "2026-04-18T08:00:00-05:00", {
+    subtype: "monitoring_plan",
+    data: { metric: "spo2", required_cadence: "15m" },
+  }));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:29:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 99,
+  });
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:30:00-05:00" });
+  const vitalLoop = loops.find((loop) => loop.kind === "vital_cadence");
+  assert.ok(isVitalLoop(vitalLoop, "vital_cadence"), JSON.stringify(loops, null, 2));
+  assert.equal(vitalLoop.intent.id, "evt_monitor_enc1");
+  assert.equal(vitalLoop.lastSampledAt, undefined);
+});
+
+test("newer wrong-encounter vital does not evict fresh in-encounter monitoring sample", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_monitor_enc1_fresh", "2026-04-18T08:00:00-05:00", {
+    subtype: "monitoring_plan",
+    data: { metric: "spo2", required_cadence: "15m" },
+  }));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:20:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 95,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:29:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 99,
+  });
+
+  const loops = await openLoops({ scope, asOf: "2026-04-18T08:30:00-05:00" });
+  assert.equal(loops.some((loop) => loop.kind === "vital_cadence"), false, JSON.stringify(loops, null, 2));
 });

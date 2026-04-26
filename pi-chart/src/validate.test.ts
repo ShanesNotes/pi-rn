@@ -4,6 +4,8 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import { validateChart } from "./validate.js";
+import { makeEmptyPatient, appendRawEvent, appendRawVital } from "./test-helpers/fixture.js";
+import { formatVitalSampleKey } from "./vitals.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope } from "./types.js";
 
@@ -1565,6 +1567,179 @@ test("vitals row missing encounter_id rejected", async () => {
   await fs.writeFile(vp, lines.join("\n") + "\n");
   const r = await validateChart(scope);
   assert(r.errors.some((e) => /encounter_id/.test(e.message)));
+});
+
+
+
+test("V-VITAL-01 accepts deterministic sample_key and recorded_at ordering", async () => {
+  const scope = await makeEmptyPatient();
+  const sample = {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:02-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "heart_rate",
+    value: 88,
+    unit: "beats/min",
+    quality: { state: "valid" },
+  };
+  await appendRawVital(scope, "2026-04-18", { ...sample, sample_key: formatVitalSampleKey(sample) });
+
+  const r = await validateChart(scope);
+  assert.ok(!r.errors.some((error) => /V-VITAL-01/.test(error.message)), JSON.stringify(r.errors, null, 2));
+  assert.ok(!r.warnings.some((warning) => /V-VITAL-01/.test(warning.message)), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-VITAL-01 rejects mismatched sample_key", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:02-05:00",
+    sample_key: "vital_deadbeefdeadbeef",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "heart_rate",
+    value: 88,
+    unit: "beats/min",
+    quality: { state: "valid" },
+  });
+
+  const r = await validateChart(scope);
+  assert.ok(r.errors.some((error) => /V-VITAL-01/.test(error.message) && /sample_key/.test(error.message)), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-VITAL-01 rejects duplicate sample_key and object values", async () => {
+  const scope = await makeEmptyPatient();
+  const sample = {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:02-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "heart_rate",
+    value: 88,
+    unit: "beats/min",
+    quality: { state: "valid" },
+  };
+  await appendRawVital(scope, "2026-04-18", { ...sample, sample_key: formatVitalSampleKey(sample) });
+  await appendRawVital(scope, "2026-04-18", { ...sample, sample_key: formatVitalSampleKey(sample) });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:05:00-05:00",
+    recorded_at: "2026-04-18T08:05:02-05:00",
+    sample_key: "vital_3333333333333333",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "heart_rate",
+    value: { unsupported: true },
+    quality: { state: "valid" },
+  });
+
+  const r = await validateChart(scope);
+  assert.ok(r.errors.some((error) => /duplicate sample_key/.test(error.message)), JSON.stringify(r.errors, null, 2));
+  assert.ok(r.errors.some((error) => /value\/type/.test(error.message) || /deterministic sample_key/.test(error.message)), JSON.stringify(r.errors, null, 2));
+});
+
+test("V-VITAL-03 and V-VITAL-06 use oxygen context segments for spo2 context", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "ctx_o2_nc",
+    type: "observation",
+    subtype: "context_segment",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_period: { start: "2026-04-18T08:00:00-05:00", end: "2026-04-18T09:00:00-05:00" },
+    recorded_at: "2026-04-18T08:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { segment_type: "o2_delivery", o2_device: "nasal_cannula", o2_flow_lpm: 2 },
+    links: { supports: [] },
+  });
+  const sample = {
+    sampled_at: "2026-04-18T08:15:00-05:00",
+    recorded_at: "2026-04-18T08:15:02-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "spo2",
+    value: 92,
+    unit: "%",
+    context: { o2_device: "room_air" },
+    quality: { state: "valid" },
+  };
+  await appendRawVital(scope, "2026-04-18", { ...sample, sample_key: formatVitalSampleKey(sample) });
+
+  const r = await validateChart(scope);
+  assert.ok(!r.warnings.some((warning) => /V-VITAL-03/.test(warning.message)), JSON.stringify(r.warnings, null, 2));
+  assert.ok(r.warnings.some((warning) => /V-VITAL-06/.test(warning.message)), JSON.stringify(r.warnings, null, 2));
+});
+
+test("V-VITAL-03 ignores oxygen context segments from other encounters or replaced events", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "ctx_o2_wrong_encounter",
+    type: "observation",
+    subtype: "context_segment",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    effective_period: { start: "2026-04-18T08:00:00-05:00", end: "2026-04-18T09:00:00-05:00" },
+    recorded_at: "2026-04-18T08:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { segment_type: "o2_delivery", o2_device: "nasal_cannula" },
+    links: { supports: [] },
+  });
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "ctx_o2_replaced",
+    type: "observation",
+    subtype: "context_segment",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_period: { start: "2026-04-18T08:00:00-05:00", end: "2026-04-18T09:00:00-05:00" },
+    recorded_at: "2026-04-18T08:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { segment_type: "o2_delivery", o2_device: "nasal_cannula" },
+    links: { supports: [] },
+  });
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "ctx_o2_replacer",
+    type: "observation",
+    subtype: "context_segment",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_period: { start: "2026-04-18T09:10:00-05:00" },
+    recorded_at: "2026-04-18T09:10:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { segment_type: "o2_delivery", room_air: true },
+    links: { supports: [], supersedes: ["ctx_o2_replaced"] },
+  });
+  const sample = {
+    sampled_at: "2026-04-18T08:15:00-05:00",
+    recorded_at: "2026-04-18T08:15:02-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "spo2",
+    value: 92,
+    unit: "%",
+    quality: { state: "valid" },
+  };
+  await appendRawVital(scope, "2026-04-18", { ...sample, sample_key: formatVitalSampleKey(sample) });
+
+  const r = await validateChart(scope);
+  assert.ok(r.warnings.some((warning) => /V-VITAL-03/.test(warning.message)), JSON.stringify(r.warnings, null, 2));
 });
 
 test("invariant 8: multi-supersessor for one target is rejected", async () => {

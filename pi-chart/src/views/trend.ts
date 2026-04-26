@@ -10,6 +10,11 @@ import { iterNdjson, globPerDayFile } from "../fs-util.js";
 import { patientRoot } from "../types.js";
 import { eventEndIso, eventStartIso } from "../time.js";
 import { formatSource } from "./source.js";
+import {
+  A1_CANONICAL_SHARED_METRICS,
+  isProfileRoutedTrainingMetric,
+  vitalQualityState,
+} from "../vitals.js";
 import type { TrendParams, TrendPoint } from "../types.js";
 
 export async function trend(params: TrendParams): Promise<TrendPoint[]> {
@@ -23,16 +28,25 @@ export async function trend(params: TrendParams): Promise<TrendPoint[]> {
     for await (const [, v] of iterNdjson(p)) {
       if (v?.name !== params.metric) continue;
       if (params.encounterId && v?.encounter_id !== params.encounterId) continue;
+      if (vitalQualityState(v?.quality) === "invalid") continue;
+      if (A1_CANONICAL_SHARED_METRICS.has(params.metric) && !isProfileRoutedTrainingMetric(v)) {
+        continue;
+      }
       const t = Date.parse(v?.sampled_at ?? "");
       if (!Number.isFinite(t) || t < fromMs || t > toMs) continue;
       const source = formatSource(v?.source);
       if (params.source && source !== params.source) continue;
       points.push({
         sampled_at: v.sampled_at,
+        recorded_at: v.recorded_at,
+        sample_key: v.sample_key,
         value: v.value,
         unit: v.unit,
         source,
         context: v.context,
+        quality: v.quality,
+        profile: v.profile,
+        training_label: v.training_label,
       });
     }
   }
