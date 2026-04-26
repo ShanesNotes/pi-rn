@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { ADVISORY_BANNER_COPY } from "./agent-canvas-constants.js";
+import { ADVISORY_BANNER_COPY, INTENTS } from "./agent-canvas-constants.js";
 
 const html = readFileSync(
   path.resolve(import.meta.dirname, "..", "docs", "prototypes", "pi-chart-agent-canvas.html"),
@@ -66,6 +66,7 @@ test("prototype copy uses Chart product language only", () => {
 test("agent dock is a chart-side advisory shell with a mock prompt", () => {
   assert.match(html, /aria-label="Pi-agent dock"/);
   assert.match(html, /id="agent-prompt"/);
+  assert.equal((html.match(/data-role="intent-radio"/g) ?? []).length, INTENTS.length);
   assert.match(html, /Organize my shift and tell me what I should pay attention to\./);
   assert.ok(html.includes(`data-role="advisory-banner">${ADVISORY_BANNER_COPY}</span>`));
   assert.match(html, /aria-expanded="true"/);
@@ -73,6 +74,8 @@ test("agent dock is a chart-side advisory shell with a mock prompt", () => {
   assert.match(html, /Pi-agent \/ advisory/);
   assert.match(html, /Co-pilot advice only\./);
   assert.match(html, /Chart truth changes only through clinician final clinical write\./);
+  assert.match(html, /data-role="agent-suggestions" data-advisory="true"/);
+  assert.match(html, /Warning: Unverified Synthesis/);
 });
 
 test("clinician journey storyboard exposes chart navigation states", () => {

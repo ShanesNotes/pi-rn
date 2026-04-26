@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { ADVISORY_BANNER_COPY } from "../../scripts/agent-canvas-constants.ts";
+import { ADVISORY_BANNER_COPY, INTENTS } from "../../scripts/agent-canvas-constants.ts";
 
 const prototypePath = path.resolve("docs/prototypes/pi-chart-agent-canvas.html");
 const url = pathToFileURL(prototypePath).href;
@@ -37,6 +37,12 @@ await check("worklist due loop visible", hasText("Reassess oxygen response & WoB
 await check("advisory banner copy is exact", page.locator('[data-role="advisory-banner"]').textContent().then((text) => text === ADVISORY_BANNER_COPY));
 await check("agent dock starts expanded on Overview", page.locator("#agent-chat").isVisible());
 await check("agent dock starts with expanded aria state", page.locator("#agent-open").getAttribute("aria-expanded").then((value) => value === "true"));
+await check("intent radio count matches constants", page.locator('[data-role="intent-radio"]').count().then((count) => count === INTENTS.length));
+await check("all intent radios are visible", page.locator('[data-role="intent-radio"]').evaluateAll((radios) => radios.every((radio) => {
+  const style = getComputedStyle(radio);
+  return style.display !== "none" && style.visibility !== "hidden";
+})));
+await check("agent suggestions lane is segregated and advisory", page.locator('[data-role="agent-suggestions"][data-advisory="true"]').count().then((count) => count === 1));
 
 await page.locator('[data-view="mar"]').click();
 await check("grid MAR view smart-collapses dock to notification pill", page.locator("#agent-chat").isHidden());
@@ -78,12 +84,18 @@ await check("blocked MAR states agent cannot chart med administration", hasText(
 await page.locator("#close-artifact").click();
 await check("blocked MAR pane closes via close button", page.locator(".artifact-pane").isHidden());
 
+await page.getByText("SBAR — covering MD draft", { exact: false }).first().click();
+await check("unverified synthesis badge appears when sourceRefs are missing", hasText("Warning: Unverified Synthesis"));
+await page.locator("#close-artifact").click();
+
 await check("agent dock prompt remains available on narrative views", page.locator("#agent-chat").isVisible());
 await check("agent dock toggle advertises expanded state", page.locator("#agent-open").getAttribute("aria-expanded").then((value) => value === "true"));
 await page.locator("#agent-prompt").fill("Organize my shift and tell me what I should pay attention to.");
 await page.locator("#agent-chat button[type='submit']").click();
 await check("agent shift organization state visible", hasText("Pi-agent shift organization"));
-await check("agent response remains advisory", hasText("Co-pilot advice only"));
+await check("agent documentation response parks a draft in advisory suggestions lane", page.locator('[data-role="agent-suggestions"][data-advisory="true"]').textContent().then((text) => text?.includes("Draft suggestion")));
+await check("agent suggestion does not land in Due / Overdue", page.locator('[data-role="due-overdue"]').textContent().then((text) => !text?.includes("Draft suggestion")));
+await check("agent response remains advisory", hasText("Draft suggestion parked in the advisory lane"));
 
 await page.locator('[data-view="overview"]').click();
 await check("return to Overview restores cockpit home base", hasText("Problem-oriented timeline"));
