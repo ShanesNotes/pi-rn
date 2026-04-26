@@ -1,8 +1,9 @@
 # ADR 017 — Actor, attestation, and review taxonomy
 
 Date: 2026-04-24
-Status: proposed
-Decision maker: pending operator review.
+Status: accepted (2026-04-26)
+Decision maker: operator (HITL) on 2026-04-26.
+Realized in: commit `ab559f9` (review/attestation projections + V-REVIEW-01..07 + V-ATTEST-01..04).
 Related:
 - `../memos/deep-research-alignment-24042026.md` §2 M2, §5 C1, §10 Workstream B
 - `../memos/pi-chart-v03-memo.md` §7.1
