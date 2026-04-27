@@ -8,6 +8,7 @@
 
 import { promises as fs, readFileSync } from "node:fs";
 import path from "node:path";
+import type { ErrorObject } from "ajv";
 import {
   ajvErrorsTo,
   loadValidator,
@@ -35,6 +36,13 @@ import {
   parseIso,
 } from "./time.js";
 import { patientRoot } from "./types.js";
+import {
+  A1_CANONICAL_SHARED_METRICS,
+  CORE_VITAL_METRICS,
+  formatVitalSampleKey,
+  isProfileRoutedTrainingMetric,
+  vitalQualityState,
+} from "./vitals.js";
 import type { PatientScope, ReportEntry, ValidationReport } from "./types.js";
 
 type ProfileRegistry = {
@@ -58,13 +66,30 @@ interface State {
   warnings: ReportEntry[];
   allIds: Map<string, string>;             // id -> first seen at
   noteIds: Set<string>;
-  communicationNoteRefs: Set<string>;
+  notesById: Map<string, NoteValidationRecord[]>;
+  communicationsByNoteRef: Map<string, CommunicationNoteRefRecord[]>;
   eventTypes: Map<string, string>;          // id -> type
   expectedSubject: string | null;
   chartRoot: string;                        // repo root (for schemas/)
   patientRoot: string;                      // patient dir (for data)
   patientId: string;
+  vitalMetricNames: Set<string>;
+  vitalSampleKeys: Map<string, string>;
 }
+
+type NoteValidationRecord = {
+  id: string;
+  where: string;
+  authorRole: string | null;
+  sourceKind: string | null;
+};
+
+type CommunicationNoteRefRecord = {
+  noteRef: string;
+  where: string;
+  authorRole: string | null;
+  sourceKind: string | null;
+};
 
 function err(s: State, where: string, message: string) {
   s.errors.push({ where, message });
@@ -146,6 +171,16 @@ const CLINICIAN_FAMILY_AUTHOR_ROLES = new Set<string>([
   "pharmacist",
   "rt",
   "therapist",
+]);
+
+const NURSING_AUTHOR_ROLES = new Set<string>([
+  "rn",
+  "lpn",
+  "student_nurse",
+]);
+
+const CONDITIONAL_NURSING_AUTHOR_ROLES = new Set<string>([
+  "nurse_practitioner",
 ]);
 
 const REVIEW_DECISIONS = new Set<string>([
@@ -232,6 +267,31 @@ const RESULT_OBSERVATION_SUBTYPES = new Set([
   "lab_result",
   "diagnostic_result",
 ]);
+
+const VITAL_METRIC_NAMES = new Set([
+  "spo2",
+  "heart_rate",
+  "respiratory_rate",
+  "bp_systolic",
+  "bp_diastolic",
+  "map",
+  "blood_pressure",
+  "temperature",
+  "temp_c",
+]);
+
+const VITAL_TEXT_TOKENS: ReadonlyArray<RegExp> = [
+  /\bspo2\b/i,
+  /\bo2\s*sat(uration)?\b/i,
+  /\bheart[\s_-]?rate\b/i,
+  /\bhr\b/i,
+  /\brespiratory[\s_-]?rate\b/i,
+  /\brr\b/i,
+  /\bblood[\s_-]?pressure\b/i,
+  /\bbp\b/i,
+  /\btemperature\b/i,
+  /\btemp\b/i,
+];
 
 const EXAM_FINDING_STATES = new Set([
   "present",
@@ -372,6 +432,24 @@ const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
     },
   },
 };
+
+function loadVitalMetricNames(chartRoot: string): Set<string> {
+  const names = new Set<string>([...CORE_VITAL_METRICS, ...A1_CANONICAL_SHARED_METRICS]);
+  try {
+    const registryPath = path.join(chartRoot, "schemas", "vital-metrics.json");
+    const registry = JSON.parse(readFileSync(registryPath, "utf8")) as { metrics?: unknown };
+    if (Array.isArray(registry.metrics)) {
+      for (const entry of registry.metrics) {
+        if (entry && typeof entry === "object" && typeof (entry as { name?: unknown }).name === "string") {
+          names.add((entry as { name: string }).name);
+        }
+      }
+    }
+  } catch {
+    // Registry is additive while the corpus migrates; fall back to built-ins.
+  }
+  return names;
+}
 
 function ruleErr(state: State, where: string, code: string, message: string) {
   err(state, where, `${code}: ${message}`);
@@ -845,12 +923,15 @@ export async function validateChart(scope: PatientScope): Promise<ValidationRepo
     warnings: [],
     allIds: new Map(),
     noteIds: new Set(),
-    communicationNoteRefs: new Set(),
+    notesById: new Map(),
+    communicationsByNoteRef: new Map(),
     eventTypes: new Map(),
     expectedSubject: null,
     chartRoot: scope.chartRoot,
     patientRoot: pr,
     patientId: scope.patientId,
+    vitalMetricNames: loadVitalMetricNames(scope.chartRoot),
+    vitalSampleKeys: new Map(),
   };
 
   // Invariant 6: the directory is the authoritative identity. Every
@@ -932,17 +1013,8 @@ export async function validateChart(scope: PatientScope): Promise<ValidationRepo
   // referential integrity + assessment-evidence rule
   await checkReferentialIntegrity(state);
 
-  // bidirectional note ↔ communication
-  for (const nid of [...state.noteIds].sort()) {
-    if (!state.communicationNoteRefs.has(nid)) {
-      err(
-        state,
-        "notes",
-        `note '${nid}' has no matching communication event ` +
-          `(no events.ndjson row with data.note_ref == '${nid}')`,
-      );
-    }
-  }
+  // V-NOTES: bidirectional note ↔ communication substrate plus soft scope signals.
+  validateNotesRules(state);
 
   // _derived/ hand-edit warning
   await checkDerivedNotEdited(state);
@@ -1008,6 +1080,7 @@ async function validateTimeline(
   vitalsValidator: Awaited<ReturnType<typeof loadValidator>> | null,
 ) {
   const timelineRoot = path.join(state.patientRoot, "timeline");
+  const contextSegments = await loadContextSegmentsForValidation(state.patientRoot);
   let dayEntries: string[];
   try {
     dayEntries = await fs.readdir(timelineRoot);
@@ -1081,7 +1154,14 @@ async function validateTimeline(
         validateStatusDetailSemantics(state, where, ev);
         if (ev.type === "communication") {
           const ref = ev?.data?.note_ref;
-          if (typeof ref === "string") state.communicationNoteRefs.add(ref);
+          if (typeof ref === "string" && ref.length > 0) {
+            addMapEntry(state.communicationsByNoteRef, ref, {
+              noteRef: ref,
+              where,
+              authorRole: authorRoleOf(ev),
+              sourceKind: sourceKindOf(ev),
+            });
+          }
         }
       }
     } catch (e: any) {
@@ -1115,6 +1195,7 @@ async function validateTimeline(
             `sampled_at '${v.sampled_at}' does not start with day directory prefix '${day}'`,
           );
         }
+        validateVitalSampleRules(state, where, v, contextSegments);
       }
     } catch (e: any) {
       err(state, path.relative(state.patientRoot, vPath), `invalid JSON: ${e?.message ?? e}`);
@@ -1147,16 +1228,54 @@ async function validateNote(
   try {
     [fm, body] = parseFrontmatter(text);
   } catch (e: any) {
-    err(state, rel, e?.message ?? String(e));
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      `malformed note frontmatter: ${e?.message ?? String(e)}`,
+    );
     return;
   }
   if (!fm) {
-    err(state, rel, "no frontmatter block");
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      "malformed note frontmatter: no frontmatter block",
+    );
     return;
   }
   const normalized = normalizeForSchema(fm) as Record<string, unknown>;
+  const nid = normalized.id;
+  const hasUsableId = typeof nid === "string" && nid.length > 0;
+  const recordedAt = normalized.recorded_at;
+  const hasUsableRecordedAt =
+    typeof recordedAt === "string" && Number.isFinite(Date.parse(recordedAt));
+
+  if (!hasUsableId) {
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      "note frontmatter id is missing or non-string",
+    );
+  }
+  if (!hasUsableRecordedAt) {
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      "note frontmatter recorded_at is missing or invalid",
+    );
+  }
+
   const ok = noteValidator(normalized);
-  if (!ok) state.errors.push(...ajvErrorsTo(rel, noteValidator.errors));
+  if (!ok) {
+    const hardErrors = (noteValidator.errors ?? []).filter(
+      (e) => !isWarningOnlyNoteFrontmatterError(e),
+    );
+    state.errors.push(...ajvErrorsTo(rel, hardErrors));
+  }
 
   if (
     state.expectedSubject &&
@@ -1183,11 +1302,298 @@ async function validateNote(
       `effective_at '${normalized.effective_at}' does not start with day directory prefix '${day}'`,
     );
   }
-  const nid = normalized.id;
-  if (typeof nid === "string") {
+  if (hasUsableId) {
     trackId(state, nid, rel);
     state.noteIds.add(nid);
+    addMapEntry(state.notesById, nid, {
+      id: nid,
+      where: rel,
+      authorRole: authorRoleOf(normalized),
+      sourceKind: sourceKindOf(normalized),
+    });
   }
+}
+
+function addMapEntry<K, V>(map: Map<K, V[]>, key: K, value: V) {
+  const existing = map.get(key);
+  if (existing) existing.push(value);
+  else map.set(key, [value]);
+}
+
+function authorRoleOf(value: any): string | null {
+  const role = value?.author?.role;
+  return typeof role === "string" && role.length > 0 ? role : null;
+}
+
+function sourceKindOf(value: any): string | null {
+  const kind = value?.source?.kind;
+  return typeof kind === "string" && kind.length > 0 ? kind : null;
+}
+
+function isWarningOnlyNoteFrontmatterError(error: ErrorObject): boolean {
+  if (
+    error.keyword === "required" &&
+    (error.params as { missingProperty?: unknown })?.missingProperty
+  ) {
+    const missing = (error.params as { missingProperty?: unknown }).missingProperty;
+    return missing === "id" || missing === "recorded_at";
+  }
+  if (error.instancePath === "/id") {
+    return error.keyword === "type";
+  }
+  if (error.instancePath === "/recorded_at") {
+    return error.keyword === "type" || error.keyword === "format";
+  }
+  return false;
+}
+
+function validateNotesRules(state: State) {
+  validateNotesSubstrateIntegrity(state);
+  validateNursingScopeWarnings(state);
+}
+
+function validateNotesSubstrateIntegrity(state: State) {
+  for (const nid of [...state.noteIds].sort()) {
+    if (state.communicationsByNoteRef.has(nid)) continue;
+    const note = state.notesById.get(nid)?.[0];
+    ruleErr(
+      state,
+      note?.where ?? "notes",
+      "V-NOTES-01",
+      `note '${nid}' has no matching communication event ` +
+        `(no events.ndjson row with non-empty data.note_ref == '${nid}')`,
+    );
+  }
+
+  for (const [noteRef, comms] of [...state.communicationsByNoteRef.entries()].sort(
+    ([a], [b]) => a.localeCompare(b),
+  )) {
+    if (state.noteIds.has(noteRef)) continue;
+    for (const comm of comms) {
+      ruleErr(
+        state,
+        comm.where,
+        "V-NOTES-01",
+        `data.note_ref: unknown note id '${noteRef}'`,
+      );
+    }
+  }
+}
+
+type NoteRoleCandidate = {
+  role: string | null;
+  sourceKind: string | null;
+  where: string;
+};
+
+function validateNursingScopeWarnings(state: State) {
+  const emitted = new Set<string>();
+
+  for (const [noteRef, comms] of state.communicationsByNoteRef.entries()) {
+    const notes = state.notesById.get(noteRef) ?? [];
+    for (const comm of comms) {
+      const candidates: NoteRoleCandidate[] = [
+        {
+          role: comm.authorRole,
+          sourceKind: comm.sourceKind,
+          where: comm.where,
+        },
+        ...notes.map((note) => ({
+          role: note.authorRole,
+          sourceKind: note.sourceKind,
+          where: note.where,
+        })),
+      ];
+      emitNursingScopeWarningsForCandidates(state, emitted, noteRef, candidates);
+    }
+  }
+
+  for (const [noteId, notes] of state.notesById.entries()) {
+    if (state.communicationsByNoteRef.has(noteId)) continue;
+    emitNursingScopeWarningsForCandidates(
+      state,
+      emitted,
+      noteId,
+      notes.map((note) => ({
+        role: note.authorRole,
+        sourceKind: note.sourceKind,
+        where: note.where,
+      })),
+    );
+  }
+}
+
+function emitNursingScopeWarningsForCandidates(
+  state: State,
+  emitted: Set<string>,
+  pairKey: string,
+  candidates: NoteRoleCandidate[],
+) {
+  for (const candidate of candidates) {
+    const concern = nursingScopeConcern(candidate.role, candidate.sourceKind);
+    if (!concern) continue;
+    const key = `${pairKey}:${concern}`;
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    ruleWarn(state, candidate.where, "V-NOTES-02", nursingScopeConcernMessage(concern));
+  }
+}
+
+function nursingScopeConcern(
+  role: string | null,
+  sourceKind: string | null,
+): "nurse_practitioner" | "rn_agent" | null {
+  if (!role || NURSING_AUTHOR_ROLES.has(role)) return null;
+  if (CONDITIONAL_NURSING_AUTHOR_ROLES.has(role)) return "nurse_practitioner";
+  if (role === "rn_agent" && !isAgentSourceKind(sourceKind)) return "rn_agent";
+  return null;
+}
+
+function nursingScopeConcernMessage(
+  concern: "nurse_practitioner" | "rn_agent",
+): string {
+  if (concern === "nurse_practitioner") {
+    return "nurse_practitioner note authorship is nursing/provider ambiguous in this no-subtype-expansion slice";
+  }
+  return "rn_agent is a pi-agent system role and is excluded from clinical nursing scope";
+}
+
+function isAgentSourceKind(sourceKind: string | null): boolean {
+  return typeof sourceKind === "string" && sourceKind.startsWith("agent_");
+}
+
+async function loadContextSegmentsForValidation(patientDir: string): Promise<any[]> {
+  const events: any[] = [];
+  for (const evPath of await globPerDayFile(patientDir, "events.ndjson")) {
+    try {
+      for await (const [, ev] of iterNdjson(evPath)) {
+        events.push(ev);
+      }
+    } catch {
+      // Timeline validation reports parse errors in its normal pass.
+    }
+  }
+  const replaced = new Set<string>();
+  for (const ev of events) {
+    for (const target of ev?.links?.supersedes ?? []) {
+      if (typeof target === "string") replaced.add(target);
+    }
+    for (const target of ev?.links?.corrects ?? []) {
+      if (typeof target === "string") replaced.add(target);
+    }
+  }
+  return events.filter(
+    (ev) =>
+      ev?.type === "observation" &&
+      ev?.subtype === "context_segment" &&
+      !replaced.has(ev.id) &&
+      ev.status !== "superseded" &&
+      ev.status !== "entered_in_error",
+  );
+}
+
+function validateVitalSampleRules(
+  state: State,
+  where: string,
+  v: any,
+  contextSegments: any[],
+) {
+  const sampledAt = parseIso(v?.sampled_at);
+  const recordedAt = parseIso(v?.recorded_at);
+  if (!recordedAt) {
+    ruleWarn(state, where, "V-VITAL-01", "vitals row should carry recorded_at chart-ingest/write time");
+  } else if (sampledAt && recordedAt.getTime() < sampledAt.getTime()) {
+    ruleErr(state, where, "V-VITAL-01", "vitals recorded_at must not be earlier than sampled_at");
+  }
+
+  const expectedSampleKey = formatVitalSampleKey(v);
+  if (expectedSampleKey === null) {
+    ruleErr(state, where, "V-VITAL-01", "vitals value/source fields must support deterministic sample_key generation");
+  }
+  if (!v?.sample_key) {
+    ruleWarn(state, where, "V-VITAL-01", "vitals row should carry deterministic sample_key");
+  } else if (typeof v.sample_key === "string") {
+    const prior = state.vitalSampleKeys.get(v.sample_key);
+    if (prior) {
+      ruleErr(state, where, "V-VITAL-01", `duplicate sample_key '${v.sample_key}' first seen at ${prior}`);
+    } else {
+      state.vitalSampleKeys.set(v.sample_key, where);
+    }
+    if (expectedSampleKey && v.sample_key !== expectedSampleKey && !v.sample_key.startsWith(`${expectedSampleKey}_`)) {
+      ruleErr(state, where, "V-VITAL-01", `sample_key '${v.sample_key}' does not match deterministic key '${expectedSampleKey}'`);
+    }
+  }
+
+  if (typeof v?.name === "string" && !state.vitalMetricNames.has(v.name)) {
+    ruleWarn(state, where, "V-VITAL-02", `vitals metric '${v.name}' is not in schemas/vital-metrics.json`);
+  }
+  if (typeof v?.name === "string" && A1_CANONICAL_SHARED_METRICS.has(v.name) && !isProfileRoutedTrainingMetric(v)) {
+    ruleWarn(
+      state,
+      where,
+      "V-VITAL-02",
+      `A1-canonical metric '${v.name}' in A3 vitals should be explicitly profile-routed/training-labeled`,
+    );
+  }
+
+  if (v?.name === "spo2") {
+    const activeO2 = activeOxygenContextSegment(contextSegments, v);
+    const inlineDevice = oxygenDeviceFrom(v?.context);
+    if (!inlineDevice && !activeO2) {
+      ruleWarn(
+        state,
+        where,
+        "V-VITAL-03",
+        "spo2 sample should carry inline oxygen context or have a covering o2_delivery context_segment",
+      );
+    }
+    const segmentDevice = oxygenDeviceFrom(activeO2?.data) ?? oxygenDeviceFrom(activeO2?.data?.payload);
+    if (inlineDevice && segmentDevice && inlineDevice !== segmentDevice) {
+      ruleWarn(
+        state,
+        where,
+        "V-VITAL-06",
+        `spo2 inline oxygen context '${inlineDevice}' disagrees with active context_segment '${segmentDevice}'`,
+      );
+    }
+  }
+
+  const quality = vitalQualityState(v?.quality);
+  if (quality === "invalid" && !qualityFlags(v?.quality).length && !v?.artifact) {
+    ruleWarn(state, where, "V-VITAL-01", "invalid vitals sample should explain artifact via quality.flags or artifact");
+  }
+}
+
+function activeOxygenContextSegment(segments: any[], sample: any): any | null {
+  const sampledAt = sample?.sampled_at;
+  if (typeof sampledAt !== "string") return null;
+  const sampleMs = Date.parse(sampledAt);
+  if (!Number.isFinite(sampleMs)) return null;
+  let best: { t: number; ev: any } | null = null;
+  for (const ev of segments) {
+    if (ev?.subject !== sample?.subject || ev?.encounter_id !== sample?.encounter_id) continue;
+    if (ev?.data?.segment_type !== "o2_delivery") continue;
+    const start = Date.parse(ev?.effective_period?.start ?? ev?.effective_at ?? "");
+    const endRaw = ev?.effective_period?.end;
+    const end = typeof endRaw === "string" ? Date.parse(endRaw) : Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(start) || start > sampleMs || end < sampleMs) continue;
+    if (!best || start > best.t) best = { t: start, ev };
+  }
+  return best?.ev ?? null;
+}
+
+function oxygenDeviceFrom(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.o2_device === "string") return record.o2_device;
+  if (record.room_air === true) return "room_air";
+  return null;
+}
+
+function qualityFlags(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  const flags = (value as { flags?: unknown }).flags;
+  return Array.isArray(flags) ? flags.filter((flag): flag is string => typeof flag === "string") : [];
 }
 
 async function checkReferentialIntegrity(state: State) {
@@ -1229,6 +1635,7 @@ async function checkReferentialIntegrity(state: State) {
     validateStatusTransitions(state, where, ev, envelopesById);
     validateIntervalClosure(state, where, ev, envelopesById);
     validateExamFindingSemantics(state, where, ev);
+    validateVitalsTrendEvidence(state, where, ev, envelopesById);
 
     // Invariant 10 / ADR 003: fulfillment typing.
     if ((links.fulfills ?? []).length && ev.type !== "action") {
@@ -1293,13 +1700,6 @@ async function checkReferentialIntegrity(state: State) {
 
     validateContradictsRules(state, where, ev, envelopes, envelopesById);
     validateResolvesRules(state, where, ev, envelopes, envelopesById);
-
-    if (ev.type === "communication") {
-      const ref = ev?.data?.note_ref;
-      if (typeof ref === "string" && !state.noteIds.has(ref)) {
-        err(state, where, `data.note_ref: unknown note id '${ref}'`);
-      }
-    }
     if (ev.type === "artifact_ref") {
       const relPath = ev?.data?.path;
       if (typeof relPath !== "string") {
@@ -1947,6 +2347,67 @@ function validateExamFindingSemantics(
       "observation.exam_finding data.finding_state must be one of: present, absent, not_assessed",
     );
   }
+}
+
+// V-VITALS-01: assessment.trend events whose reasoning concerns vital
+// signs must cite at least one vital evidence link in links.supports[].
+// Permissive shape per HITL disposition (memos/hitl-decisions-26042026.md
+// #2): a vitals_window evidence-ref OR an event-ref to an
+// observation.vital_sign satisfies. Only the "no vital evidence at all"
+// shape is flagged.
+function validateVitalsTrendEvidence(
+  state: State,
+  where: string,
+  ev: any,
+  envelopesById: Map<string, any>,
+) {
+  if (ev?.type !== "assessment" || ev?.subtype !== "trend") return;
+  if (!referencesVitalMetric(ev)) return;
+  if (hasVitalEvidenceLink(ev?.links?.supports ?? [], envelopesById)) return;
+  ruleErr(
+    state,
+    where,
+    "V-VITALS-01",
+    "assessment.trend referencing vital signs must cite at least one vitals_window or event-ref to observation.vital_sign in links.supports",
+  );
+}
+
+function referencesVitalMetric(ev: any): boolean {
+  const summary = typeof ev?.data?.summary === "string" ? ev.data.summary : "";
+  const differential = Array.isArray(ev?.data?.differential)
+    ? ev.data.differential
+        .map((item: any) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && typeof item.condition === "string") return item.condition;
+          return "";
+        })
+        .join(" ")
+    : "";
+  const text = `${summary} ${differential}`;
+  if (!text.trim()) return false;
+  for (const token of VITAL_TEXT_TOKENS) {
+    if (token.test(text)) return true;
+  }
+  return false;
+}
+
+function hasVitalEvidenceLink(
+  supports: unknown[],
+  envelopesById: Map<string, any>,
+): boolean {
+  for (const raw of supports) {
+    const ref = parseEvidenceRef(raw);
+    if (!ref) continue;
+    if (ref.kind === "vitals_window") return true;
+    if (ref.kind === "event") {
+      const target = envelopesById.get(ref.ref);
+      if (target?.type === "observation" && target?.subtype === "vital_sign") {
+        const name = typeof target?.data?.name === "string" ? target.data.name.toLowerCase() : null;
+        if (name && VITAL_METRIC_NAMES.has(name)) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function findEventEnvelope(

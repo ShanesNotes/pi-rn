@@ -33,7 +33,7 @@ Output:
 
 This prototype explores the clinician/agent documentation surface. It treats
 the chart cockpit as the source-of-truth area and frames Pi-agent as a separate
-Agent Canvas workspace where chat is process and committed artifacts are product.
+Agent Canvas workspace where chat is process and Charted artifacts are product.
 
 Generate the v0.2 Agent Canvas handoff implementation:
 
@@ -48,7 +48,7 @@ Output:
 This version follows the Claude Design v0.2 handoff: Overview stays chart-first,
 Agent Canvas becomes the documentation workbench, chat moves to the bottom of
 the main surface, and the right side is an artifact scratchpad with stage,
-discard, and commit actions.
+discard, and Chart actions.
 
 ## Screenshots
 

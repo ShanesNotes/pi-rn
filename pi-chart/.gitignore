@@ -26,9 +26,41 @@ sessions/current.yaml
 # sources + skill schema; never authoritative.
 /wiki/
 
-# Planning memos consumed by ADR authoring. Not authoritative; ADRs are
-# the canonical policy surface.
-/memos/
+# Planning memos. Authoritative source inputs cited from tracked PRDs and
+# ADRs; HITL governance records and research syntheses live here.
+# (Previously /memos/ was ignored — that was the workspace placement error.)
+!/memos/
+!/memos/**
+
+# Override parent /home/ark/pi-rn/.gitignore which ignores .omx/ globally.
+# Track durable planning artifacts only; orchestration scratch (logs, state,
+# tmp, runtime wiki) stays ignored.
+!.omx/
+!.omx/plans/
+!.omx/plans/**
+!.omx/specs/
+!.omx/specs/**
+!.omx/context/
+!.omx/context/**
+!.omx/drafts/
+!.omx/drafts/**
+!.omx/interviews/
+!.omx/interviews/**
+!.omx/reports/
+!.omx/reports/**
+!.omx/questions/
+!.omx/questions/**
+.omx/logs/
+.omx/state/
+.omx/tmp/
+.omx/wiki/
+# Top-level orchestration scratch (runtime config, metrics, scratchpads).
+.omx/*.json
+.omx/*.gitignore
+.omx/notepad.md
 
 # Generated kanban dashboard (build artifact; regen via `npm run dashboard`).
 docs/plans/dashboard.html
+
+# A9B draft staging area (superceded PRDs; not for tracking).
+docs/plans/.draft/

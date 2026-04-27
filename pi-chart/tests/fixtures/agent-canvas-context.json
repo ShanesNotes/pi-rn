@@ -1,0 +1,238 @@
+{
+  "generatedAt": "2026-04-19T14:36:00.000Z",
+  "patientId": "patient_002",
+  "encounterId": "enc_p002_001",
+  "asOf": "2026-04-19T14:36:00.000Z",
+  "sourceViewRefs": [
+    "currentState(axis=vitals,asOf)",
+    "openLoops(asOf)",
+    "trend(metric=spo2|heart_rate|respiratory_rate)",
+    "narrative(to=asOf)",
+    "memoryProof(asOf)"
+  ],
+  "views": [
+    {
+      "id": "overview",
+      "density": "narrative",
+      "bundle": {
+        "view": "overview",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "handoff",
+      "density": "narrative",
+      "bundle": {
+        "view": "handoff",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "vitals",
+      "density": "grid",
+      "bundle": {
+        "view": "vitals",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "mar",
+      "density": "grid",
+      "bundle": {
+        "view": "mar",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "notes",
+      "density": "narrative",
+      "bundle": {
+        "view": "notes",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "labs",
+      "density": "grid",
+      "bundle": {
+        "view": "labs",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "radiology",
+      "density": "narrative",
+      "bundle": {
+        "view": "radiology",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    },
+    {
+      "id": "agent",
+      "density": "narrative",
+      "bundle": {
+        "view": "agent",
+        "recentArtifacts": [],
+        "requiresReview": []
+      }
+    }
+  ],
+  "latestVitals": {
+    "heart_rate": {
+      "value": 112,
+      "unit": "beats/min",
+      "sample_key": "vital_27cbe94dfb48d42d"
+    },
+    "respiratory_rate": {
+      "value": 30,
+      "unit": "breaths/min",
+      "sample_key": "vital_44c37c3ce5537f71"
+    },
+    "spo2": {
+      "value": 89,
+      "unit": "%",
+      "sample_key": "vital_647c98955de3bdeb",
+      "context": {
+        "o2_device": "simple_mask",
+        "o2_flow_lpm": 6
+      }
+    }
+  },
+  "trends": {
+    "spo2": [
+      {
+        "value": 92,
+        "sample_key": "vital_572dfc25e31b7558"
+      },
+      {
+        "value": 88,
+        "sample_key": "vital_c3beb94682367576"
+      },
+      {
+        "value": 89,
+        "sample_key": "vital_647c98955de3bdeb"
+      }
+    ],
+    "heart_rate": [
+      {
+        "value": 96,
+        "sample_key": "vital_ba81122d82edd55e"
+      },
+      {
+        "value": 108,
+        "sample_key": "vital_cc1bdbab5a4b3f7c"
+      },
+      {
+        "value": 112,
+        "sample_key": "vital_27cbe94dfb48d42d"
+      }
+    ],
+    "respiratory_rate": [
+      {
+        "value": 22,
+        "sample_key": "vital_95debf4563821846"
+      },
+      {
+        "value": 28,
+        "sample_key": "vital_38f6d30e9a8586aa"
+      },
+      {
+        "value": 30,
+        "sample_key": "vital_44c37c3ce5537f71"
+      }
+    ]
+  },
+  "openLoop": {
+    "title": "Reassess oxygen response & WoB",
+    "detail": "Due 09:50 · pending · Escalate if SpO₂ < 90% or RR >= 30 at reassessment",
+    "meta": "in 14m",
+    "dueDeltaMinutes": 14
+  },
+  "evidenceRefs": [
+    "evt_p002_0900_report",
+    "evt_p002_0905_wob",
+    "evt_p002_0910_assess_resp",
+    "evt_p002_0915_abg_collection",
+    "evt_p002_0925_abg_result"
+  ],
+  "artifacts": [
+    {
+      "id": "resp-reassessment",
+      "sourceRefs": [
+        "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+        "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+      ],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    },
+    {
+      "id": "handoff-draft",
+      "sourceRefs": [
+        "patient_002/timeline/2026-04-19/notes/0930_handoff.md",
+        "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb"
+      ],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    },
+    {
+      "id": "due-vitals",
+      "sourceRefs": [
+        "vitals://enc_p002_001/spo2#vital_647c98955de3bdeb",
+        "vitals://enc_p002_001/heart_rate#vital_27cbe94dfb48d42d",
+        "vitals://enc_p002_001/respiratory_rate#vital_44c37c3ce5537f71"
+      ],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    },
+    {
+      "id": "zosyn-blocked",
+      "sourceRefs": [],
+      "freshness": "current"
+    },
+    {
+      "id": "sbar-draft",
+      "sourceRefs": [],
+      "freshness": "current",
+      "provenance": {
+        "review": {
+          "state": "suggested",
+          "attestation": {
+            "kind": "none"
+          },
+          "requiredRole": "verify"
+        }
+      }
+    }
+  ]
+}

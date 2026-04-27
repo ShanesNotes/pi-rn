@@ -94,6 +94,7 @@ test("vitals axis returns latest per metric regardless of supersession semantics
   const scope = await makeEmptyPatient();
   await appendRawVital(scope, "2026-04-18", {
     sampled_at: "2026-04-18T08:00:00-05:00",
+    sample_key: "vital_enc_001_spo2",
     subject: "patient_001",
     encounter_id: "enc_001",
     source: { kind: "monitor_extension" },
@@ -102,6 +103,7 @@ test("vitals axis returns latest per metric regardless of supersession semantics
   });
   await appendRawVital(scope, "2026-04-18", {
     sampled_at: "2026-04-18T08:30:00-05:00",
+    sample_key: "vital_enc_002_spo2",
     subject: "patient_001",
     encounter_id: "enc_001",
     source: { kind: "monitor_extension" },
@@ -111,6 +113,37 @@ test("vitals axis returns latest per metric regardless of supersession semantics
   const s = await currentState({ scope, axis: "vitals" });
   if (s.axis !== "vitals") throw new Error();
   assert.equal(s.items.spo2.value, 88);
+});
+
+test("vitals axis scopes latest samples to the requested encounter", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    sample_key: "vital_enc_001_spo2",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 95,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:30:00-05:00",
+    sample_key: "vital_enc_002_spo2",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 88,
+  });
+  const s = await currentState({
+    scope,
+    axis: "vitals",
+    asOf: "2026-04-18T09:00:00-05:00",
+    encounterId: "enc_001",
+  });
+  if (s.axis !== "vitals") throw new Error();
+  assert.equal(s.items.spo2.value, 95);
+  assert.equal(s.items.spo2.sample_key, "vital_enc_001_spo2");
 });
 
 test("constraints axis surfaces the constraint_set from constraints.md", async () => {
@@ -271,4 +304,81 @@ test("all axis characterizes fulfilled order, specimen collection, and lab resul
   if (s.axis !== "all") throw new Error();
   assert.deepEqual(s.intents.map((loop) => loop.intent.id), []);
   assert.deepEqual(s.observations.map((item) => item.id), ["evt_lactate_result"]);
+});
+
+test("context axis returns latest active context segment by canonical segment_type", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("ctx_o2_nc", "observation", "context_segment", "final", "2026-04-18T08:00:00-05:00", {
+    effective_period: { start: "2026-04-18T08:00:00-05:00", end: "2026-04-18T08:30:00-05:00" },
+    data: { segment_type: "o2_delivery", o2_device: "nasal_cannula", o2_flow_lpm: 2 },
+  }));
+  await appendRawEvent(scope, "2026-04-18", ev("ctx_o2_hfnc", "observation", "context_segment", "final", "2026-04-18T08:30:00-05:00", {
+    effective_period: { start: "2026-04-18T08:30:00-05:00" },
+    data: { segment_type: "o2_delivery", o2_device: "hfnc", fio2: 0.6 },
+  }));
+
+  const s = await currentState({ scope, axis: "context", asOf: "2026-04-18T08:45:00-05:00" });
+  if (s.axis !== "context") throw new Error();
+  assert.deepEqual(Object.keys(s.items), ["o2_delivery"]);
+  assert.equal(s.items.o2_delivery.id, "ctx_o2_hfnc");
+});
+
+test("all axis includes context and vitals ignore structured invalid samples", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", ev("ctx_position", "observation", "context_segment", "final", "2026-04-18T08:00:00-05:00", {
+    data: { segment_type: "position", position: "sitting" },
+  }));
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:05-05:00",
+    sample_key: "vital_aaaaaaaaaaaaaaaa",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 95,
+    quality: "valid",
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:10:00-05:00",
+    recorded_at: "2026-04-18T08:10:05-05:00",
+    sample_key: "vital_bbbbbbbbbbbbbbbb",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 70,
+    quality: { state: "invalid", flags: ["motion"] },
+  });
+
+  const s = await currentState({ scope, axis: "all", asOf: "2026-04-18T08:15:00-05:00" });
+  if (s.axis !== "all") throw new Error();
+  assert.equal(s.context.position.id, "ctx_position");
+  assert.equal(s.vitals.spo2.value, 95);
+  assert.equal(s.vitals.spo2.sample_key, "vital_aaaaaaaaaaaaaaaa");
+});
+
+test("vitals axis suppresses A1 canonical metrics unless profile-routed", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "lactate_mmol_l",
+    value: 5.1,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:05:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "lactate_mmol_l",
+    value: 4.8,
+    profile: "simulation_training",
+  });
+
+  const s = await currentState({ scope, axis: "vitals", asOf: "2026-04-18T08:10:00-05:00" });
+  if (s.axis !== "vitals") throw new Error();
+  assert.equal(s.items.lactate_mmol_l.value, 4.8);
 });

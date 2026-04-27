@@ -1,0 +1,2 @@
+# Clinical-safety connector tests guard the pi-chart ↔ pi-agent boundary.
+/scripts/agent-canvas-connector.test.ts @pi-chart-leads

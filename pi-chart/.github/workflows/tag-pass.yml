@@ -1,0 +1,45 @@
+name: Tag merged agent-canvas pass
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  tag-pass:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read pass label
+        id: pass
+        shell: bash
+        run: |
+          label=$(node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const labels = event.pull_request?.labels?.map((label) => label.name) ?? [];
+          const passLabel = labels.find((label) => /^pass:[1-5]$/.test(label));
+          if (!passLabel) process.exit(2);
+          console.log(passLabel.replace(':', ''));
+          NODE
+          )
+          echo "tag=$label-merged" >> "$GITHUB_OUTPUT"
+
+      - name: Push pass merge tag
+        shell: bash
+        env:
+          TAG_NAME: ${{ steps.pass.outputs.tag }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG_NAME" "$MERGE_SHA"
+          git push origin "refs/tags/$TAG_NAME"

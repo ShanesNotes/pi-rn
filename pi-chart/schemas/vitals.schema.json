@@ -11,6 +11,16 @@
       "format": "date-time",
       "description": "Wall-clock or sim-clock instant the value was observed."
     },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Chart-ingest/write time. Does not replace sampled_at for clinical windows."
+    },
+    "sample_key": {
+      "type": "string",
+      "pattern": "^vital_[0-9a-f]{16}(?:_[0-9]+)?$",
+      "description": "Deterministic stream-row identity key for correction/refutation without event-izing every sample."
+    },
     "subject":      { "type": "string", "description": "Must equal chart.yaml.subject." },
     "encounter_id": { "type": "string", "description": "Encounter the sample belongs to. Required so vitals:// URIs can scope by encounter." },
     "source": {
@@ -29,13 +39,35 @@
       "additionalProperties": false
     },
     "name":  { "type": "string", "description": "Metric name, snake_case (heart_rate, spo2, bp_systolic, ...)." },
-    "value": { "description": "Numeric for most metrics; strings/bools allowed for categorical readings." },
+    "value": {
+      "type": ["number", "string", "boolean"],
+      "description": "Numeric for most metrics; strings/bools allowed for categorical readings."
+    },
     "unit":  { "type": "string" },
     "context": {
       "type": "object",
       "description": "Modifiers that condition the reading, e.g. o2_device, o2_flow_lpm, position."
     },
-    "quality":  { "enum": ["valid", "questionable", "invalid"], "description": "Signal quality flag. currentState drops invalid samples; questionable samples remain visible to downstream readers." },
+    "quality":  {
+      "description": "Signal quality. Legacy scalar values remain accepted during migration; canonical form is {state, flags?}. currentState drops invalid samples; questionable samples remain visible to downstream readers.",
+      "oneOf": [
+        { "enum": ["valid", "questionable", "invalid"] },
+        {
+          "type": "object",
+          "required": ["state"],
+          "properties": {
+            "state": { "enum": ["valid", "questionable", "invalid"] },
+            "flags": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "profile": { "type": "string", "description": "Optional profile/training route for simulator-only metrics." },
+    "training_label": { "type": "string", "description": "Explicit label for simulator-derived training values that are not clinical measurements." },
     "artifact": { "type": "string", "description": "If the sample is artifact-laden, what kind, e.g. motion_possible." }
   }
 }

@@ -6,6 +6,7 @@ import path from "node:path";
 import { memoryProof } from "./memoryProof.js";
 import { loadAllEvents } from "./active.js";
 import { narrative } from "./narrative.js";
+import { appendRawEvent, makeEmptyPatient } from "../test-helpers/fixture.js";
 import type { EventEnvelope, PatientScope } from "../types.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
@@ -78,6 +79,23 @@ test("memoryProof preserves asOf replay across evidence, notes, loops, and hando
   assert(late.sections.open_loops.some((loop) => loop.intent_id === "evt_p002_0930_care_plan"));
 });
 
+test("memoryProof keeps current-state source refs scoped to encounterId", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", observation("evt_enc_001_obs", "enc_001", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", observation("evt_enc_002_obs", "enc_002", "2026-04-18T08:05:00-05:00"));
+
+  const proof = await memoryProof({
+    scope,
+    asOf: "2026-04-18T08:10:00-05:00",
+    encounterId: "enc_001",
+  });
+  const text = stringifyProof(proof);
+
+  assert(proof.source_view_refs.includes("currentState.observations=1"), text);
+  assert(text.includes("evt_enc_001_obs"), text);
+  assert(!text.includes("evt_enc_002_obs"), text);
+});
+
 test("memoryProof clamps vitals evidence windows to the consumer event time", async () => {
   const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:10:35-05:00" });
   const text = stringifyProof(proof);
@@ -86,6 +104,28 @@ test("memoryProof clamps vitals evidence windows to the consumer event time", as
   assert(text.includes("to=2026-04-19T09%3A10%3A00-05%3A00"), text);
   assert(!text.includes("evt_p002_0912_order_abg"), text);
 });
+
+function observation(
+  id: string,
+  encounterId: string,
+  at: string,
+): Record<string, unknown> {
+  return {
+    id,
+    type: "observation",
+    subtype: "exam_finding",
+    subject: "patient_001",
+    encounter_id: encounterId,
+    effective_at: at,
+    recorded_at: at,
+    author: { id: "test_rn", role: "rn" },
+    source: { kind: "nurse_charted" },
+    certainty: "observed",
+    status: "final",
+    data: { name: "work_of_breathing", value: "unchanged" },
+    links: { supports: [] },
+  };
+}
 
 test("memoryProof reuses one bedside observation across projection contexts", async () => {
   const events = await loadAllEvents(broadScope);

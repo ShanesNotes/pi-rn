@@ -13,6 +13,7 @@
     "dashboard:dev": "tsx scripts/dashboard-dev.ts",
     "agent-canvas": "node --import tsx scripts/agent-canvas.ts",
     "screenshot:prototype": "node scripts/screenshot-prototype.mjs",
+    "test:prototype": "npm run agent-canvas && node --import tsx tests/e2e/agent-canvas-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test --import tsx 'src/**/*.test.ts' 'scripts/**/*.test.ts'"
   },
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
+    "playwright": "^1.59.1",
     "tsx": "^4.19.0",
     "typescript": "^6.0.3"
   }

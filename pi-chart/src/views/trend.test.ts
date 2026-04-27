@@ -132,3 +132,72 @@ test("trend encounterId filter keeps points inside the requested encounter", asy
   });
   assert.deepEqual(points.map((point) => point.value), [95]);
 });
+
+test("trend drops structured invalid vitals and preserves sample metadata", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:02-05:00",
+    sample_key: "vital_1111111111111111",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "heart_rate",
+    value: 88,
+    quality: { state: "valid" },
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:05:00-05:00",
+    recorded_at: "2026-04-18T08:05:02-05:00",
+    sample_key: "vital_2222222222222222",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "heart_rate",
+    value: 188,
+    quality: { state: "invalid", flags: ["probe_off"] },
+  });
+
+  const points = await trend({
+    scope,
+    metric: "heart_rate",
+    from: "2026-04-18T08:00:00-05:00",
+    to: "2026-04-18T08:10:00-05:00",
+  });
+
+  assert.deepEqual(points.map((point) => point.value), [88]);
+  assert.equal(points[0].sample_key, "vital_1111111111111111");
+  assert.deepEqual(points[0].quality, { state: "valid" });
+});
+
+test("trend suppresses A1 canonical metrics from A3 vitals unless profile-routed", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "lactate_mmol_l",
+    value: 5.1,
+    unit: "mmol/L",
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:05:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "lactate_mmol_l",
+    value: 4.8,
+    unit: "mmol/L",
+    profile: "simulation_training",
+  });
+
+  const points = await trend({
+    scope,
+    metric: "lactate_mmol_l",
+    from: "2026-04-18T08:00:00-05:00",
+    to: "2026-04-18T08:10:00-05:00",
+  });
+
+  assert.deepEqual(points.map((point) => point.value), [4.8]);
+});

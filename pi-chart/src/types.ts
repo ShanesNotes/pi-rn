@@ -232,6 +232,8 @@ export type NoteFrontmatterInput =
 
 export interface VitalSample {
   sampled_at: string;
+  recorded_at?: string;
+  sample_key?: string;
   subject: string;
   encounter_id: string;
   source: Source;
@@ -239,7 +241,12 @@ export interface VitalSample {
   value: number | string | boolean;
   unit?: string;
   context?: Record<string, unknown>;
-  quality?: "valid" | "questionable" | "invalid";
+  quality?: "valid" | "questionable" | "invalid" | {
+    state: "valid" | "questionable" | "invalid";
+    flags?: string[];
+  };
+  profile?: string;
+  training_label?: string;
   artifact?: string;
 }
 
@@ -294,7 +301,7 @@ export interface ValidationReport {
 // View-primitive types (DESIGN §4)
 // --------------------------------------------------------------------
 
-export type Axis = "constraints" | "problems" | "intents" | "vitals" | "all";
+export type Axis = "constraints" | "problems" | "intents" | "vitals" | "context" | "all";
 
 export interface TimelineParams {
   scope: PatientScope;
@@ -332,26 +339,35 @@ export interface TrendParams {
 
 export interface TrendPoint {
   sampled_at: string;
-  value: number | string;
+  recorded_at?: string;
+  sample_key?: string;
+  value: number | string | boolean;
   unit?: string;
   source: string;
   context?: Record<string, unknown>;
+  quality?: VitalSample["quality"];
+  profile?: string;
+  training_label?: string;
 }
 
 export interface CurrentStateParams {
   scope: PatientScope;
   asOf?: string;
   axis: Axis;
+  encounterId?: string;
 }
 
 export interface OpenLoopsParams {
   scope: PatientScope;
   asOf?: string;
+  encounterId?: string;
 }
 
 export type OpenLoopKind =
   | "pending_intent"
   | "overdue_intent"
+  | "vital_cadence"
+  | "vital_alarm"
   | "unacknowledged_communication"
   | "contested_claim";
 
@@ -363,6 +379,17 @@ export interface OpenLoop {
   fulfillments: EventEnvelope[];
   dueDeltaMinutes?: number;
   addressesProblems: EventEnvelope[];
+  kind?: Exclude<OpenLoopKind, "contested_claim">;
+}
+
+export interface VitalOpenLoop extends OpenLoop {
+  kind: "vital_cadence" | "vital_alarm";
+  metric: string;
+  lastSampledAt?: string;
+  thresholdMinutes: number;
+  ageMinutes?: number;
+  severity: "low" | "medium" | "high";
+  basis: string;
 }
 
 export type ContestedAxis =
@@ -387,7 +414,7 @@ export interface ContestedRuntimeEntry {
  * that has aged past its threshold. Shares `OpenLoop`'s shape so callers
  * can iterate both in one pass, but narrowable by `kind === "contested_claim"`.
  */
-export interface ContestedClaim extends OpenLoop {
+export interface ContestedClaim extends Omit<OpenLoop, "kind"> {
   kind: "contested_claim";
   events: [string, string];
   basis: string;
@@ -414,11 +441,17 @@ export type CurrentState =
     }
   | { axis: "vitals"; items: Record<string, TrendPoint> }
   | {
+      axis: "context";
+      items: Record<string, EventEnvelope>;
+      contested?: ContestedRuntimeEntry[];
+    }
+  | {
       axis: "all";
       constraints: EventEnvelope[];
       problems: EventEnvelope[];
       intents: OpenLoop[];
       vitals: Record<string, TrendPoint>;
+      context: Record<string, EventEnvelope>;
       observations: EventEnvelope[];
       contested?: {
         constraints: ContestedRuntimeEntry[];
