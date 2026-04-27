@@ -38,3 +38,14 @@ Canonical exact-once Phase A file coverage table for `PHA-001`. Future structura
 - Do not edit Phase A source docs during implementation unless a selected card explicitly owns that doc edit.
 - A8/A9a/A9b are current inputs, not future/missing work.
 - A8/A9a open-schema entry files and A9b surviving open-schema anchors are candidate delta ledgers until PHA-TB-1/HITL promotes a decision.
+
+## Phase A tracer slice status
+
+| Slice | Status | Owned files (changed) | Evidence | Residual |
+|---|---|---|---|---|
+| TB-0 | landed | `docs/plans/kanban-prd-board.md`; `docs/plans/phase-a-status-matrix.md` | `docs/plans/phase-a-bridge-acceptance-report.md` | none |
+| TB-1 | landed | `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md` | canonical merge per acceptance report | A9b product impl deferred (A9B-001) |
+| TB-2 | landed | `src/views/evidenceChain.test.ts` | `docs/plans/phase-a-bridge-acceptance-report.md` | none |
+| TB-3 | landed | `src/views/openLoops.test.ts` | `docs/plans/phase-a-bridge-acceptance-report.md` | none |
+| TB-V | landed | `src/validate.ts`; `src/validate.test.ts` | `docs/plans/phase-a-bridge-acceptance-report.md` | none |
+| TB-4 | landed | `docs/plans/phase-a-bridge-acceptance-report.md` | acceptance report itself | next gate is A9B-001 / ADR17-002 PRD authorship |
