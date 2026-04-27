@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "source": "pi-sim/pulse",
+  "sequence": 55,
+  "runState": "paused",
+  "simTime_s": 120,
+  "vitals": {
+    "HeartRate": { "value": 72, "unit": "1/min" }
+  },
+  "events": [],
+  "heartRhythm": "NormalSinus",
+  "waveforms": {}
+}

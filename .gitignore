@@ -66,3 +66,6 @@ pi-chart/_derived/*.md
 
 # pi-sim transient state
 pi-sim/session-log/
+
+# Rust build outputs
+pi-monitor/target/

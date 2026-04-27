@@ -1,0 +1,12 @@
+[package]
+name = "monitor-cli"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+monitor-core = { path = "../monitor-core" }
+monitor-ingest = { path = "../monitor-ingest" }
+monitor-ui = { path = "../monitor-ui" }
