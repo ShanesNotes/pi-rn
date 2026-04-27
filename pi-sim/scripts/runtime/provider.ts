@@ -1,5 +1,7 @@
 export type RunState = "running" | "paused" | "ended" | "unavailable";
 
+export type MaybePromise<T> = T | Promise<T>;
+
 export type VitalScalars = Partial<Record<
   | "hr"
   | "map"
@@ -40,9 +42,23 @@ export interface ProviderSnapshot {
 
 export interface PhysiologyProvider {
   readonly metadata: ProviderMetadata;
-  init(): ProviderSnapshot;
-  advance(dtSeconds: number): ProviderSnapshot;
-  applyAction(action: ProviderAction): ProviderSnapshot;
-  snapshot(): ProviderSnapshot;
+  init(): MaybePromise<ProviderSnapshot>;
+  advance(dtSeconds: number): MaybePromise<ProviderSnapshot>;
+  applyAction(action: ProviderAction): MaybePromise<ProviderSnapshot>;
+  snapshot(): MaybePromise<ProviderSnapshot>;
   waveformWindow?(): undefined;
+}
+
+export class ProviderUnavailableError extends Error {
+  readonly causeUnknown: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "ProviderUnavailableError";
+    this.causeUnknown = cause;
+  }
+}
+
+export function isProviderUnavailableError(error: unknown): error is ProviderUnavailableError {
+  return error instanceof ProviderUnavailableError;
 }

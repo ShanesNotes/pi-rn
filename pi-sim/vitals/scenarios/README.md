@@ -6,8 +6,11 @@ Canonical clinical arcs the engine can replay. Each is a self-contained scenario
 
 | File | What it is | Run |
 |---|---|---|
+| `pulse_stable_observation.json` | Low-acuity stable observation Pulse provider smoke; scalar vitals only, no shock/sepsis/pressors/code story | `npm run sim:run:pulse:stable` |
 | `hemorrhagic_shock.json` | Class-II → Class-III hemorrhage with two crystalloid boluses | `npm run monitor:shock` |
 | `sepsis_norepi.json`     | Septic shock with norepinephrine started at t≈8 min     | `npm run monitor:sepsis` |
+
+`pulse_stable_observation.json` is the M2 provider-runtime smoke target. The acute scenarios remain compatibility/reference assets for the legacy Pulse monitor and validation lanes; do not use them as the primary provider-boundary proof.
 
 ## Authoring a new scenario
 

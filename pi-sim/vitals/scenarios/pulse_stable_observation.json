@@ -1,0 +1,13 @@
+{
+  "name": "pulse_stable_observation",
+  "description": "Low-acuity stable observation Pulse smoke scenario. Continuous scalar vital streaming only; no ACLS, shock, sepsis, pressors, resuscitation, or decompensation story.",
+  "provider": "pulse",
+  "purpose": "stable-observation",
+  "state_file": "./states/StandardMale@0s.pbb",
+  "duration_s": 300,
+  "timeline": [],
+  "checkpoints": [
+    { "t": 30, "phase": "stable_observation", "expect": { "hr": [55, 95], "map": [70, 105], "bp_sys": [100, 145], "rr": [10, 22], "spo2": [94, 100], "temp_c": [36.0, 37.8] } },
+    { "t": 180, "phase": "continued_observation", "expect": { "hr": [55, 100], "map": [68, 108], "bp_sys": [98, 148], "rr": [10, 24], "spo2": [93, 100], "temp_c": [36.0, 38.0] } }
+  ]
+}

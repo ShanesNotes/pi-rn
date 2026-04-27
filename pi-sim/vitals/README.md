@@ -1,6 +1,6 @@
 # vitals/
 
-Public telemetry boundary for the hidden `pi-sim` patient runtime. Current publishers include `scripts/monitor.ts` for the current Pulse provider and `scripts/sim-run.ts` for the M1 deterministic scripted provider. Sibling projects read this directory through explicit adapters; they must not import provider internals.
+Public telemetry boundary for the hidden `pi-sim` patient runtime. Current publishers include the shared provider runtime (`scripts/runtime/runner.ts`) used by `scripts/sim-run.ts` and `scripts/sim-run-pulse.ts`, plus `scripts/monitor.ts` as a legacy interactive Pulse compatibility surface. Sibling projects read this directory through explicit adapters; they must not import provider internals.
 
 ## Architecture status
 
@@ -28,7 +28,16 @@ npm run sim:run:demo -- --out-dir .omx/evidence/pi-sim-m1-runtime-skeleton-smoke
 
 The scripted runtime uses `vitals/scenarios/scripted_m1_demo.json`, writes deterministic scalar frames, and labels `monitor.source` as `pi-sim-scripted`. It is a runtime-boundary/reference provider only; it is not clinical physiology truth and does not emit runtime waveform samples.
 
-### Current Pulse provider
+### Pulse provider runtime
+
+```bash
+npm run sim:run:pulse:stable
+npm run sim:run:pulse:stable -- --out-dir .omx/evidence/pi-sim-m2-pulse-provider/pulse-stable/vitals --duration 60 --dt 10 --no-pacing
+```
+
+The Pulse runtime uses `vitals/scenarios/pulse_stable_observation.json` by default. That scenario is deliberately low-acuity continuous observation and emits scalar vitals only. If the Pulse shim is unavailable, the command exits non-zero and writes `runState: "unavailable"` to the selected output directory rather than leaving a stale successful frame.
+
+### Legacy Pulse monitor compatibility
 
 ```bash
 cd ../pulse && docker compose up -d              # start the Pulse sidecar
@@ -44,11 +53,11 @@ Env knobs:
 - `PULSE_SHIM=http://localhost:8765` — override shim URL
 - `BED="ICU 7"` — header label
 
-Ctrl-C exits cleanly. `current.json` is the primary latest-frame public telemetry boundary for pi-agent, pi-monitor, and future adapters.
+Ctrl-C exits cleanly. `monitor:pulse` remains a compatibility/discoverability alias for this legacy interactive path while new provider work routes through `sim:run:pulse:*`. `current.json` is the primary latest-frame public telemetry boundary for pi-agent, pi-monitor, and future adapters.
 
 ## Schema — `current.json`
 
-Produced by the active provider. The current Pulse provider and M1 scripted provider both write the backward-compatible scalar/latest-frame shape. Provider-specific values may be `null` or absent if unavailable:
+Produced by the active provider. The Pulse provider and M1 scripted provider both write the backward-compatible scalar/latest-frame shape through the shared publisher. Provider-specific values may be `null` or absent if unavailable:
 
 ```json
 {
@@ -124,7 +133,7 @@ Example waveform object, when a future public publisher exposes real samples:
 }
 ```
 
-`state_file` paths are resolved by the shim inside the Docker container. `./states/...` maps to Pulse's shipped engine states under `/pulse/bin/states/`; `./state/...` maps to baked runtime states under `/workspace/state/`. Scenarios requiring preset conditions (e.g. sepsis) reference baked state files produced by `pulse/shim/bake_states.py`.
+`provider: "pulse"` marks provider-runner scenarios. For legacy compatibility, scenario files with a `state_file` and no `provider` are inferred as Pulse by the Pulse scenario loader. `state_file` paths are resolved by the shim inside the Docker container. `./states/...` maps to Pulse's shipped engine states under `/pulse/bin/states/`; `./state/...` maps to baked runtime states under `/workspace/state/`. Scenarios requiring preset conditions (e.g. sepsis) reference baked state files produced by `pulse/shim/bake_states.py`.
 
 Supported action types: `hemorrhage`, `hemorrhage_stop`, `fluid_bolus`, `norepinephrine`, `norepinephrine_stop`. See `pulse/README.md#action-types` for params.
 

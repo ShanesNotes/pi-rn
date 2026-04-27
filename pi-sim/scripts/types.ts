@@ -17,6 +17,7 @@ export interface MonitorExtension {
 
 export interface VitalFrame {
   t: number;
+  simTime_s?: number;
   wallTime: string;
   hr?: number;
   map?: number;

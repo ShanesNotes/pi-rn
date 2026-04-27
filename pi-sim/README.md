@@ -31,7 +31,9 @@ Current architecture authority:
 
 Superseded PySide monitor, shim-first, and chart-display-first plans have been tombstoned or archived under `.omx/archive/`. Future display work belongs in sibling `../pi-monitor`; future chart/EHR ingestion belongs in `../pi-chart` or an explicit adapter lane.
 
-## Run the no-Pulse scripted patient runtime (M1)
+## Run the provider-based patient runtime
+
+### No-Pulse scripted patient runtime (M1)
 
 M1 adds a deterministic scripted scalar provider that exercises the patient-runtime clock, provider boundary, public frame assembly, and file publisher without Docker/Pulse. This is a development/reference path for the runtime seam, not high-fidelity physiology and not a waveform source.
 
@@ -43,7 +45,29 @@ npm run sim:run:demo
 npm run sim:run:demo -- --out-dir .omx/evidence/pi-sim-m1-runtime-skeleton-smoke/vitals
 ```
 
-The scripted provider writes the same public scalar/latest-frame shape as the live provider: `current.json`, `timeline.json`, and `status.json`, including the backward-compatible `monitor` extension with `source: "pi-sim-scripted"`. Existing Pulse commands remain available for provider-backed acute physiology.
+The scripted provider writes the same public scalar/latest-frame shape as the live provider: `current.json`, `timeline.json`, and `status.json`, including the backward-compatible `monitor` extension with `source: "pi-sim-scripted"`.
+
+### Pulse provider runtime (M2)
+
+M2 wraps the Pulse shim behind the same patient-runtime provider boundary and shared publisher used by the scripted runtime. Pulse remains a backend/provider: `scripts/client.ts` is transport-only, `scripts/runtime/pulseProvider.ts` maps shim scalars into provider snapshots, and `scripts/runtime/runner.ts` owns the clock/action/publish loop.
+
+```bash
+cd ~/pi-rn/pi-sim
+
+# Low-acuity stable observation scenario; writes evidence output by default.
+npm run sim:run:pulse:stable
+
+# Explicit smoke output location.
+npm run sim:run:pulse:stable -- \
+  --out-dir .omx/evidence/pi-sim-m2-pulse-provider/pulse-stable/vitals \
+  --duration 60 --dt 10 --no-pacing
+```
+
+If the Pulse Docker shim is unavailable, the Pulse provider command exits non-zero with a clear unavailable message and writes an `unavailable` `status.json`/`current.json` to the selected output directory. This is expected in no-Docker local environments and does not affect the M1 scripted path.
+
+The stable Pulse smoke scenario is `vitals/scenarios/pulse_stable_observation.json`. It is intentionally low-acuity continuous observation: no ACLS/code blue, shock, sepsis, pressors, resuscitation, or decompensation story. Acute legacy scenarios remain compatibility/reference assets.
+
+`npm run monitor:pulse` remains discoverable as the legacy interactive Pulse monitor compatibility command while the provider runner reaches parity.
 
 ## One-time setup for the current Pulse provider
 

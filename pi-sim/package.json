@@ -18,7 +18,9 @@
     "monitor:pulse": "tsx scripts/monitor.ts",
     "sim:run": "tsx scripts/sim-run.ts",
     "sim:run:demo": "tsx scripts/sim-run.ts --scenario vitals/scenarios/scripted_m1_demo.json --duration 30 --dt 10 --no-pacing",
-    "test:runtime": "tsx scripts/runtime/test.ts"
+    "test:runtime": "tsx scripts/runtime/test.ts",
+    "sim:run:pulse": "tsx scripts/sim-run-pulse.ts",
+    "sim:run:pulse:stable": "tsx scripts/sim-run-pulse.ts --scenario vitals/scenarios/pulse_stable_observation.json --duration 60 --dt 10 --no-pacing"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
