@@ -1,0 +1,21 @@
+# Ralplan Context Snapshot — Next logical PRD after S5 completion
+
+- task statement: Determine the next logical PRD to work on if S5 read-side context bundle is complete.
+- desired outcome: Recommend a bounded next PRD/lane with rationale, alternatives, dependencies, and execution handoff guidance; no product implementation.
+- known facts/evidence:
+  - S5 implementation was just completed in this session with focused test, typecheck, full test suite, architect approval, and deslop pass.
+  - `docs/plans/v03-foundation-reconciliation-acceptance-report.md` lists V03 choices S1-S6 and says S1/Phase A continuation is the recommended non-binding next card when deferred V03 proposals should stay deferred.
+  - `docs/plans/kanban-prd-board.md` is the canonical planning index. It marks `PHA-001 Phase A completion-to-implementation bridge` as ready and says HITL checkpoint 2 is to approve `PHA-TB-1` as the next card.
+  - `docs/plans/kanban-prd-board.md` still has stale S5 status because S5 product implementation happened after the board snapshot.
+  - `docs/plans/prd-s5-read-side-context-bundle.md` lists S5-TB-4 acceptance report/board closure as the docs closure card after implementation evidence.
+- constraints:
+  - This is planning/recommendation only; do not implement product code.
+  - Preserve S5 boundaries: no fingerprint/hash/profile/schema/validator expansion by implication.
+  - Treat S5 complete as an assumption for sequencing.
+  - Account for dirty repo noise and do not edit unrelated files.
+- unknowns/open questions:
+  - Whether the operator wants V03 closure first or direct Phase A execution; default recommendation should minimize drift and unblock accepted clinical substrate work.
+  - Whether S5 acceptance report/board update should be its own tiny docs card before the next PRD execution.
+- likely codebase touchpoints for future work:
+  - Immediate docs closure: `docs/plans/kanban-prd-board.md`, future `docs/plans/s5-read-side-context-bundle-acceptance-report.md`.
+  - Recommended next PRD: `docs/plans/prd-phase-a-completion-to-implementation-bridge.md`, `docs/plans/test-spec-phase-a-completion-to-implementation-bridge.md`, `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md` for PHA-TB-1.

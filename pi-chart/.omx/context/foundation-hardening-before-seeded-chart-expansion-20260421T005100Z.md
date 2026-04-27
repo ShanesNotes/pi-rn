@@ -1,0 +1,23 @@
+# Context Snapshot: foundation-hardening-before-seeded-chart-expansion
+
+- task statement: Execute the approved integrity-first hardening plan before more seeded-chart expansion by launching a 3-lane OMX team from the current tmux leader session.
+- desired outcome: Complete the narrow hard gate, bounded contract freeze, and explicit deferral handling from the approved PRD/test spec, with runtime evidence captured from the durable OMX team workflow.
+- known facts/evidence:
+  - Approved plan artifacts already exist at `.omx/plans/prd-foundation-hardening-before-seeded-chart-expansion.md` and `.omx/plans/test-spec-foundation-hardening-before-seeded-chart-expansion.md`.
+  - Current session is inside tmux (`$TMUX` set) and `omx team --help` works, so the previous blocker was session placement, not repo setup.
+  - The PRD requires 3 coordinated lanes: sanctioned-write integrity hard gate, bounded contract freeze/docs alignment, and explicit deferrals while Track A research remains unblocked.
+  - Primary touchpoints named by plan: `src/write.ts`, `src/validate.ts`, `src/types.ts`, `src/views/openLoops.ts`, `src/views/evidenceChain.ts`, `src/views/trend.ts`, `README.md`, `DESIGN.md`, `CLAIM-TYPES.md`, `ARCHITECTURE.md`, and relevant schema/tests.
+  - Verification gate from the test spec is `npm test`, `npm run check`, and `npm run typecheck`, plus targeted regressions and doc/schema review.
+- constraints:
+  - Use durable `omx team` tmux runtime, not in-process fanout.
+  - Preserve the ralplan-approved scope: narrow integrity gate first, no broad redesign.
+  - Keep one lane accountable for verification evidence before shutdown.
+  - Do not shut down the team until runtime status is terminal.
+- unknowns/open questions:
+  - How the team will divide exact file ownership once workers inspect the live codebase.
+  - Whether any existing doc/schema drift forces a small follow-up decision during implementation.
+- likely codebase touchpoints:
+  - `src/write.ts`, `src/validate.ts`, `src/types.ts`
+  - `src/views/openLoops.ts`, `src/views/evidenceChain.ts`, `src/views/trend.ts`
+  - `src/*.test.ts`, `src/views/*.test.ts`
+  - `README.md`, `DESIGN.md`, `CLAIM-TYPES.md`, `ARCHITECTURE.md`, `schemas/*.json`

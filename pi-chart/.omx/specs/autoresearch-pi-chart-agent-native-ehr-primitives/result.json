@@ -1,0 +1,18 @@
+{
+  "validation_mode": "prompt-architect-artifact",
+  "validator_prompt": "Review the research output for whether it preserves pi-chart's event-stream thesis, identifies the highest-leverage primitive gaps, sequences the changes coherently, and clearly separates repo evidence from external standards framing.",
+  "architect_review": {
+    "verdict": "approved",
+    "summary": "The report preserves the current one-stream thesis, identifies workflow obligations / definitions / provenance / intervals as the main missing primitives, and sequences them before domain-specific profile growth.",
+    "strengths": [
+      "Grounded in repo-local design documents and code seams rather than generic EHR advice",
+      "Uses external standards only as framing, not as a prescription to replace the internal model",
+      "Ranks improvements and gives a phased sequence instead of a flat brainstorm"
+    ],
+    "remaining_risks": [
+      "The workflow-obligation recommendation may still fit inside intent/action profiles rather than forcing a new top-level primitive",
+      "Interval/context modeling likely needs a focused follow-up design round once more Track A artifacts land"
+    ]
+  },
+  "output_artifact_path": ".omx/specs/autoresearch-pi-chart-agent-native-ehr-primitives/report.md"
+}

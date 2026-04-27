@@ -1,0 +1,24 @@
+{
+  "question": "Round 1 | Target: Decision boundary | Ambiguity: 32%\n\nI found no Next/app route; the current UI surface is a static TypeScript-generated prototype at scripts/agent-canvas.ts -> docs/prototypes/pi-chart-agent-canvas.html. For this implementation, should I treat that existing cockpit prototype as the main chart page and update it in place, or create a separate overview-specific prototype output?",
+  "type": "single-answerable",
+  "options": [
+    {
+      "label": "Update existing cockpit",
+      "value": "update-existing-cockpit",
+      "description": "Use scripts/agent-canvas.ts and its generated HTML as the main chart page implementation."
+    },
+    {
+      "label": "Create separate overview",
+      "value": "create-separate-overview",
+      "description": "Add a new overview-specific generator/output and leave agent-canvas mostly intact."
+    },
+    {
+      "label": "Refine further",
+      "value": "refine",
+      "description": "Ask another requirements question before implementation handoff."
+    }
+  ],
+  "allow_other": true,
+  "other_label": "Other",
+  "source": "deep-interview"
+}

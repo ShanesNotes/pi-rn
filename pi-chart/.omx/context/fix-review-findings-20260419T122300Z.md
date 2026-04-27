@@ -1,0 +1,21 @@
+# Context Snapshot: fix-review-findings
+
+- task statement: Start fixing the previously reviewed pi-chart issues in priority order.
+- desired outcome: Produce an approved implementation plan and planning artifacts for the ordered fixes before execution.
+- known facts/evidence:
+  - `readRecentEvents` currently excludes older events but does not exclude future events relative to `asOf` (`src/read.ts:74-90`).
+  - `writeCommunicationNote` writes the note first and appends the communication event second, so failures can orphan the note (`src/write.ts:204-226`).
+  - The write path checks field presence but does not validate schema, subject consistency, or duplicate explicit ids before persisting (`src/write.ts:49-66`, `src/write.ts:145-197`).
+  - Time helpers mix chart timezone concepts with host-local timestamp generation, and `nowIsoSeconds` comment does not match behavior (`chart.yaml:4-9`, `src/time.ts:73-79`, `src/write.ts:67-85`).
+  - The repo has tests, rebuild, and validate scripts, but no `tsconfig.json`, so project-level type diagnostics are skipped.
+  - Validator warns on event/vitals day-prefix mismatches, but not note/encounter path/date mismatches (`src/validate.ts`).
+  - There is small doc drift in `artifacts/README.md:3-5` referencing Python-style `pi_chart.write_artifact_ref(...)` while TS exports `writeArtifactRef` (`src/index.ts:13-20`).
+- constraints:
+  - Follow ralplan consensus workflow; plan only, no implementation in this step.
+  - Keep diffs small and reversible; no new dependencies unless explicitly needed.
+  - Run tests/typecheck/validation after changes during execution.
+- unknowns/open questions:
+  - Whether timestamp generation should align to chart-declared timezone or stay host-local with docs clarified.
+  - Whether write-path strictness should reject all invalid writes immediately or introduce helper-level optional strict mode.
+- likely codebase touchpoints:
+  - `src/read.ts`, `src/write.ts`, `src/time.ts`, `src/validate.ts`, `src/validate.test.ts`, `src/read.test.ts`, `src/write.test.ts`, `package.json`, `artifacts/README.md`, possible new `tsconfig.json`.

@@ -1,0 +1,36 @@
+# Deep Interview Context Snapshot: A3 vital signs blocking questions
+
+- Task statement: User has another agent working on A3 vital signs and wants current blocking questions that would unlock more workstreams.
+- Desired outcome: A concise, prioritized set of HITL/blocking questions for A3 vital signs that can unblock parallel implementation/design/research workstreams.
+- Stated solution: Surface current blocking questions, likely rather than implement code.
+- Probable intent hypothesis: The user needs decision prompts for the other agent / project owner so downstream work does not stall on unresolved A3 schema and view boundaries.
+- Known facts/evidence:
+  - `clinical-reference/phase-a/a3-vital-signs-synthesis.md` is a source input, not implementation-ready until HITL selection per `docs/plans/phase-a-status-matrix.md`.
+  - `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md` lists A3 questions; current table marks `a3-shared-metrics` as accepted direction, while `a3-oxygen-context` and `a3-alarm-and-artifact-events` remain open.
+  - A3 synthesis also leaves stream sample identity/correction/fulfillment, early-warning-score storage, recorded_at, structured quality, monitoring cadence, and pi-sim ingest seams as decision points.
+  - Current `schemas/vitals.schema.json` lacks required `recorded_at`, uses scalar `quality` enum rather than `{state, flags}`, and permits free-form names/source kinds.
+  - Current code includes `trend`, `currentState`, `evidenceChain`, and a new uncommitted `vitalsTrend` projection/test surface.
+  - ROADMAP seams still open: pi-sim vitals schema ↔ ingest translator; encounter_id resolution for ingest; pi-agent chart tools extension against v0.2.
+  - Working tree contains uncommitted changes by another agent; do not overwrite.
+- Constraints:
+  - Deep-interview is requirements-only; no direct implementation.
+  - Avoid asking user for discoverable repo facts; use evidence-backed confirmation questions.
+  - Another agent is already working on A3 vital signs; avoid edits/conflicts.
+  - No destructive changes.
+- Unknowns/open questions:
+  - Which blocker class the user wants prioritized first: integration seams, schema/validator choices, clinical HITL policy choices, or workstream slicing for the other agent.
+  - Whether the immediate deliverable should be a short question list only or persisted planning artifact.
+  - Which decisions are already owned by the other agent and should not be duplicated.
+- Decision-boundary unknowns:
+  - May OMX choose the top 5 blocker questions from repo evidence without further confirmation?
+  - May OMX mark some questions as “send to HITL/project owner” vs “agent can decide locally”?
+  - Should this hand off to ralplan/team after crystallization or stop at question list/spec?
+- Likely codebase touchpoints:
+  - `clinical-reference/phase-a/a3-vital-signs-synthesis.md`
+  - `clinical-reference/phase-a/a3-open-schema-entries-synthesis.md`
+  - `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md`
+  - `docs/plans/phase-a-status-matrix.md`
+  - `ROADMAP.md`
+  - `schemas/vitals.schema.json`
+  - `src/views/trend.ts`, `src/views/currentState.ts`, `src/views/openLoops.ts`, `src/views/vitalsTrend.ts`
+- Prompt-safe initial-context summary status: not_needed

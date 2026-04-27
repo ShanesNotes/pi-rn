@@ -1,0 +1,22 @@
+# Ralph Context Snapshot — S5 Context Bundle
+
+- task statement: Execute `.omx/plans/s5-context-bundle-implementation-plan.md` under `$ralph`.
+- desired outcome: Add a narrow read-only `contextBundle` view composition layer with focused tests and view-barrel export only.
+- known facts/evidence:
+  - Planning artifacts are present: multiple `.omx/plans/prd-*.md` and `.omx/plans/test-spec-*.md`; target plan has final approval.
+  - Approved product write surface: `src/views/bundle.test.ts`, `src/views/bundle.ts`, `src/views/index.ts`.
+  - Existing view projections: `currentState`, `openLoops`, `narrative`, `timeline`, `memoryProof`, plus `resolveAsOfMs` in `src/views/active.ts`.
+  - Existing unrelated dirty protected files before edits: `pi-chart/package-lock.json`, `pi-chart/package.json`, `pi-chart/scripts/agent-canvas.ts`.
+- constraints:
+  - No root `src/index.ts`, schema, validator, patients, scripts, profiles, package, hash, identity, pi-agent, or pi-sim expansion.
+  - Tests first; preserve unrelated dirty state.
+  - Use existing projections only; no raw event collector.
+  - Verify with focused test, typecheck, full tests, protected diff comparison, architect review, deslop pass, and post-deslop verification.
+- unknowns/open questions:
+  - Exact minimal fixture fields needed for evidence_context; resolve by reusing current test helper event shapes.
+  - Whether full suite has pre-existing failures; determine by fresh verification.
+- likely codebase touchpoints:
+  - `src/views/bundle.test.ts`
+  - `src/views/bundle.ts`
+  - `src/views/index.ts`
+  - Read-only references: `src/views/currentState.ts`, `src/views/openLoops.ts`, `src/views/narrative.ts`, `src/views/timeline.ts`, `src/views/memoryProof.ts`, `src/test-helpers/fixture.ts`, `src/types.ts`.

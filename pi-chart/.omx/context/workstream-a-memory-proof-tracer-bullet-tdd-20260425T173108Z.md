@@ -1,0 +1,24 @@
+# Context snapshot — Workstream A memory-proof tracer-bullet TDD plan
+
+- Timestamp: 20260425T173108Z
+- Task statement: Create a consensus `$ralplan` for Workstream A memory-proof tracer-bullet TDD plan.
+- Desired outcome: Approved PRD and test spec that turn existing Workstream A memory-proof work into the next executable tracer-bullet/hardening lane, with TDD-first verification and no speculative scope.
+- Known facts/evidence:
+  - Source-map HITL decision selected Workstream A memory-proof execution as first tracer-bullet candidate in `.omx/plans/doc-sprawl-source-map.md`.
+  - Existing PRD/test spec: `.omx/plans/prd-memory-proof-six-surface-broad-ehr.md`, `.omx/plans/test-spec-memory-proof-six-surface-broad-ehr.md`.
+  - Research inputs: `memos/Workstream A PRD test.md`, `memos/deep-research-alignment-revised-2026-04-25.md`.
+  - Accepted authority: `decisions/016-broad-ehr-skeleton-clinical-memory.md` is accepted.
+  - Non-canonical/proposed: `decisions/017-actor-attestation-review-taxonomy.md` has proposed status and must not be treated as accepted policy.
+  - Current repo already has `src/views/memoryProof.ts`, `src/views/memoryProof.test.ts`, `src/derived.ts` memory-proof render, `patients/patient_002` broad fixture, and `patients/patient_002/_derived/memory-proof.md`.
+  - Current tests already cover six sections, patient_002 six-surface fixture, asOf replay, vitals window clamping, bedside observation reuse, and determinism.
+- Constraints:
+  - Plan first; do not implement directly in ralplan.
+  - Treat Workstream A as likely first execution lane, but keep actor/attestation ADR 017 assumptions non-canonical until accepted.
+  - Preserve no hidden `pi-sim` coupling.
+  - Prefer hardening/acceptance-gap closure over duplicate implementation because baseline memoryProof implementation already exists.
+- Unknowns/open questions:
+  - Whether current implementation fully satisfies all memo acceptance tests, especially fingerprint/export semantics and no-hidden-simulator static check.
+  - Whether the next execution lane should be a small hardening PR rather than a full build PR.
+  - Whether PRD/test artifacts should mark Workstream A as implemented-but-needing acceptance hardening.
+- Likely codebase touchpoints for later execution:
+  - `src/views/memoryProof.ts`, `src/views/memoryProof.test.ts`, `src/types.ts`, `src/derived.ts`, `src/derived.test.ts`, `patients/patient_002/**`, `_derived/memory-proof.md`, docs/plans.

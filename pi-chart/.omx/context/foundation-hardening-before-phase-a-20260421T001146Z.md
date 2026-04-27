@@ -1,0 +1,29 @@
+# Context Snapshot: foundation-hardening-before-phase-a
+
+- task statement: Build a consensus hardening plan for pi-chart's foundation before adding more clinical complexity, incorporating prior code-review findings plus Claude's additional spec/design findings.
+- desired outcome: Produce an approved PRD and test spec for integrity-first hardening, doc/spec reconciliation, and prerequisite ADR decisions before Phase A content expansion.
+- known facts/evidence:
+  - The current repo passes `npm test`, `npm run check`, and `npm run typecheck` as of 2026-04-20/21 local review, so the immediate problem is contract quality and foundation completeness rather than a currently failing suite.
+  - The sanctioned write path persists schema-valid but graph-invalid data because `src/write.ts` does not enforce link resolution, fulfillment typing, or supersession monotonicity before append; these checks live in `src/validate.ts`.
+  - `openLoops` filters superseded/corrected intents but not superseded/corrected fulfillments, so stale fulfillment state can incorrectly close or fail loops.
+  - Artifact refs accept arbitrary paths and `evidenceChain` resolves them with `path.join(patientRoot, relPath)` plus `fs.access`, allowing absolute-path or traversal escape from patient-local artifacts.
+  - Structured vitals evidence supports `encounterId` in validation/types, but `evidenceChain()` calls `trend()` without encounter scoping, so multi-encounter charts can show the wrong evidence window.
+  - Current ID generation is single-writer only: `nextEventId()` probes existing records and later appends, so concurrent writers can collide.
+  - Claude identified doc/spec drift around invariant 5, undocumented narrowing of allowable evidence support kinds, structured `EvidenceRef` docs drift, note↔communication binding being validator-only, `links.fulfills` / `links.addresses` target-type rules being validator-only, and the undocumented `vitals.quality` contract.
+  - Claude also identified design pressure points: interval semantics, status lifecycle richness, grouping/ordersets, overloaded `supports`, aggregation-blind views, open `source.kind` taxonomy, unspecified import authorship, unspecified `recorded_at` vs `effective_at` ordering, undefined encounter boundary rules, no co-sign model, and no per-event schema version.
+- constraints:
+  - Follow `ralplan` consensus workflow; plan only, no implementation in this step.
+  - Preserve existing behavior claims with explicit tests before refactor/hardening edits during execution.
+  - Keep changes small, reviewable, reversible, and avoid new runtime dependencies unless explicitly needed.
+  - Final execution plan must account for docs/spec/schema/code alignment, not only code patches.
+- unknowns/open questions:
+  - Which hardening items should be immediate implementation versus ADR-only decisions.
+  - Whether write-path graph-integrity enforcement should become mandatory immediately or staged behind narrower first-pass checks.
+  - Whether interval semantics and status richness should be solved with first-class schema changes or documented payload conventions.
+  - Whether per-event schema versioning is necessary before Phase A or can remain deferred if migrations rewrite canonical content.
+- likely codebase touchpoints:
+  - `src/write.ts`, `src/validate.ts`, `src/views/openLoops.ts`, `src/views/evidenceChain.ts`, `src/views/trend.ts`, `src/time.ts`
+  - `src/*.test.ts`, `src/views/*.test.ts`
+  - `README.md`, `DESIGN.md`, `CLAIM-TYPES.md`, `ARCHITECTURE.md`, `ROADMAP.md`
+  - `schemas/event.schema.json`, `schemas/note.schema.json`, `schemas/vitals.schema.json`
+  - `decisions/` for new ADR stubs or decisions
