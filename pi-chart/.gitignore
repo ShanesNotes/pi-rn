@@ -54,6 +54,10 @@ sessions/current.yaml
 .omx/state/
 .omx/tmp/
 .omx/wiki/
+# Top-level orchestration scratch (runtime config, metrics, scratchpads).
+.omx/*.json
+.omx/*.gitignore
+.omx/notepad.md
 
 # Generated kanban dashboard (build artifact; regen via `npm run dashboard`).
 docs/plans/dashboard.html
