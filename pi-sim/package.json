@@ -2,7 +2,7 @@
   "name": "pi-sim",
   "version": "0.2.0",
   "private": true,
-  "description": "Bedside-monitor backed by the Kitware Pulse Physiology Engine (via Docker sidecar). Exposes file-based monitor outputs for an external clinician workspace.",
+  "description": "Hidden patient simulation runtime with provider-based physiology and public telemetry outputs.",
   "type": "module",
   "scripts": {
     "monitor": "tsx scripts/monitor.ts",
@@ -14,7 +14,11 @@
     "pulse:down": "docker compose -f pulse/docker-compose.yml down",
     "pulse:logs": "docker compose -f pulse/docker-compose.yml logs -f pulse",
     "pulse:health": "curl -fsS http://localhost:8765/health",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "monitor:pulse": "tsx scripts/monitor.ts",
+    "sim:run": "tsx scripts/sim-run.ts",
+    "sim:run:demo": "tsx scripts/sim-run.ts --scenario vitals/scenarios/scripted_m1_demo.json --duration 30 --dt 10 --no-pacing",
+    "test:runtime": "tsx scripts/runtime/test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

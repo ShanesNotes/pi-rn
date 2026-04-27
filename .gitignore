@@ -12,8 +12,15 @@ Thumbs.db
 
 # Tool / marker artifacts
 .codex
-.omx/
 .omc/
+
+# OMX durable planning/context/archive artifacts are intentionally commit-worthy.
+# Keep only volatile runtime/session artifacts ignored across subprojects.
+**/.omx/state/
+**/.omx/tmp/
+**/.omx/logs/
+**/.omx/notepad.md
+**/.omx/project-memory.json
 
 # AI assistant session state
 .claude/

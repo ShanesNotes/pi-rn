@@ -1,0 +1,23 @@
+{
+  "t": 30,
+  "simTime_s": 30,
+  "wallTime": "2026-04-27T14:17:38.188Z",
+  "hr": 88.667,
+  "map": 72.667,
+  "bp_sys": 107.333,
+  "bp_dia": 62,
+  "rr": 20,
+  "spo2": 94.667,
+  "temp_c": 37.133,
+  "lactate_mmol_l": 1.567,
+  "scenarioPhase": "early_deterioration",
+  "alarms": [],
+  "monitor": {
+    "schemaVersion": 1,
+    "source": "pi-sim-scripted",
+    "sequence": 4,
+    "runState": "ended",
+    "events": [],
+    "heartRhythm": "unavailable"
+  }
+}

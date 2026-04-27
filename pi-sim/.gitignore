@@ -1,7 +1,13 @@
 node_modules/
 *.log
 .DS_Store
-.omx/
+# OMX durable planning/context/archive artifacts are intentionally commit-worthy.
+# Keep only volatile runtime/session artifacts ignored.
+.omx/state/
+.omx/tmp/
+.omx/logs/
+.omx/notepad.md
+.omx/project-memory.json
 __pycache__/
 *.py[cod]
 monitor-ui/refs/source/
