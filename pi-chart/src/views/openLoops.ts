@@ -56,6 +56,7 @@ export async function openLoops(
   const ordinary: OpenLoop[] = [];
   for (const intent of ctx.events) {
     if (intent.type !== "intent") continue;
+    if (params.encounterId && intent.encounter_id !== params.encounterId) continue;
     // An intent authored after `asOf` is not yet visible; skip it so
     // callers can time-travel without seeing future loops.
     if (!isVisibleAsOf(intent, ctx)) continue;
@@ -97,8 +98,8 @@ export async function openLoops(
     a.intent.id.localeCompare(b.intent.id),
   );
 
-  const vital = await buildVitalLoops(params.scope, ctx, fulfillmentsByIntent);
-  const contested = buildContestedClaims(ctx);
+  const vital = await buildVitalLoops(params.scope, ctx, fulfillmentsByIntent, params.encounterId);
+  const contested = buildContestedClaims(ctx, params.encounterId);
   const out: AnyOpenLoop[] = [...ordinary, ...vital, ...contested];
   out.sort((a, b) =>
     openLoopSortBucket(a) - openLoopSortBucket(b) ||
@@ -120,11 +121,13 @@ async function buildVitalLoops(
   scope: PatientScope,
   ctx: ActiveContext,
   fulfillmentsByIntent: Map<string, EventEnvelope[]>,
+  encounterId: string | undefined,
 ): Promise<VitalOpenLoop[]> {
   const latest = await latestVitalsByMetric(scope, ctx.asOfMs);
   const out: VitalOpenLoop[] = [];
   for (const intent of ctx.events) {
     if (intent.type !== "intent" || intent.subtype !== "monitoring_plan") continue;
+    if (encounterId && intent.encounter_id !== encounterId) continue;
     if (!isVisibleAsOf(intent, ctx)) continue;
     if (!eventCoversAsOf(intent, ctx.asOfMs)) continue;
     if (intent.status === "final" || intent.status === "superseded" || intent.status === "entered_in_error") continue;
@@ -332,8 +335,16 @@ function collectContestedPairs(ctx: ActiveContext): ContestedPair[] {
   return out;
 }
 
-export function contestedRuntimeEntries(ctx: ActiveContext): ContestedRuntimeEntry[] {
-  return collectContestedPairs(ctx).map(({ older: _older, newer: _newer, ...entry }) => entry);
+export function contestedRuntimeEntries(
+  ctx: ActiveContext,
+  encounterId?: string,
+): ContestedRuntimeEntry[] {
+  return collectContestedPairs(ctx)
+    .filter((pair) =>
+      !encounterId ||
+      (pair.older.encounter_id === encounterId && pair.newer.encounter_id === encounterId),
+    )
+    .map(({ older: _older, newer: _newer, ...entry }) => entry);
 }
 
 function indexFulfillments(events: EventEnvelope[]): Map<string, EventEnvelope[]> {
@@ -400,10 +411,16 @@ function resolveAddressesProblems(
   return out;
 }
 
-function buildContestedClaims(ctx: ActiveContext): ContestedClaim[] {
+function buildContestedClaims(ctx: ActiveContext, encounterId: string | undefined): ContestedClaim[] {
   const { thresholdSeconds, severity } = contestedClaimDefaults();
   const out: ContestedClaim[] = [];
   for (const pair of collectContestedPairs(ctx)) {
+    if (
+      encounterId &&
+      (pair.older.encounter_id !== encounterId || pair.newer.encounter_id !== encounterId)
+    ) {
+      continue;
+    }
     const newerMs = Date.parse(pair.newer.recorded_at);
     if (!Number.isFinite(newerMs) || !Number.isFinite(ctx.asOfMs)) continue;
     const ageSeconds = Math.max(0, Math.floor((ctx.asOfMs - newerMs) / 1000));

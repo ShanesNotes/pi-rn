@@ -151,7 +151,7 @@
   },
   "openLoop": {
     "title": "Reassess oxygen response & WoB",
-    "detail": "Due 09:50 · high priority · Escalate if SpO₂ < 90% or RR >= 30 at reassessment",
+    "detail": "Due 09:50 · pending · Escalate if SpO₂ < 90% or RR >= 30 at reassessment",
     "meta": "in 14m",
     "dueDeltaMinutes": 14
   },

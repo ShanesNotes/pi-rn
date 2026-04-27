@@ -154,6 +154,21 @@ test("pending: intent with no fulfillments and no due_by", async () => {
   assert.equal(loops[0].state, "pending");
 });
 
+test("encounterId filters ordinary intent loops before Agent Canvas consumes them", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", intent("evt_enc_001", "2026-04-18T08:00:00-05:00"));
+  await appendRawEvent(scope, "2026-04-18", intent("evt_enc_002", "2026-04-18T08:05:00-05:00", {
+    encounter_id: "enc_002",
+    data: { goal: "wrong encounter" },
+  }));
+  const loops = await openLoops({
+    scope,
+    asOf: "2026-04-18T08:10:00-05:00",
+    encounterId: "enc_001",
+  });
+  assert.deepEqual(loops.map((loop) => loop.intent.id), ["evt_enc_001"]);
+});
+
 test("in_progress: one active fulfillment, no terminal", async () => {
   const scope = await makeEmptyPatient();
   await appendRawEvent(scope, "2026-04-18", intent("evt_intent_01", "2026-04-18T08:00:00-05:00"));

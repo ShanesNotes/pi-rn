@@ -94,6 +94,7 @@ test("vitals axis returns latest per metric regardless of supersession semantics
   const scope = await makeEmptyPatient();
   await appendRawVital(scope, "2026-04-18", {
     sampled_at: "2026-04-18T08:00:00-05:00",
+    sample_key: "vital_enc_001_spo2",
     subject: "patient_001",
     encounter_id: "enc_001",
     source: { kind: "monitor_extension" },
@@ -102,6 +103,7 @@ test("vitals axis returns latest per metric regardless of supersession semantics
   });
   await appendRawVital(scope, "2026-04-18", {
     sampled_at: "2026-04-18T08:30:00-05:00",
+    sample_key: "vital_enc_002_spo2",
     subject: "patient_001",
     encounter_id: "enc_001",
     source: { kind: "monitor_extension" },
@@ -111,6 +113,37 @@ test("vitals axis returns latest per metric regardless of supersession semantics
   const s = await currentState({ scope, axis: "vitals" });
   if (s.axis !== "vitals") throw new Error();
   assert.equal(s.items.spo2.value, 88);
+});
+
+test("vitals axis scopes latest samples to the requested encounter", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    sample_key: "vital_enc_001_spo2",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 95,
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:30:00-05:00",
+    sample_key: "vital_enc_002_spo2",
+    subject: "patient_001",
+    encounter_id: "enc_002",
+    source: { kind: "monitor_extension" },
+    name: "spo2",
+    value: 88,
+  });
+  const s = await currentState({
+    scope,
+    axis: "vitals",
+    asOf: "2026-04-18T09:00:00-05:00",
+    encounterId: "enc_001",
+  });
+  if (s.axis !== "vitals") throw new Error();
+  assert.equal(s.items.spo2.value, 95);
+  assert.equal(s.items.spo2.sample_key, "vital_enc_001_spo2");
 });
 
 test("constraints axis surfaces the constraint_set from constraints.md", async () => {

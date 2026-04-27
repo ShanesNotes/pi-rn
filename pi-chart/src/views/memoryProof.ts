@@ -53,8 +53,13 @@ export async function memoryProof(
       types: CLINICAL_TYPES,
       encounterId: params.encounterId,
     }),
-    currentState({ scope: params.scope, axis: "all", asOf }) as Promise<CurrentStateAll>,
-    openLoops({ scope: params.scope, asOf }),
+    currentState({
+      scope: params.scope,
+      axis: "all",
+      asOf,
+      encounterId: params.encounterId,
+    }) as Promise<CurrentStateAll>,
+    openLoops({ scope: params.scope, asOf, encounterId: params.encounterId }),
     narrative({
       scope: params.scope,
       to: asOf,

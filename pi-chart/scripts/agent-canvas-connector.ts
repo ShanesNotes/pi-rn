@@ -47,10 +47,18 @@ export function deriveMarState(bundle: ChartContextBundle): BlockState {
 }
 
 export function mockAgentRespond(request: AgentDockRequest): AgentDockResponse {
-  if (request.intent === "administration" && request.marState === "blocked") {
+  const marState = effectiveMarState(request);
+  if (request.intent === "administration" && marState === "blocked") {
     return {
       kind: "advisory",
       banner: `${ADVISORY_BANNER_COPY} Medication administration remains blocked until bedside scan and clinician attestation are complete.`,
+    };
+  }
+
+  if (request.intent === "documentation" && mentionsMedicationAdministration(request.prompt)) {
+    return {
+      kind: "advisory",
+      banner: `${ADVISORY_BANNER_COPY} Medication administration documentation must stay in the MAR workflow with bedside scan and clinician attestation.`,
     };
   }
 
@@ -76,6 +84,16 @@ export function mockAgentRespond(request: AgentDockRequest): AgentDockResponse {
 
 function sourceRefsFromBundle(bundle: ChartContextBundle): string[] {
   return [...new Set(bundle.recentArtifacts.flatMap((artifact) => artifact.sourceRefs))];
+}
+
+function effectiveMarState(request: AgentDockRequest): BlockState {
+  return request.marState === "blocked" || deriveMarState(request.contextBundle) === "blocked"
+    ? "blocked"
+    : "unblocked";
+}
+
+function mentionsMedicationAdministration(prompt: string): boolean {
+  return /\b(med(?:ication)? admin(?:istration)?|administer(?:ed)?|dose|mar|chart(?:ing)? (?:the )?med)/i.test(prompt);
 }
 
 export function isToolAllowed(name: string): boolean {

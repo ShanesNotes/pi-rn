@@ -8,7 +8,8 @@ import {
   INTENTS,
   REQUIRES_REVIEW,
 } from "./agent-canvas-constants.js";
-import { chartViews, densityForView, patient002ContextFixture } from "./agent-canvas-fixtures.js";
+import { patient002ContextFixture } from "./agent-canvas-fixtures.js";
+import { chartViews, densityForView } from "./agent-canvas-view-catalog.js";
 import type { Intent } from "./agent-canvas-types.js";
 
 type _NoReviewIntent = Extract<Intent, "review"> extends never ? true : never;

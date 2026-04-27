@@ -74,6 +74,9 @@ await check("artifact pane uses top-right horizontal-resize anchor above dock", 
 await check("artifact freshness starts current", page.locator("#artifact-titlebar").getAttribute("data-freshness").then((value) => value === "current"));
 await page.evaluate(() => window.dispatchEvent(new CustomEvent("pi-chart:vitals-shift")));
 await check("artifact freshness turns stale after vitals shift", page.locator("#artifact-titlebar").getAttribute("data-freshness").then((value) => value === "stale"));
+await page.locator("#close-artifact").click();
+await page.getByText("Next-shift handoff draft", { exact: false }).first().click();
+await check("artifact freshness remains stale after close and reopen", page.locator("#artifact-titlebar").getAttribute("data-freshness").then((value) => value === "stale"));
 await check("chartable pane exposes final clinical write", hasText("FINAL CLINICAL WRITE"));
 await page.locator("#chart-artifact").click();
 await check("Chart action is clickable while dock is expanded and closes pane", page.locator(".artifact-pane").isHidden());
@@ -81,6 +84,7 @@ await check("worklist item can reflect Charted status", page.locator("[data-arti
 
 await page.getByText("Zosyn due at 12:00", { exact: false }).first().click();
 await check("blocked MAR item opens safety pane", page.locator(".artifact-pane").isVisible());
+await check("non-vitals MAR artifact remains current after vitals shift", page.locator("#artifact-titlebar").getAttribute("data-freshness").then((value) => value === "current"));
 await check("blocked MAR disables Chart action", page.locator("#chart-artifact").isDisabled());
 await check("blocked MAR states agent cannot chart med administration", hasText("Agent cannot Chart med admin"));
 

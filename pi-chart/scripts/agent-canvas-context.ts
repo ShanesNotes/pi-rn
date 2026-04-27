@@ -1,6 +1,6 @@
 import { resolveAsOfMs } from "../src/views/active.js";
 import { currentState, memoryProof, narrative, openLoops, trend } from "../src/views/index.js";
-import { chartViews } from "./agent-canvas-fixtures.js";
+import { chartViews } from "./agent-canvas-view-catalog.js";
 import type { PatientScope, TrendPoint } from "../src/types.js";
 import type { ChartContextBundle, ChartViewId } from "./agent-canvas-types.js";
 
@@ -55,8 +55,8 @@ export async function buildAgentCanvasContext(
   const trendMetrics = [...(params.trendMetrics ?? DEFAULT_TREND_METRICS)];
 
   const [state, loops, notes, proof, trendEntries] = await Promise.all([
-    currentState({ scope, axis: "vitals", asOf }),
-    openLoops({ scope, asOf }),
+    currentState({ scope, axis: "vitals", asOf, encounterId: params.encounterId }),
+    openLoops({ scope, asOf, encounterId: params.encounterId }),
     narrative({ scope, to: asOf, encounterId: params.encounterId }),
     memoryProof({ scope, asOf, encounterId: params.encounterId }),
     Promise.all(
@@ -151,7 +151,7 @@ function summarizeOpenLoop(loop: Awaited<ReturnType<typeof openLoops>>[number] |
   const dueDeltaMinutes = typeof loop.dueDeltaMinutes === "number" ? loop.dueDeltaMinutes : undefined;
   const goal = typeof loop.intent?.data?.goal === "string" ? loop.intent.data.goal : "Active follow-up loop";
   const title = titleFromGoal(goal);
-  const detail = detailFromLoop(goal, loop.intent?.data?.contingencies);
+  const detail = detailFromLoop(loop, goal, loop.intent?.data?.contingencies);
   return {
     title,
     detail,
@@ -173,14 +173,26 @@ function titleFromGoal(goal: string): string {
   return `${goal.slice(0, 45).trim()}…`;
 }
 
-function detailFromLoop(goal: string, contingencies: unknown): string {
+function detailFromLoop(
+  loop: Awaited<ReturnType<typeof openLoops>>[number],
+  goal: string,
+  contingencies: unknown,
+): string {
   const trigger = Array.isArray(contingencies)
     ? contingencies
       .map((item) => item && typeof item === "object" ? (item as { trigger?: unknown }).trigger : undefined)
       .find((value): value is string => typeof value === "string")
     : undefined;
   const escalation = trigger ? `Escalate if ${trigger.replaceAll("SpO2", "SpO₂")}` : goal.replaceAll("SpO2", "SpO₂");
-  return `Due 09:50 · high priority · ${escalation}`;
+  return [dueLabel(loop), loop.state.replaceAll("_", " "), escalation].filter(Boolean).join(" · ");
+}
+
+function dueLabel(loop: Awaited<ReturnType<typeof openLoops>>[number]): string | null {
+  const dueBy = typeof loop.intent?.data?.due_by === "string" ? loop.intent.data.due_by : undefined;
+  const dueTime = dueBy?.match(/T(\d{2}:\d{2})/)?.[1];
+  if (dueTime) return `Due ${dueTime}`;
+  if (typeof loop.dueDeltaMinutes !== "number") return null;
+  return loop.dueDeltaMinutes > 0 ? `Due in ${loop.dueDeltaMinutes}m` : "Overdue";
 }
 
 function startOfUtcDay(ms: number): number {

@@ -50,8 +50,8 @@ export async function contextBundle(
 
   const [current_state, open_loops, narrative_handoff, recent_timeline, proof] =
     await Promise.all([
-      currentState({ scope: params.scope, axis: "all", asOf }),
-      openLoops({ scope: params.scope, asOf }),
+      currentState({ scope: params.scope, axis: "all", asOf, encounterId: params.encounterId }),
+      openLoops({ scope: params.scope, asOf, encounterId: params.encounterId }),
       narrative({
         scope: params.scope,
         to: asOf,

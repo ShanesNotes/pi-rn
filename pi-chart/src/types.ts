@@ -354,11 +354,13 @@ export interface CurrentStateParams {
   scope: PatientScope;
   asOf?: string;
   axis: Axis;
+  encounterId?: string;
 }
 
 export interface OpenLoopsParams {
   scope: PatientScope;
   asOf?: string;
+  encounterId?: string;
 }
 
 export type OpenLoopKind =
