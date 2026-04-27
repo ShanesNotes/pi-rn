@@ -50,7 +50,7 @@ Phase A exact source coverage now lives in [`phase-a-status-matrix.md`](phase-a-
 
 | Card | PRD | Test spec | Source inputs | Why now | Dependencies | HITL gate |
 |---|---|---|---|---|---|---|
-| A9B-001 A9b product implementation | [`prd-a9b-product-implementation.md`](prd-a9b-product-implementation.md) | [`test-spec-a9b-product-implementation.md`](test-spec-a9b-product-implementation.md) | `clinical-reference/phase-a/a9b-orderset-invocation-synthesis.md`; `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md` | A9b deferred from PHA-001; planning-ready under HITL-gated PRD. | PHA-001 | HITL gate before any A9B-TB-V code lane spawns. |
+| A9B-001 A9b product implementation | _retired to `.draft/` per [`disposition-memo-a9b-prd-vs-adr-018.md`](disposition-memo-a9b-prd-vs-adr-018.md)_ | _retired to `.draft/` per disposition memo_ | `clinical-reference/phase-a/a9b-orderset-invocation-synthesis.md`; `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md` | A9b stays plan-only ADR per HITL #6; PRD/test-spec drafts live in gitignored `docs/plans/.draft/` until a future HITL re-authorizes implementation. | PHA-001 | Pending `decisions/018-orderset-invocation.md` authorship; PRD re-promotion gated on a separate HITL. |
 | ADR17-002 Dashboard/prototype disposition | _pending PRD authorship_ | _pending test-spec authorship_ | `docs/plans/dashboard.html`; agent-canvas prototype baseline | ADR17 dashboard/prototype disposition deferred from PHA-001; planning-only. | PHA-001, ADR17-001 | Planning-only; HITL gate before any disposition PRD. |
 
 ## Backlog converted to thin PRD/test-spec surfaces
