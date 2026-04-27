@@ -32,3 +32,6 @@ sessions/current.yaml
 
 # Generated kanban dashboard (build artifact; regen via `npm run dashboard`).
 docs/plans/dashboard.html
+
+# A9B draft staging area (superceded PRDs; not for tracking).
+docs/plans/.draft/
