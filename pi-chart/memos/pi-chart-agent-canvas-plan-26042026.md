@@ -1,5 +1,8 @@
 # pi-chart Agent Canvas Plan — Revised Approval Baseline (26042026)
 
+> **Status:** Prototype/directional evidence only. Not current architectural authority and not implementation authorization. For current direction, see ADR 018, `ARCHITECTURE.md`, and `docs/architecture/source-authority.md`.
+
+
 **Status:** revised after user review. The prior “Final” memo is **not approved as-is** and is superseded by this baseline.  
 **Ralplan source:** `.omx/plans/ralplan-pi-chart-agent-canvas-memo-revision-26042026.md`  
 **Consensus:** Architect APPROVE; Critic APPROVE; no mandatory final improvements.  

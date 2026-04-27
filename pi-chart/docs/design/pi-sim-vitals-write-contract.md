@@ -1,5 +1,8 @@
 # pi-sim → pi-chart vitals write contract (Lane A)
 
+> **Status:** Draft connector/prototype artifact. Not current implementation authority for endpoints, storage, or pi-sim adapters. For current direction, see ADR 018 and `docs/architecture/source-authority.md`; require a later approved PRD/ADR before implementing ingest behavior.
+
+
 Status: draft v0. Stabilizes the wire format pi-sim's `monitor.ts` will speak to pi-chart's localhost ingest endpoint. The pi-sim agent working ADR 002 implements the **B1 translator** against this contract.
 
 Companion artifacts:

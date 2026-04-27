@@ -1,5 +1,8 @@
 # pi-chart vitals-connector unblock — high-level plan (26042026)
 
+> **Status:** Historical/proposal-only planning memo. Not current implementation authorization for vitals ingest, `chart_state`, source edits, or pi-sim coupling. For current direction, see ADR 018, `docs/architecture/source-authority.md`, and a later approved adapter/ingest PRD if one exists.
+
+
 Companion to **pi-sim ADR 002** (three-stream topology, accepted 2026-04-23). pi-sim's agent is currently working that ADR. This memo names the **pi-chart-side** work needed so the pi-sim → pi-chart vitals seam stops being a mock and becomes the substrate the triad demo depends on.
 
 High-level only by request. No schema diffs, no validator rule wording, no code.

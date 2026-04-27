@@ -1,5 +1,8 @@
 # Definitive Minimum Viable FHIR Boundary for pi-chart Workstream A
 
+> **Status:** Historical/proposal-only memo. Not current FHIR adapter implementation authority. Use as boundary-design evidence only; for current authority, see ADR 018, `docs/architecture/source-authority.md`, and any later accepted adapter ADR/PRD.
+
+
 **Status:** Adopted design artifact for Workstream A planning; adapter implementation deferred until the memory-proof fixture/export tests exist.  
 **Scope:** pi-chart clinical-memory proof surface only.  
 **Target FHIR version:** HL7 FHIR R4 / 4.0.1 for the first adapter contract.  

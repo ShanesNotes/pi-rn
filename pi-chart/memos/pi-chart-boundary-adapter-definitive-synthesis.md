@@ -1,5 +1,8 @@
 # pi-chart Boundary Adapter API — Definitive Synthesis
 
+> **Status:** Historical/proposal-only memo. Not current adapter implementation authority. Treat as boundary-design evidence only; promote specific claims through an accepted ADR or approved PRD/test-spec before editing `src/**`, schemas, or adapter docs.
+
+
 **Status:** project decision artifact  
 **Scope:** first external adapter/export API for pi-chart  
 **Decision date:** 2026-04-25  

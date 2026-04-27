@@ -1,5 +1,8 @@
 # pi-chart ↔ pi-agent connector contract sketch
 
+> **Status:** Prototype/directional connector sketch. Not current API, tool, or architecture authority. For current direction, see ADR 018, `ARCHITECTURE.md`, and `docs/architecture/source-authority.md`; promote any connector contract through a later PRD/ADR before implementation.
+
+
 Status: draft interface note for the prototype. This is not a real agent integration yet.
 
 ## Ownership
