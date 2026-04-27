@@ -8,6 +8,7 @@
 
 import { promises as fs, readFileSync } from "node:fs";
 import path from "node:path";
+import type { ErrorObject } from "ajv";
 import {
   ajvErrorsTo,
   loadValidator,
@@ -65,7 +66,8 @@ interface State {
   warnings: ReportEntry[];
   allIds: Map<string, string>;             // id -> first seen at
   noteIds: Set<string>;
-  communicationNoteRefs: Set<string>;
+  notesById: Map<string, NoteValidationRecord[]>;
+  communicationsByNoteRef: Map<string, CommunicationNoteRefRecord[]>;
   eventTypes: Map<string, string>;          // id -> type
   expectedSubject: string | null;
   chartRoot: string;                        // repo root (for schemas/)
@@ -74,6 +76,20 @@ interface State {
   vitalMetricNames: Set<string>;
   vitalSampleKeys: Map<string, string>;
 }
+
+type NoteValidationRecord = {
+  id: string;
+  where: string;
+  authorRole: string | null;
+  sourceKind: string | null;
+};
+
+type CommunicationNoteRefRecord = {
+  noteRef: string;
+  where: string;
+  authorRole: string | null;
+  sourceKind: string | null;
+};
 
 function err(s: State, where: string, message: string) {
   s.errors.push({ where, message });
@@ -155,6 +171,16 @@ const CLINICIAN_FAMILY_AUTHOR_ROLES = new Set<string>([
   "pharmacist",
   "rt",
   "therapist",
+]);
+
+const NURSING_AUTHOR_ROLES = new Set<string>([
+  "rn",
+  "lpn",
+  "student_nurse",
+]);
+
+const CONDITIONAL_NURSING_AUTHOR_ROLES = new Set<string>([
+  "nurse_practitioner",
 ]);
 
 const REVIEW_DECISIONS = new Set<string>([
@@ -897,7 +923,8 @@ export async function validateChart(scope: PatientScope): Promise<ValidationRepo
     warnings: [],
     allIds: new Map(),
     noteIds: new Set(),
-    communicationNoteRefs: new Set(),
+    notesById: new Map(),
+    communicationsByNoteRef: new Map(),
     eventTypes: new Map(),
     expectedSubject: null,
     chartRoot: scope.chartRoot,
@@ -986,17 +1013,8 @@ export async function validateChart(scope: PatientScope): Promise<ValidationRepo
   // referential integrity + assessment-evidence rule
   await checkReferentialIntegrity(state);
 
-  // bidirectional note ↔ communication
-  for (const nid of [...state.noteIds].sort()) {
-    if (!state.communicationNoteRefs.has(nid)) {
-      err(
-        state,
-        "notes",
-        `note '${nid}' has no matching communication event ` +
-          `(no events.ndjson row with data.note_ref == '${nid}')`,
-      );
-    }
-  }
+  // V-NOTES: bidirectional note ↔ communication substrate plus soft scope signals.
+  validateNotesRules(state);
 
   // _derived/ hand-edit warning
   await checkDerivedNotEdited(state);
@@ -1136,7 +1154,14 @@ async function validateTimeline(
         validateStatusDetailSemantics(state, where, ev);
         if (ev.type === "communication") {
           const ref = ev?.data?.note_ref;
-          if (typeof ref === "string") state.communicationNoteRefs.add(ref);
+          if (typeof ref === "string" && ref.length > 0) {
+            addMapEntry(state.communicationsByNoteRef, ref, {
+              noteRef: ref,
+              where,
+              authorRole: authorRoleOf(ev),
+              sourceKind: sourceKindOf(ev),
+            });
+          }
         }
       }
     } catch (e: any) {
@@ -1203,16 +1228,54 @@ async function validateNote(
   try {
     [fm, body] = parseFrontmatter(text);
   } catch (e: any) {
-    err(state, rel, e?.message ?? String(e));
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      `malformed note frontmatter: ${e?.message ?? String(e)}`,
+    );
     return;
   }
   if (!fm) {
-    err(state, rel, "no frontmatter block");
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      "malformed note frontmatter: no frontmatter block",
+    );
     return;
   }
   const normalized = normalizeForSchema(fm) as Record<string, unknown>;
+  const nid = normalized.id;
+  const hasUsableId = typeof nid === "string" && nid.length > 0;
+  const recordedAt = normalized.recorded_at;
+  const hasUsableRecordedAt =
+    typeof recordedAt === "string" && Number.isFinite(Date.parse(recordedAt));
+
+  if (!hasUsableId) {
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      "note frontmatter id is missing or non-string",
+    );
+  }
+  if (!hasUsableRecordedAt) {
+    ruleWarn(
+      state,
+      rel,
+      "V-NOTES-03",
+      "note frontmatter recorded_at is missing or invalid",
+    );
+  }
+
   const ok = noteValidator(normalized);
-  if (!ok) state.errors.push(...ajvErrorsTo(rel, noteValidator.errors));
+  if (!ok) {
+    const hardErrors = (noteValidator.errors ?? []).filter(
+      (e) => !isWarningOnlyNoteFrontmatterError(e),
+    );
+    state.errors.push(...ajvErrorsTo(rel, hardErrors));
+  }
 
   if (
     state.expectedSubject &&
@@ -1239,11 +1302,164 @@ async function validateNote(
       `effective_at '${normalized.effective_at}' does not start with day directory prefix '${day}'`,
     );
   }
-  const nid = normalized.id;
-  if (typeof nid === "string") {
+  if (hasUsableId) {
     trackId(state, nid, rel);
     state.noteIds.add(nid);
+    addMapEntry(state.notesById, nid, {
+      id: nid,
+      where: rel,
+      authorRole: authorRoleOf(normalized),
+      sourceKind: sourceKindOf(normalized),
+    });
   }
+}
+
+function addMapEntry<K, V>(map: Map<K, V[]>, key: K, value: V) {
+  const existing = map.get(key);
+  if (existing) existing.push(value);
+  else map.set(key, [value]);
+}
+
+function authorRoleOf(value: any): string | null {
+  const role = value?.author?.role;
+  return typeof role === "string" && role.length > 0 ? role : null;
+}
+
+function sourceKindOf(value: any): string | null {
+  const kind = value?.source?.kind;
+  return typeof kind === "string" && kind.length > 0 ? kind : null;
+}
+
+function isWarningOnlyNoteFrontmatterError(error: ErrorObject): boolean {
+  if (
+    error.keyword === "required" &&
+    (error.params as { missingProperty?: unknown })?.missingProperty
+  ) {
+    const missing = (error.params as { missingProperty?: unknown }).missingProperty;
+    return missing === "id" || missing === "recorded_at";
+  }
+  if (error.instancePath === "/id") {
+    return error.keyword === "type";
+  }
+  if (error.instancePath === "/recorded_at") {
+    return error.keyword === "type" || error.keyword === "format";
+  }
+  return false;
+}
+
+function validateNotesRules(state: State) {
+  validateNotesSubstrateIntegrity(state);
+  validateNursingScopeWarnings(state);
+}
+
+function validateNotesSubstrateIntegrity(state: State) {
+  for (const nid of [...state.noteIds].sort()) {
+    if (state.communicationsByNoteRef.has(nid)) continue;
+    const note = state.notesById.get(nid)?.[0];
+    ruleErr(
+      state,
+      note?.where ?? "notes",
+      "V-NOTES-01",
+      `note '${nid}' has no matching communication event ` +
+        `(no events.ndjson row with non-empty data.note_ref == '${nid}')`,
+    );
+  }
+
+  for (const [noteRef, comms] of [...state.communicationsByNoteRef.entries()].sort(
+    ([a], [b]) => a.localeCompare(b),
+  )) {
+    if (state.noteIds.has(noteRef)) continue;
+    for (const comm of comms) {
+      ruleErr(
+        state,
+        comm.where,
+        "V-NOTES-01",
+        `data.note_ref: unknown note id '${noteRef}'`,
+      );
+    }
+  }
+}
+
+type NoteRoleCandidate = {
+  role: string | null;
+  sourceKind: string | null;
+  where: string;
+};
+
+function validateNursingScopeWarnings(state: State) {
+  const emitted = new Set<string>();
+
+  for (const [noteRef, comms] of state.communicationsByNoteRef.entries()) {
+    const notes = state.notesById.get(noteRef) ?? [];
+    for (const comm of comms) {
+      const candidates: NoteRoleCandidate[] = [
+        {
+          role: comm.authorRole,
+          sourceKind: comm.sourceKind,
+          where: comm.where,
+        },
+        ...notes.map((note) => ({
+          role: note.authorRole,
+          sourceKind: note.sourceKind,
+          where: note.where,
+        })),
+      ];
+      emitNursingScopeWarningsForCandidates(state, emitted, noteRef, candidates);
+    }
+  }
+
+  for (const [noteId, notes] of state.notesById.entries()) {
+    if (state.communicationsByNoteRef.has(noteId)) continue;
+    emitNursingScopeWarningsForCandidates(
+      state,
+      emitted,
+      noteId,
+      notes.map((note) => ({
+        role: note.authorRole,
+        sourceKind: note.sourceKind,
+        where: note.where,
+      })),
+    );
+  }
+}
+
+function emitNursingScopeWarningsForCandidates(
+  state: State,
+  emitted: Set<string>,
+  pairKey: string,
+  candidates: NoteRoleCandidate[],
+) {
+  for (const candidate of candidates) {
+    const concern = nursingScopeConcern(candidate.role, candidate.sourceKind);
+    if (!concern) continue;
+    const key = `${pairKey}:${concern}`;
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    ruleWarn(state, candidate.where, "V-NOTES-02", nursingScopeConcernMessage(concern));
+  }
+}
+
+function nursingScopeConcern(
+  role: string | null,
+  sourceKind: string | null,
+): "nurse_practitioner" | "rn_agent" | null {
+  if (!role || NURSING_AUTHOR_ROLES.has(role)) return null;
+  if (CONDITIONAL_NURSING_AUTHOR_ROLES.has(role)) return "nurse_practitioner";
+  if (role === "rn_agent" && !isAgentSourceKind(sourceKind)) return "rn_agent";
+  return null;
+}
+
+function nursingScopeConcernMessage(
+  concern: "nurse_practitioner" | "rn_agent",
+): string {
+  if (concern === "nurse_practitioner") {
+    return "nurse_practitioner note authorship is nursing/provider ambiguous in this no-subtype-expansion slice";
+  }
+  return "rn_agent is a pi-agent system role and is excluded from clinical nursing scope";
+}
+
+function isAgentSourceKind(sourceKind: string | null): boolean {
+  return typeof sourceKind === "string" && sourceKind.startsWith("agent_");
 }
 
 async function loadContextSegmentsForValidation(patientDir: string): Promise<any[]> {
@@ -1484,13 +1700,6 @@ async function checkReferentialIntegrity(state: State) {
 
     validateContradictsRules(state, where, ev, envelopes, envelopesById);
     validateResolvesRules(state, where, ev, envelopes, envelopesById);
-
-    if (ev.type === "communication") {
-      const ref = ev?.data?.note_ref;
-      if (typeof ref === "string" && !state.noteIds.has(ref)) {
-        err(state, where, `data.note_ref: unknown note id '${ref}'`);
-      }
-    }
     if (ev.type === "artifact_ref") {
       const relPath = ev?.data?.path;
       if (typeof relPath !== "string") {

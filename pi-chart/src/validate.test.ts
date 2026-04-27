@@ -4,7 +4,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import { validateChart } from "./validate.js";
-import { makeEmptyPatient, appendRawEvent, appendRawVital } from "./test-helpers/fixture.js";
+import { makeEmptyPatient, appendRawEvent, appendRawVital, writeRawNote } from "./test-helpers/fixture.js";
 import { formatVitalSampleKey } from "./vitals.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope } from "./types.js";
@@ -115,6 +115,74 @@ function phase3Transform(
     tool: "phase3-test",
     input_refs,
   };
+}
+
+function noteFrontmatter(
+  noteId: string,
+  role: string,
+  sourceKind = "nurse_charted",
+): Record<string, unknown> {
+  return {
+    id: noteId,
+    type: "communication",
+    subtype: "sbar",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:05-05:00",
+    author: { id: `${role}_author`, role },
+    source: { kind: sourceKind, ref: "validator-test" },
+    references: [],
+    status: "final",
+  };
+}
+
+function communicationEvent(
+  eventId: string,
+  noteRef: unknown,
+  role: string,
+  sourceKind = "nurse_charted",
+): Record<string, unknown> {
+  return {
+    id: eventId,
+    type: "communication",
+    subtype: "sbar",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T09:00:00-05:00",
+    recorded_at: "2026-04-18T09:00:10-05:00",
+    author: { id: `${role}_author`, role },
+    source: { kind: sourceKind, ref: "validator-test" },
+    certainty: "performed",
+    status: "final",
+    data:
+      noteRef === undefined
+        ? { status_detail: "sent" }
+        : { note_ref: noteRef, status_detail: "sent" },
+    links: { supports: [], supersedes: [] },
+  };
+}
+
+async function appendPairedValidationNote(
+  scope: PatientScope,
+  suffix: string,
+  role: string,
+  sourceKind = "nurse_charted",
+): Promise<string> {
+  const noteId = `note_20260418T09${suffix}_vnotes`;
+  await writeRawNote(
+    scope,
+    "2026-04-18",
+    `${suffix}_vnotes.md`,
+    noteFrontmatter(noteId, role, sourceKind),
+    "V-NOTES validator fixture.",
+  );
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent(`evt_20260418T09${suffix}_vnotes`, noteId, role, sourceKind),
+  );
+  return noteId;
 }
 
 // HANDOFF: V03-S4 profile foundation. ADR17-17b/17c will append profile ids to the registry later.
@@ -1387,7 +1455,253 @@ test("orphan note without communication event rejected", async () => {
   // drop the communication event (line 6 — last)
   await fs.writeFile(evPath, lines.slice(0, -1).join("\n") + "\n");
   const r = await validateChart(scope);
-  assert(r.errors.some((e) => /no matching communication event/.test(e.message)));
+  assert(
+    r.errors.some(
+      (e) =>
+        /V-NOTES-01/.test(e.message) &&
+        /no matching communication event/.test(e.message),
+    ),
+  );
+});
+
+test("V-NOTES-01 rejects communication note_ref with no note body", async () => {
+  const scope = await copyFixture();
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent(
+      "evt_20260418T090001_missing_note",
+      "note_20260418T090001_missing",
+      "rn",
+    ),
+  );
+
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some(
+      (e) =>
+        /V-NOTES-01/.test(e.message) &&
+        /unknown note id 'note_20260418T090001_missing'/.test(e.message),
+    ),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES-01 stays silent for paired note and communication", async () => {
+  const scope = await copyFixture();
+  await appendPairedValidationNote(scope, "02", "rn");
+
+  const r = await validateChart(scope);
+  assert.ok(
+    !r.errors.some((e) => /V-NOTES-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES-01 accepts duplicate note_ref without claimed-body semantics", async () => {
+  const scope = await copyFixture();
+  const noteId = await appendPairedValidationNote(scope, "03", "rn");
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent("evt_20260418T090003_vnotes_dup", noteId, "rn"),
+  );
+
+  const r = await validateChart(scope);
+  const allMessages = [...r.errors, ...r.warnings].map((entry) => entry.message).join("\n");
+  assert.ok(!/duplicate.*note_ref/i.test(allMessages), allMessages);
+  assert.ok(!/claimed body|body-resolution/i.test(allMessages), allMessages);
+  assert.ok(
+    !r.errors.some((e) => /V-NOTES-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES ignores missing empty and non-string note_ref communications", async () => {
+  const scope = await copyFixture();
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent("evt_20260418T090004_no_ref", undefined, "rn"),
+  );
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent("evt_20260418T090004_empty_ref", "", "rn"),
+  );
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent("evt_20260418T090004_number_ref", 123, "rn"),
+  );
+
+  const r = await validateChart(scope);
+  const allMessages = [...r.errors, ...r.warnings].map((entry) => entry.message).join("\n");
+  assert.ok(!/V-NOTES/.test(allMessages), allMessages);
+  assert.ok(!/unknown note id/.test(allMessages), allMessages);
+});
+
+test("V-NOTES-02 accepts attested nursing roles without role warnings", async () => {
+  const scope = await copyFixture();
+  await appendPairedValidationNote(scope, "05", "rn");
+  await appendPairedValidationNote(scope, "06", "lpn");
+  await appendPairedValidationNote(scope, "07", "student_nurse");
+
+  const r = await validateChart(scope);
+  assert.ok(
+    !r.warnings.some((w) => /V-NOTES-02/.test(w.message)),
+    JSON.stringify(r.warnings, null, 2),
+  );
+});
+
+test("V-NOTES-02 warns for rn_agent used as clinical nursing role", async () => {
+  const scope = await copyFixture();
+  await appendPairedValidationNote(scope, "08", "rn_agent", "nurse_charted");
+
+  const r = await validateChart(scope);
+  assert.equal(r.ok, true, JSON.stringify(r.errors, null, 2));
+  assert.equal(
+    r.warnings.filter((w) => /V-NOTES-02/.test(w.message) && /rn_agent/.test(w.message)).length,
+    1,
+    JSON.stringify(r.warnings, null, 2),
+  );
+});
+
+test("V-NOTES-02 warns for nurse_practitioner ambiguity without failing validation", async () => {
+  const scope = await copyFixture();
+  await appendPairedValidationNote(scope, "09", "nurse_practitioner", "clinician_chart_action");
+
+  const r = await validateChart(scope);
+  assert.equal(r.ok, true, JSON.stringify(r.errors, null, 2));
+  assert.equal(
+    r.warnings.filter((w) => /V-NOTES-02/.test(w.message) && /nurse_practitioner/.test(w.message)).length,
+    1,
+    JSON.stringify(r.warnings, null, 2),
+  );
+});
+
+test("V-NOTES-02 stays silent for rn_agent in agent-source note context", async () => {
+  const scope = await copyFixture();
+  await appendPairedValidationNote(scope, "10", "rn_agent", "agent_synthesis");
+
+  const r = await validateChart(scope);
+  assert.equal(r.ok, true, JSON.stringify(r.errors, null, 2));
+  assert.equal(
+    r.warnings.filter((w) => /V-NOTES-02/.test(w.message) && /rn_agent/.test(w.message)).length,
+    0,
+    JSON.stringify(r.warnings, null, 2),
+  );
+});
+
+test("V-NOTES-03 warns for missing note frontmatter without hard error", async () => {
+  const scope = await copyFixture();
+  const notesDir = path.join(patientRoot(scope), "timeline/2026-04-18/notes");
+  const notePath = path.join(notesDir, "090010_no_frontmatter.md");
+  await fs.writeFile(notePath, "No frontmatter here.\n");
+
+  const r = await validateChart(scope);
+  assert.ok(
+    r.warnings.some((w) => w.where.endsWith("090010_no_frontmatter.md") && /V-NOTES-03/.test(w.message)),
+    JSON.stringify(r.warnings, null, 2),
+  );
+  assert.ok(
+    !r.errors.some((e) => e.where.endsWith("090010_no_frontmatter.md")),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES-03 warns for malformed YAML frontmatter without hard error", async () => {
+  const scope = await copyFixture();
+  const notesDir = path.join(patientRoot(scope), "timeline/2026-04-18/notes");
+  const notePath = path.join(notesDir, "090011_malformed_yaml.md");
+  await fs.writeFile(notePath, "---\n- not\n- a\n- mapping\n---\n\nMalformed.\n");
+
+  const r = await validateChart(scope);
+  assert.ok(
+    r.warnings.some((w) => w.where.endsWith("090011_malformed_yaml.md") && /V-NOTES-03/.test(w.message)),
+    JSON.stringify(r.warnings, null, 2),
+  );
+  assert.ok(
+    !r.errors.some((e) => e.where.endsWith("090011_malformed_yaml.md")),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES-03 downgrades missing id discoverability errors", async () => {
+  const scope = await copyFixture();
+  const frontmatter = noteFrontmatter("note_20260418T090012_missing_id", "rn");
+  delete frontmatter.id;
+  await writeRawNote(
+    scope,
+    "2026-04-18",
+    "090012_missing_id.md",
+    frontmatter,
+    "Missing id should warn but not hard-error.",
+  );
+
+  const r = await validateChart(scope);
+  assert.ok(
+    r.warnings.some((w) => w.where.endsWith("090012_missing_id.md") && /V-NOTES-03/.test(w.message)),
+    JSON.stringify(r.warnings, null, 2),
+  );
+  assert.ok(
+    !r.errors.some((e) => e.where.endsWith("090012_missing_id.md")),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES-03 downgrades recorded_at discoverability errors but preserves pairing by id", async () => {
+  const scope = await copyFixture();
+  const noteId = "note_20260418T090013_missing_recorded";
+  const frontmatter = noteFrontmatter(noteId, "rn");
+  delete frontmatter.recorded_at;
+  await writeRawNote(
+    scope,
+    "2026-04-18",
+    "090013_missing_recorded.md",
+    frontmatter,
+    "Missing recorded_at but id remains pairable.",
+  );
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent("evt_20260418T090013_missing_recorded", noteId, "rn"),
+  );
+
+  const r = await validateChart(scope);
+  assert.ok(
+    r.warnings.some((w) => w.where.endsWith("090013_missing_recorded.md") && /V-NOTES-03/.test(w.message)),
+    JSON.stringify(r.warnings, null, 2),
+  );
+  assert.ok(
+    !r.errors.some((e) => e.where.endsWith("090013_missing_recorded.md") || /V-NOTES-01/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
+test("V-NOTES-03 preserves unrelated hard note schema errors", async () => {
+  const scope = await copyFixture();
+  const noteId = "note_20260418T090014_missing_subject";
+  const frontmatter = noteFrontmatter(noteId, "rn");
+  delete frontmatter.subject;
+  await writeRawNote(
+    scope,
+    "2026-04-18",
+    "090014_missing_subject.md",
+    frontmatter,
+    "Missing subject remains a hard schema error.",
+  );
+  await appendRawEvent(
+    scope,
+    "2026-04-18",
+    communicationEvent("evt_20260418T090014_missing_subject", noteId, "rn"),
+  );
+
+  const r = await validateChart(scope);
+  assert.ok(
+    r.errors.some((e) => e.where.endsWith("090014_missing_subject.md") && /subject/.test(e.message)),
+    JSON.stringify(r.errors, null, 2),
+  );
 });
 
 test("note references[] with unknown id rejected", async () => {
