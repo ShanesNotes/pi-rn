@@ -17,9 +17,17 @@ async function copyFixture(): Promise<PatientScope> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-derived-"));
   await fs.cp(REPO_ROOT, dir, {
     recursive: true,
-    filter: (src) => !/node_modules|_derived\/.+\.md/.test(src),
+    filter: shouldCopyFixturePath,
   });
   return { chartRoot: dir, patientId: "patient_001" };
+}
+
+function shouldCopyFixturePath(src: string): boolean {
+  const parts = path.relative(REPO_ROOT, src).split(path.sep);
+  return (
+    !parts.some((part) => ["node_modules", ".git", ".omx"].includes(part)) &&
+    !/_derived\/.+\.md/.test(src)
+  );
 }
 
 test("rebuild is deterministic against unchanged content", async () => {
@@ -65,7 +73,7 @@ test("rebuildDerived emits deterministic memory-proof.md with required headings"
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-memory-proof-"));
   await fs.cp(REPO_ROOT, tmpRoot, {
     recursive: true,
-    filter: (src) => !/node_modules|_derived\/.+\.md/.test(src),
+    filter: shouldCopyFixturePath,
   });
   const tmpScope = { ...scope, chartRoot: tmpRoot };
   await rebuildDerived(tmpScope);

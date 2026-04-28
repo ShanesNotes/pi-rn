@@ -1,0 +1,30 @@
+{
+  "id": "art-002-lab-004",
+  "type": "artifact_ref",
+  "subtype": "lab_report",
+  "subject": "patient_002",
+  "encounter_id": "enc-002-001",
+  "source": { "kind": "lab_interface_hl7", "ref": "core_lab" },
+  "creatinine_trajectory": {
+    "baseline_outpatient": { "value": 1.4, "unit": "mg/dL", "context": "CKD 3a baseline" },
+    "trajectory": [
+      { "effective_at": "2026-04-19T05:12:00-05:00", "cr": 2.1, "context": "ED admission, AKI on CKD", "event_id": "evt-002-0024" },
+      { "effective_at": "2026-04-19T22:00:00-05:00", "cr": 2.0, "context": "post-resuscitation, intubated", "event_id": "evt-002-0086" },
+      { "effective_at": "2026-04-20T06:00:00-05:00", "cr": 1.7, "context": "hospital day 2 AM", "event_id": "evt-002-0093" },
+      { "effective_at": "2026-04-20T22:00:00-05:00", "cr": 1.5, "context": "hospital day 2 PM, off pressors", "event_id": "evt-002-0113" },
+      { "effective_at": "2026-04-21T07:45:00-05:00", "cr": 1.4, "context": "hospital day 3 AM, at baseline", "event_id": "evt-002-0121" }
+    ]
+  },
+  "lactate_trajectory": [
+    { "effective_at": "2026-04-19T04:50:00-05:00", "value": 3.8, "kind": "POC", "event_id": "evt-002-0018" },
+    { "effective_at": "2026-04-19T05:15:00-05:00", "value": 3.8, "kind": "core_lab", "event_id": "evt-002-0025" },
+    { "effective_at": "2026-04-19T14:30:00-05:00", "value": 2.4, "kind": "core_lab", "event_id": "evt-002-0079" },
+    { "effective_at": "2026-04-20T04:00:00-05:00", "value": 1.6, "kind": "core_lab", "event_id": "evt-002-0091" }
+  ],
+  "wbc_trajectory": [
+    { "effective_at": "2026-04-19T05:10:00-05:00", "wbc": 18.2, "bands_pct": 8, "event_id": "evt-002-0023" },
+    { "effective_at": "2026-04-19T22:00:00-05:00", "wbc": 16.4, "event_id": "evt-002-0086" },
+    { "effective_at": "2026-04-20T06:00:00-05:00", "wbc": 14.8, "event_id": "evt-002-0093" },
+    { "effective_at": "2026-04-21T07:45:00-05:00", "wbc": 11.2, "event_id": "evt-002-0121" }
+  ]
+}

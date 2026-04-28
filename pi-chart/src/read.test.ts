@@ -4,12 +4,13 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import { appendEvent } from "./write.js";
-import { appendRawEvent } from "./test-helpers/fixture.js";
+import { appendRawEvent, appendRawVital } from "./test-helpers/fixture.js";
 import {
   latestEffectiveAt,
   readActiveConstraints,
   readLatestVitals,
   readRecentEvents,
+  readRecentNotes,
 } from "./read.js";
 import { patientRoot } from "./types.js";
 import type { PatientScope } from "./types.js";
@@ -221,4 +222,85 @@ test("readRecentEvents sim-time default uses appended event time", async () => {
   );
   const events = await readRecentEvents({ scope, withinMinutes: 60 });
   assert.equal(events.length, 1);
+});
+
+test("read APIs ignore simulation hidden_truth material under a patient package", async () => {
+  const scope = await freshChart();
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_visible",
+    type: "observation",
+    subtype: "exam_finding",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:00-05:00",
+    author: { id: "x", role: "rn" },
+    source: { kind: "manual_scenario" },
+    certainty: "observed",
+    status: "final",
+    data: { finding: "visible" },
+    links: { supports: [] },
+  });
+  await appendRawVital(scope, "2026-04-18", {
+    sampled_at: "2026-04-18T08:00:00-05:00",
+    recorded_at: "2026-04-18T08:00:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "visible-monitor" },
+    name: "spo2",
+    value: 94,
+    unit: "%",
+  });
+  const hiddenTimeline = path.join(
+    patientRoot(scope),
+    "simulation",
+    "hidden_truth",
+    "timeline",
+    "2026-04-18",
+  );
+  await fs.mkdir(path.join(hiddenTimeline, "notes"), { recursive: true });
+  await fs.writeFile(
+    path.join(hiddenTimeline, "events.ndjson"),
+    `${JSON.stringify({
+      id: "evt_hidden",
+      type: "observation",
+      subtype: "exam_finding",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      effective_at: "2026-04-18T08:05:00-05:00",
+      recorded_at: "2026-04-18T08:05:00-05:00",
+      author: { id: "sim", role: "system" },
+      source: { kind: "manual_scenario" },
+      certainty: "observed",
+      status: "final",
+      data: { hidden_lung_fluid_ml: 875 },
+      links: { supports: [] },
+    })}\n`,
+  );
+  await fs.writeFile(
+    path.join(hiddenTimeline, "vitals.jsonl"),
+    `${JSON.stringify({
+      sampled_at: "2026-04-18T08:05:00-05:00",
+      subject: "patient_001",
+      encounter_id: "enc_001",
+      source: { kind: "monitor_extension" },
+      name: "spo2",
+      value: 55,
+    })}\n`,
+  );
+  await fs.writeFile(
+    path.join(hiddenTimeline, "notes", "hidden.md"),
+    "---\nid: note_20260418T0805_hidden\ntype: communication\nsubject: patient_001\nencounter_id: enc_001\neffective_at: '2026-04-18T08:05:00-05:00'\nrecorded_at: '2026-04-18T08:05:00-05:00'\nauthor: {id: sim, role: system}\nsource: {kind: manual_scenario}\nstatus: final\nreferences: []\n---\n\nhidden_lung_fluid_ml should not leak\n",
+  );
+
+  const events = await readRecentEvents({
+    scope,
+    withinMinutes: 30,
+    asOf: new Date("2026-04-18T08:10:00-05:00"),
+  });
+  const vitals = await readLatestVitals(scope);
+  const notes = await readRecentNotes({ scope });
+  assert.deepEqual(events.map((event) => event.id), ["evt_visible"]);
+  assert.equal(vitals.spo2.value, 94);
+  assert.equal(notes.some((note) => note.body.includes("hidden_lung_fluid_ml")), false);
 });

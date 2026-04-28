@@ -1,3 +1,8 @@
+> **Status: HISTORICAL VISUAL REFERENCE ONLY.**
+> These notes describe the old in-repo PySide `monitor-ui` visual research. Current display implementation authority lives in sibling `../pi-monitor`; current `pi-sim` architecture authority is ADR 003. Do not treat PySide-specific implementation hints here as current direction.
+
+---
+
 # Module 10 — QRS Morphology and Lead Selection (3-model synthesis)
 
 Source: Philips IntelliVue training video #10 (`XzDNhomB4nU`), 720p, 183s.

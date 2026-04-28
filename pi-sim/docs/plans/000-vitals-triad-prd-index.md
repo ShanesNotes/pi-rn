@@ -1,3 +1,8 @@
+> **Status note — retained context, not global architecture authority.**
+> Current `pi-sim` architecture authority is `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` plus `.omx/plans/plan-pi-sim-architecture-rebase-patient-runtime.md`. Treat this file as scoped historical/seam context unless a newer plan explicitly revives it.
+
+---
+
 # 000 — Triad PRD Index (pi-sim ↔ pi-chart ↔ pi-agent connection)
 
 Date: 2026-04-26

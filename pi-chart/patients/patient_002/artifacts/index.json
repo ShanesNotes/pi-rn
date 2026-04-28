@@ -1,0 +1,54 @@
+{
+  "art-002-001": {
+    "type": "imaging_report",
+    "study": "Portable AP chest radiograph \u2014 admission",
+    "effective_at": "2026-04-19T05:00:00-05:00",
+    "path": "artifacts/imaging/20260419_0445_cxr_report.md",
+    "source_event_id": "evt-002-0021"
+  },
+  "art-002-img-005": {
+    "type": "imaging_report",
+    "study": "Transthoracic echocardiogram \u2014 2025-08-05 (annual HFpEF follow-up)",
+    "effective_at": "2025-08-05T14:00:00-05:00",
+    "path": "artifacts/imaging/20250805_echo_report.md",
+    "source_event_id": "evt-002-h004-002"
+  },
+  "art-002-img-006": {
+    "type": "imaging_report",
+    "study": "Transthoracic echocardiogram \u2014 2022-08-04 (HFpEF diagnostic)",
+    "effective_at": "2022-08-04T10:30:00-05:00",
+    "path": "artifacts/imaging/20220804_echo_report.md",
+    "source_event_id": "evt-002-h001-013"
+  },
+  "art-002-imm-001": {
+    "type": "immunization_record",
+    "as_of": "2026-04-19",
+    "path": "artifacts/immunizations/immunization_record.json"
+  },
+  "art-002-lab-001": {
+    "type": "lab_report",
+    "study": "Admission labs (CBC, BMP, lactate, procalcitonin)",
+    "effective_at": "2026-04-19T05:10:00-05:00",
+    "path": "artifacts/labs/20260419_admission_labs.json"
+  },
+  "art-002-lab-005": {
+    "type": "lab_trajectory",
+    "panel": "A1c (longitudinal)",
+    "path": "artifacts/labs/longitudinal_a1c.json"
+  },
+  "art-002-lab-006": {
+    "type": "lab_trajectory",
+    "panel": "Renal function (Cr, eGFR, UACR longitudinal)",
+    "path": "artifacts/labs/longitudinal_renal.json"
+  },
+  "art-002-lab-007": {
+    "type": "lab_trajectory",
+    "panel": "Lipid panel (longitudinal)",
+    "path": "artifacts/labs/longitudinal_lipids.json"
+  },
+  "art-002-lab-008": {
+    "type": "lab_trajectory",
+    "panel": "BNP and outpatient BP (longitudinal)",
+    "path": "artifacts/labs/longitudinal_bnp_bp.json"
+  }
+}

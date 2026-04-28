@@ -36,6 +36,22 @@ pub struct TargetFrame {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MonitorExtension {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    pub source: Option<String>,
+    pub sequence: Option<u64>,
+    #[serde(rename = "runState")]
+    pub run_state: Option<String>,
+    #[serde(default)]
+    pub events: Option<Vec<String>>,
+    #[serde(rename = "heartRhythm")]
+    pub heart_rhythm: Option<String>,
+    #[serde(default)]
+    pub waveforms: BTreeMap<String, Waveform>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CurrentScalarFrame {
     pub t: f64,
     pub hr: Option<f64>,
@@ -51,6 +67,8 @@ pub struct CurrentScalarFrame {
     pub wall_time: Option<String>,
     #[serde(default)]
     pub alarms: Option<Vec<String>>,
+    #[serde(default)]
+    pub monitor: Option<MonitorExtension>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -192,6 +210,8 @@ pub fn parse_public_frame(input: &str) -> Result<PublicFrame, FrameError> {
 
 pub fn normalize_target(frame: TargetFrame) -> Result<PublicFrame, FrameError> {
     finite("simTime_s", frame.sim_time_s)?;
+    validate_schema_version("schemaVersion", frame.schema_version)?;
+    validate_waveforms(&frame.waveforms)?;
     let mut vitals = BTreeMap::new();
     let mut notes = Vec::new();
     for key in [
@@ -236,36 +256,45 @@ pub fn normalize_target(frame: TargetFrame) -> Result<PublicFrame, FrameError> {
 
 pub fn normalize_current_scalar(frame: CurrentScalarFrame) -> Result<PublicFrame, FrameError> {
     finite("t", frame.t)?;
+    let CurrentScalarFrame {
+        t,
+        hr,
+        map,
+        bp_sys,
+        bp_dia,
+        rr,
+        temp_c,
+        etco2_mmhg,
+        spo2,
+        wall_time,
+        alarms,
+        monitor,
+    } = frame;
     let mut vitals = BTreeMap::new();
     let mut notes = vec!["compatibility: parsed legacy lowercase scalar current.json".to_string()];
-    insert_optional(&mut vitals, VitalKey::HeartRate, frame.hr, "1/min")?;
+    insert_optional(&mut vitals, VitalKey::HeartRate, hr, "1/min")?;
     insert_optional(
         &mut vitals,
         VitalKey::SystolicArterialPressure,
-        frame.bp_sys,
+        bp_sys,
         "mmHg",
     )?;
     insert_optional(
         &mut vitals,
         VitalKey::DiastolicArterialPressure,
-        frame.bp_dia,
+        bp_dia,
         "mmHg",
     )?;
-    insert_optional(
-        &mut vitals,
-        VitalKey::MeanArterialPressure,
-        frame.map,
-        "mmHg",
-    )?;
-    insert_optional(&mut vitals, VitalKey::RespirationRate, frame.rr, "1/min")?;
-    insert_optional(&mut vitals, VitalKey::CoreTemperature, frame.temp_c, "degC")?;
+    insert_optional(&mut vitals, VitalKey::MeanArterialPressure, map, "mmHg")?;
+    insert_optional(&mut vitals, VitalKey::RespirationRate, rr, "1/min")?;
+    insert_optional(&mut vitals, VitalKey::CoreTemperature, temp_c, "degC")?;
     insert_optional(
         &mut vitals,
         VitalKey::EndTidalCarbonDioxidePressure,
-        frame.etco2_mmhg,
+        etco2_mmhg,
         "mmHg",
     )?;
-    if let Some(mut spo2) = frame.spo2 {
+    if let Some(mut spo2) = spo2 {
         finite("spo2", spo2)?;
         if spo2 > 1.0 && spo2 <= 100.0 {
             notes.push(
@@ -288,20 +317,43 @@ pub fn normalize_current_scalar(frame: CurrentScalarFrame) -> Result<PublicFrame
             },
         );
     }
-    let alarms = match frame.alarms {
-        Some(alarms) => AlarmFeed::Available(alarms),
-        None => AlarmFeed::Unavailable,
+
+    let mut source = "pi-sim/current.json".to_string();
+    let mut sequence = None;
+    let mut run_state = None;
+    let mut heart_rhythm = None;
+    let mut waveforms = BTreeMap::new();
+    let alarm_feed = match (monitor, alarms) {
+        (Some(extension), legacy_alarms) => {
+            validate_schema_version("monitor.schemaVersion", extension.schema_version)?;
+            validate_waveforms(&extension.waveforms)?;
+            source = extension
+                .source
+                .unwrap_or_else(|| "pi-sim/current.json#monitor".to_string());
+            sequence = extension.sequence;
+            run_state = extension.run_state;
+            heart_rhythm = extension.heart_rhythm;
+            waveforms = extension.waveforms;
+            notes.push("compatibility: applied monitor extension from current.json".to_string());
+            match extension.events.or(legacy_alarms) {
+                Some(events) => AlarmFeed::Available(events),
+                None => AlarmFeed::Unavailable,
+            }
+        }
+        (None, Some(legacy_alarms)) => AlarmFeed::Available(legacy_alarms),
+        (None, None) => AlarmFeed::Unavailable,
     };
+
     Ok(PublicFrame {
-        source: "pi-sim/current.json".to_string(),
-        sequence: None,
-        run_state: None,
-        sim_time_s: frame.t,
-        wall_time: frame.wall_time,
+        source,
+        sequence,
+        run_state,
+        sim_time_s: t,
+        wall_time,
         vitals,
-        alarms,
-        heart_rhythm: None,
-        waveforms: BTreeMap::new(),
+        alarms: alarm_feed,
+        heart_rhythm,
+        waveforms,
         compatibility_notes: notes,
     })
 }
@@ -333,6 +385,42 @@ fn validate_quantity(field: &str, quantity: &Quantity, expected: &str) -> Result
             unit: quantity.unit.clone(),
             expected: expected.to_string(),
         });
+    }
+    Ok(())
+}
+
+fn validate_schema_version(field: &str, value: u32) -> Result<(), FrameError> {
+    if value == 0 {
+        return Err(FrameError::InvalidNumber {
+            field: field.to_string(),
+            value: value as f64,
+        });
+    }
+    Ok(())
+}
+
+fn validate_waveforms(waveforms: &BTreeMap<String, Waveform>) -> Result<(), FrameError> {
+    for (name, waveform) in waveforms {
+        if name.trim().is_empty() {
+            return Err(FrameError::MissingRequired("waveform name".to_string()));
+        }
+        if waveform.unit.trim().is_empty() {
+            return Err(FrameError::MissingRequired(format!("{name}.unit")));
+        }
+        finite(&format!("{name}.sampleRate_Hz"), waveform.sample_rate_hz)?;
+        if waveform.sample_rate_hz <= 0.0 {
+            return Err(FrameError::InvalidNumber {
+                field: format!("{name}.sampleRate_Hz"),
+                value: waveform.sample_rate_hz,
+            });
+        }
+        finite(&format!("{name}.t0_s"), waveform.t0_s)?;
+        if waveform.values.is_empty() {
+            return Err(FrameError::MissingRequired(format!("{name}.values")));
+        }
+        for value in &waveform.values {
+            finite(&format!("{name}.values"), *value)?;
+        }
     }
     Ok(())
 }
@@ -392,9 +480,33 @@ mod tests {
 
     #[test]
     fn parses_target_frame() {
-        let frame = parse_public_frame(r#"{"schemaVersion":1,"source":"pi-sim/pulse","sequence":7,"runState":"running","simTime_s":2,"vitals":{"HeartRate":{"value":70,"unit":"1/min"},"PulseOximetry":{"value":0.98,"unit":"unitless"}},"events":["Tachycardia"],"heartRhythm":"NormalSinus","waveforms":{}}"#).unwrap();
+        let frame = parse_public_frame(r#"{"schemaVersion":1,"source":"pi-sim/pulse","sequence":7,"runState":"running","simTime_s":2,"vitals":{"HeartRate":{"value":70,"unit":"1/min"},"PulseOximetry":{"value":0.98,"unit":"unitless"}},"events":["Tachycardia"],"heartRhythm":"NormalSinus","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":1,"values":[0,1,0]}}}"#).unwrap();
         assert_eq!(frame.sequence, Some(7));
         assert_eq!(frame.alarms.values(), &["Tachycardia".to_string()]);
         assert_eq!(frame.heart_rhythm.as_deref(), Some("NormalSinus"));
+        assert_eq!(frame.waveforms["ECG_LeadII"].values.len(), 3);
+    }
+
+    #[test]
+    fn parses_legacy_current_with_monitor_extension() {
+        let frame = parse_public_frame(r#"{"t":44,"hr":72,"spo2":97,"alarms":["MAP_LOW"],"monitor":{"schemaVersion":1,"source":"pi-sim-pulse","sequence":42,"runState":"running","events":["Tachycardia"],"heartRhythm":"sinus","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":42,"values":[0,0.8,-0.1]}}}}"#).unwrap();
+        assert_eq!(frame.source, "pi-sim-pulse");
+        assert_eq!(frame.sequence, Some(42));
+        assert_eq!(frame.run_state.as_deref(), Some("running"));
+        assert_eq!(frame.alarms.values(), &["Tachycardia".to_string()]);
+        assert_eq!(frame.heart_rhythm.as_deref(), Some("sinus"));
+        assert_eq!(frame.waveforms["ECG_LeadII"].sample_rate_hz, 125.0);
+        assert!(
+            frame
+                .compatibility_notes
+                .iter()
+                .any(|note| note.contains("monitor extension"))
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_monitor_waveform() {
+        let err = parse_public_frame(r#"{"t":1,"hr":72,"monitor":{"schemaVersion":1,"waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":0,"t0_s":0,"values":[0]}}}}"#).unwrap_err();
+        assert!(format!("{err}").contains("sampleRate"));
     }
 }

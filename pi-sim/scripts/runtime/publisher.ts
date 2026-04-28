@@ -1,7 +1,15 @@
-import { mkdirSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { VitalFrame } from "../types.js";
-import type { RunState } from "./provider.js";
+import type {
+  PublicAssessmentEnvelope,
+  PublicAssessmentStatus,
+  PublicEncounterContext,
+  PublicTelemetryEvent,
+  RunState,
+  WaveformEnvelope,
+  WaveformStatus,
+} from "./provider.js";
 
 export interface PublisherStatus {
   readonly schemaVersion: 1;
@@ -14,11 +22,18 @@ export interface PublisherStatus {
 
 export class PublicTelemetryPublisher {
   private readonly outDir: string;
+  private readonly waveformDir: string;
+  private readonly encounterDir: string;
+  private readonly assessmentsDir: string;
   private readonly history: VitalFrame[] = [];
 
   constructor(outDir: string) {
     this.outDir = outDir;
+    this.waveformDir = join(outDir, "waveforms");
+    this.encounterDir = join(outDir, "encounter");
+    this.assessmentsDir = join(outDir, "assessments");
     mkdirSync(outDir, { recursive: true });
+    rmSync(join(outDir, "events.jsonl"), { force: true });
   }
 
   publish(frame: VitalFrame): void {
@@ -35,9 +50,51 @@ export class PublicTelemetryPublisher {
     };
     atomicWrite(join(this.outDir, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
   }
+
+  appendEvent(event: PublicTelemetryEvent): void {
+    appendFileSync(join(this.outDir, "events.jsonl"), `${JSON.stringify(event)}\n`);
+  }
+
+  publishWaveform(status: WaveformStatus, envelope?: WaveformEnvelope): void {
+    mkdirSync(this.waveformDir, { recursive: true });
+    atomicWrite(join(this.waveformDir, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
+
+    const currentPath = join(this.waveformDir, "current.json");
+    if (envelope) {
+      atomicWrite(currentPath, `${JSON.stringify(envelope, null, 2)}\n`);
+      return;
+    }
+
+    if (existsSync(currentPath)) rmSync(currentPath, { force: true });
+  }
+
+  publishEncounter(context?: PublicEncounterContext): void {
+    const currentPath = join(this.encounterDir, "current.json");
+    if (!context) {
+      if (existsSync(currentPath)) rmSync(currentPath, { force: true });
+      return;
+    }
+
+    mkdirSync(this.encounterDir, { recursive: true });
+    atomicWrite(currentPath, `${JSON.stringify(context, null, 2)}\n`);
+  }
+
+  publishAssessment(status: PublicAssessmentStatus, envelope?: PublicAssessmentEnvelope, clearCurrent = false): void {
+    mkdirSync(this.assessmentsDir, { recursive: true });
+    atomicWrite(join(this.assessmentsDir, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
+
+    const currentPath = join(this.assessmentsDir, "current.json");
+    if (envelope) {
+      atomicWrite(currentPath, `${JSON.stringify(envelope, null, 2)}\n`);
+      return;
+    }
+
+    if (clearCurrent && existsSync(currentPath)) rmSync(currentPath, { force: true });
+  }
 }
 
 export function atomicWrite(path: string, content: string): void {
+  mkdirSync(dirname(path), { recursive: true });
   const tmp = `${path}.tmp`;
   writeFileSync(tmp, content);
   renameSync(tmp, path);

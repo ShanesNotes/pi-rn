@@ -62,6 +62,7 @@ async function main(): Promise<void> {
     duration_s: duration,
     dt_s: args.dt,
     timeScale: args.timeScale,
+    actions: scenario.timeline,
   });
   console.log(`scripted run complete: ${scenario.name} t=${result.finalFrame.t}s sequence=${result.finalFrame.monitor?.sequence ?? 0} out=${args.outDir}`);
 }

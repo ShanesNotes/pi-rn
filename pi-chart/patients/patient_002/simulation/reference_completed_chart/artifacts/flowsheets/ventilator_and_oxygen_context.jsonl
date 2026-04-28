@@ -1,0 +1,9 @@
+{"start":"2026-04-19T04:10:00-05:00","end":"2026-04-19T04:22:00-05:00","context":"room air","evidence_event_ids":["evt-002-0001"]}
+{"start":"2026-04-19T04:22:00-05:00","end":"2026-04-19T05:55:00-05:00","context":"nasal cannula 4 L/min","evidence_event_ids":["evt-002-0007","evt-002-0008"]}
+{"start":"2026-04-19T05:55:00-05:00","end":"2026-04-19T08:20:00-05:00","context":"HFNC 40 L/min, FiO2 0.50","evidence_event_ids":["evt-002-0035","evt-002-0036"]}
+{"start":"2026-04-19T08:20:00-05:00","end":"2026-04-19T09:30:00-05:00","context":"HFNC 60 L/min, FiO2 0.80","evidence_event_ids":["evt-002-0053","evt-002-0054"]}
+{"start":"2026-04-19T09:30:00-05:00","end":"2026-04-19T10:15:00-05:00","context":"AC/VC, TV 380, RR 22, PEEP 8, FiO2 1.00","evidence_event_ids":["evt-002-0061","evt-002-0062"]}
+{"start":"2026-04-19T10:15:00-05:00","end":"2026-04-21T06:30:00-05:00","context":"AC/VC, TV 380, RR 22, PEEP 8, FiO2 weaned 0.60 -> 0.50 -> 0.40 by flowsheet","evidence_event_ids":["evt-002-0070","evt-002-0071","timeline/2026-04-19/vitals.jsonl","timeline/2026-04-20/vitals.jsonl","timeline/2026-04-21/vitals.jsonl"]}
+{"start":"2026-04-21T06:30:00-05:00","end":"2026-04-21T07:00:00-05:00","context":"SBT on PS 5 / PEEP 5 / FiO2 0.30","evidence_event_ids":["evt-002-0117"]}
+{"start":"2026-04-21T08:30:00-05:00","end":"2026-04-21T13:00:00-05:00","context":"HFNC 30 L/min, FiO2 0.35","evidence_event_ids":["evt-002-0124","evt-002-0125"]}
+{"start":"2026-04-21T13:00:00-05:00","end":"2026-04-21T23:59:00-05:00","context":"HFNC 20 L/min, FiO2 0.30","evidence_event_ids":["evt-002-0135","evt-002-0136"]}

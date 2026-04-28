@@ -1,4 +1,4 @@
-use monitor_core::{AlarmSeverity, DisplayModel, SourceState};
+use monitor_core::{AlarmSeverity, DisplayModel, SourceState, WaveformStripModel};
 
 pub fn render_terminal(model: &DisplayModel) -> String {
     let mut out = String::new();
@@ -20,40 +20,29 @@ pub fn render_terminal(model: &DisplayModel) -> String {
         "╠══════════════════════════════════════════════════════════════════════════════╣\n",
     );
     out.push_str(&format!("║ {:<44} │ {:<27} ║\n", "WAVEFORMS", "NUMERICS"));
-    out.push_str(&format!(
-        "║ {:<44} │ {:<27} ║\n",
-        truncate(&model.waveform_message, 44),
-        numeric_line(model, 0)
-    ));
-    out.push_str(&format!(
-        "║ {:<44} │ {:<27} ║\n",
-        "[ ECG ] unavailable",
-        numeric_line(model, 1)
-    ));
-    out.push_str(&format!(
-        "║ {:<44} │ {:<27} ║\n",
-        "[ ABP ] unavailable",
-        numeric_line(model, 2)
-    ));
-    out.push_str(&format!(
-        "║ {:<44} │ {:<27} ║\n",
-        "[ CO2 ] unavailable",
-        numeric_line(model, 3)
-    ));
-    out.push_str(&format!(
-        "║ {:<44} │ {:<27} ║\n",
-        if model.hr_tick_enabled {
-            "♥ HR tick active"
+    for idx in 0..6 {
+        let wave = if idx == 0 {
+            truncate(&model.waveform_message, 44)
         } else {
-            "heart tick suppressed"
-        },
-        numeric_line(model, 4)
-    ));
-    out.push_str(&format!(
-        "║ {:<44} │ {:<27} ║\n",
-        "",
-        numeric_line(model, 5)
-    ));
+            waveform_line(model.waveform_strips.get(idx - 1))
+        };
+        let wave = if idx == 4 {
+            if model.hr_tick_enabled {
+                "♥ HR tick active".to_string()
+            } else if wave.is_empty() {
+                "heart tick suppressed".to_string()
+            } else {
+                wave
+            }
+        } else {
+            wave
+        };
+        out.push_str(&format!(
+            "║ {:<44} │ {:<27} ║\n",
+            truncate(&wave, 44),
+            numeric_line(model, idx)
+        ));
+    }
     out.push_str(
         "╠══════════════════════════════════════════════════════════════════════════════╣\n",
     );
@@ -81,9 +70,20 @@ pub fn render_terminal(model: &DisplayModel) -> String {
 }
 
 pub fn render_html(model: &DisplayModel) -> String {
-    let tiles = model.numeric_tiles.iter().map(|tile| {
-        format!("<article class=\"tile {}\"><div class=\"label\">{}</div><div class=\"value\">{}</div><div class=\"unit\">{}</div></article>", if tile.available { "" } else { "missing" }, escape(&tile.label), escape(&tile.value), escape(&tile.unit))
-    }).collect::<Vec<_>>().join("\n");
+    let tiles = model
+        .numeric_tiles
+        .iter()
+        .map(|tile| {
+            format!(
+                "<article class=\"tile {}\"><div class=\"label\">{}</div><div class=\"value\">{}</div><div class=\"unit\">{}</div></article>",
+                if tile.available { "" } else { "missing" },
+                escape(&tile.label),
+                escape(&tile.value),
+                escape(&tile.unit)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
     let alarms = if !model.alarm_feed_available {
         "<span class=\"alarm unavailable\">ALARM FEED UNAVAILABLE</span>".to_string()
     } else if model.alarms.is_empty() {
@@ -102,6 +102,7 @@ pub fn render_html(model: &DisplayModel) -> String {
             .collect::<Vec<_>>()
             .join("\n")
     };
+    let strips = render_html_strips(&model.waveform_strips);
     format!(
         r#"<!doctype html>
 <html lang="en">
@@ -116,7 +117,9 @@ h1 {{ color:#8ffcff; letter-spacing:.12em; margin:0; }}
 .state {{ color:{state_color}; font-size:1.5rem; }}
 .grid {{ display:grid; grid-template-columns:1.5fr .9fr; gap:18px; }}
 .waveforms {{ border:1px solid #19313b; border-radius:16px; padding:16px; color:#9fb6bf; display:grid; grid-template-rows:repeat(4, 1fr); gap:12px; }}
-.strip {{ border-bottom:1px solid #31515e; display:flex; align-items:center; justify-content:center; text-transform:uppercase; letter-spacing:.1em; }}
+.strip {{ border-bottom:1px solid #31515e; display:grid; grid-template-columns:9rem 1fr; gap:12px; align-items:center; letter-spacing:.05em; }}
+.strip svg {{ width:100%; height:82px; background:#020506; border-radius:8px; }}
+.strip .unavailable {{ text-transform:uppercase; color:#7d919a; }}
 .tiles {{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }}
 .tile {{ border:1px solid #24424e; border-radius:16px; padding:14px; background:#071015; }}
 .tile .label {{ color:#7ac8d8; font-size:1rem; }}
@@ -130,7 +133,7 @@ footer {{ color:#ffdf8f; border-top:1px solid #28404a; padding-top:12px; }}
 </style>
 <main class="monitor">
 <header><h1>{title}</h1><div>SIM {sim_time} · <span class="state">{state}</span></div></header>
-<section class="grid"><div class="waveforms"><div class="strip">{waveform}</div><div class="strip">ECG waveform feed unavailable</div><div class="strip">ABP waveform feed unavailable</div><div class="strip">CO2 waveform feed unavailable</div></div><div class="tiles">{tiles}</div></section>
+<section class="grid"><div class="waveforms">{strips}</div><div class="tiles">{tiles}</div></section>
 <section class="alarms">{alarms}</section>
 <footer>{footer}</footer>
 </main>
@@ -139,11 +142,71 @@ footer {{ color:#ffdf8f; border-top:1px solid #28404a; padding-top:12px; }}
         title = escape(&model.title),
         sim_time = escape(&model.sim_time),
         state = state_label(model.state),
-        waveform = escape(&model.waveform_message),
+        strips = strips,
         tiles = tiles,
         alarms = alarms,
         footer = escape(&model.footer)
     )
+}
+
+fn render_html_strips(strips: &[WaveformStripModel]) -> String {
+    strips
+        .iter()
+        .take(4)
+        .map(|strip| {
+            if strip.available {
+                format!(
+                    "<div class=\"strip\"><strong>{}</strong>{}</div>",
+                    escape(&strip.signal),
+                    waveform_svg(strip)
+                )
+            } else {
+                format!(
+                    "<div class=\"strip\"><strong>{}</strong><span class=\"unavailable\">{}</span></div>",
+                    escape(&strip.signal),
+                    escape(&strip.message)
+                )
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn waveform_svg(strip: &WaveformStripModel) -> String {
+    let width = 420.0;
+    let height = 82.0;
+    let range = (strip.max - strip.min).abs().max(1e-9);
+    let denom = strip.values.len().saturating_sub(1).max(1) as f64;
+    let points = strip
+        .values
+        .iter()
+        .enumerate()
+        .map(|(idx, value)| {
+            let x = (idx as f64 / denom) * width;
+            let y = height - (((*value - strip.min) / range).clamp(0.0, 1.0) * height);
+            format!("{x:.1},{y:.1}")
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    format!(
+        "<svg viewBox=\"0 0 {width} {height}\" role=\"img\" aria-label=\"{} waveform\"><polyline points=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"2\"/></svg>",
+        escape(&strip.signal),
+        points,
+        stroke_for(&strip.signal)
+    )
+}
+
+fn waveform_line(strip: Option<&WaveformStripModel>) -> String {
+    match strip {
+        Some(strip) if strip.available => format!(
+            "[{}] {} samples @ {:.0} Hz",
+            strip.signal,
+            strip.values.len(),
+            strip.sample_rate_hz
+        ),
+        Some(strip) => format!("[{}] unavailable", strip.signal),
+        None => String::new(),
+    }
 }
 
 fn numeric_line(model: &DisplayModel, idx: usize) -> String {
@@ -154,7 +217,7 @@ fn numeric_line(model: &DisplayModel, idx: usize) -> String {
         .unwrap_or_default()
 }
 
-fn state_label(state: SourceState) -> &'static str {
+pub fn state_label(state: SourceState) -> &'static str {
     match state {
         SourceState::Fresh => "FRESH",
         SourceState::Stale => "STALE",
@@ -164,7 +227,7 @@ fn state_label(state: SourceState) -> &'static str {
     }
 }
 
-fn state_color(state: SourceState) -> &'static str {
+pub fn state_color(state: SourceState) -> &'static str {
     match state {
         SourceState::Fresh => "#75ff8b",
         SourceState::Stale => "#ffd166",
@@ -179,6 +242,16 @@ fn severity_class(severity: AlarmSeverity) -> &'static str {
         AlarmSeverity::Critical => "critical",
         AlarmSeverity::Warning => "warning",
         AlarmSeverity::Info => "info",
+    }
+}
+
+fn stroke_for(signal: &str) -> &'static str {
+    match signal {
+        "ECG_LeadII" | "ECG" => "#75ff8b",
+        "Pleth" => "#51d1ff",
+        "ArterialPressure" | "ABP" => "#ff5c5c",
+        "CO2" => "#ffd166",
+        _ => "#8ffcff",
     }
 }
 
@@ -219,5 +292,16 @@ mod tests {
         assert!(!html.to_ascii_lowercase().contains("save"));
         assert!(!html.to_ascii_lowercase().contains("commit"));
         assert!(html.contains("waveform feed unavailable"));
+    }
+
+    #[test]
+    fn html_renders_frame_provided_waveform_svg() {
+        let frame = parse_public_frame(r#"{"t":1,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":0,"values":[0,1,0]}}}}"#).unwrap();
+        let mut core = MonitorCore::new();
+        core.accept_frame(frame, 0);
+        let html = render_html(&core.display_model(0));
+        assert!(html.contains("<svg"));
+        assert!(html.contains("ECG_LeadII"));
+        assert!(html.contains("polyline"));
     }
 }

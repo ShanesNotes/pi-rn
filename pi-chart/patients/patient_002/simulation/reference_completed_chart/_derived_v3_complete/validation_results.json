@@ -1,0 +1,10 @@
+{
+  "patient_root": "./patient_002",
+  "event_count": 247,
+  "vitals_rows": 80,
+  "note_refs": 32,
+  "artifact_refs": 9,
+  "failures": [],
+  "warnings": [],
+  "pass": true
+}

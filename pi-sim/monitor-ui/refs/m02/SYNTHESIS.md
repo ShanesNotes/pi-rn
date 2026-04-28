@@ -1,3 +1,8 @@
+> **Status: HISTORICAL VISUAL REFERENCE ONLY.**
+> These notes describe the old in-repo PySide `monitor-ui` visual research. Current display implementation authority lives in sibling `../pi-monitor`; current `pi-sim` architecture authority is ADR 003. Do not treat PySide-specific implementation hints here as current direction.
+
+---
+
 # Module 02 — Understanding Alarms (3-model synthesis)
 
 Source: Philips IntelliVue training video #02, "Understanding Alarms" (`tTu9zgkdA0k`), 720p, 467s.

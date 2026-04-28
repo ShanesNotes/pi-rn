@@ -1,0 +1,19 @@
+{
+  "id": "art-002-lab-005",
+  "type": "artifact_ref",
+  "subtype": "lab_trajectory",
+  "subject": "patient_002",
+  "panel": "A1c and glycemic control",
+  "source": "outpatient PCP labs over years",
+  "trajectory": [
+    {"effective_at": "2009-04-15", "a1c": 7.4, "context": "diagnostic for T2DM; metformin started"},
+    {"effective_at": "2014-08-10", "a1c": 6.9, "context": "PCP follow-up"},
+    {"effective_at": "2018-09-04", "a1c": 7.1, "context": "PCP annual"},
+    {"effective_at": "2020-09-08", "a1c": 7.0, "context": "PCP annual"},
+    {"effective_at": "2022-08-03", "a1c": 7.3, "context": "HF admission [enc-002-h001]"},
+    {"effective_at": "2023-09-06", "a1c": 7.0, "context": "PCP annual"},
+    {"effective_at": "2024-09-08", "a1c": 7.1, "context": "PCP annual [evt-002-h003-002]"},
+    {"effective_at": "2025-09-13", "a1c": 7.2, "context": "PCP annual [evt-002-h005-002]"}
+  ],
+  "summary": "Stable A1c in the 7.0-7.4 range on metformin monotherapy over 16 years; mild upward drift recently. SGLT2i recommended pending insurance approval."
+}

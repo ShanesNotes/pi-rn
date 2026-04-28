@@ -2386,6 +2386,90 @@ test("external EvidenceRef is structurally accepted but does not satisfy assessm
   assert(!r.errors.some((e) => /unknown target id|malformed structured EvidenceRef|unknown kind/.test(e.message)));
 });
 
+test("visible timeline events reject simulator/evaluator-only metadata keys", async () => {
+  const scope = await copyFixture();
+  await mutateTimelineEvent(scope, "evt_20260418T0830_01", (event) => {
+    event.data.reference_expected_end_do_not_preload = "2026-04-18T10:00:00-05:00";
+    event.data.runtime_note = "simulation staging note";
+    event.data.hidden_lung_fluid_ml = 875;
+    event.data.nested = {
+      ground_truth_pneumonia_burden: "high",
+      scheduled_event_queue: ["future_private_event"],
+    };
+  });
+  const vitalWithHiddenKey = {
+    sampled_at: "2026-04-18T08:46:00-05:00",
+    recorded_at: "2026-04-18T08:46:00-05:00",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    source: { kind: "monitor_extension", ref: "pi-sim-monitor" },
+    name: "spo2",
+    value: 93,
+    unit: "%",
+    quality: "valid",
+    hidden_lung_fluid_ml: 875,
+  };
+  await appendRawVital(scope, "2026-04-18", {
+    ...vitalWithHiddenKey,
+    sample_key: formatVitalSampleKey(vitalWithHiddenKey),
+  });
+  await writeRawNote(
+    scope,
+    "2026-04-18",
+    "hidden-frontmatter.md",
+    {
+      ...noteFrontmatter("note_20260418T0905_hidden_frontmatter", "rn"),
+      ground_truth_pneumonia_burden: "high",
+    },
+    "Clinically visible body without simulator labels.",
+  );
+
+  const r = await validateChart(scope);
+  for (const key of [
+    "data.reference_expected_end_do_not_preload",
+    "data.runtime_note",
+    "data.hidden_lung_fluid_ml",
+    "data.nested.ground_truth_pneumonia_burden",
+    "data.nested.scheduled_event_queue",
+    "hidden_lung_fluid_ml",
+    "ground_truth_pneumonia_burden",
+  ]) {
+    assert(
+      r.errors.some((e) => e.message.includes("V-VISIBLE-01") && e.message.includes(key)),
+      `${key} not rejected:\n${JSON.stringify(r.errors, null, 2)}`,
+    );
+  }
+});
+
+test("visible artifacts reject simulator/evaluator-only staging tokens", async () => {
+  const scope = await copyFixture();
+  const artifactPath = path.join(
+    patientRoot(scope),
+    "artifacts",
+    "staging",
+    "future_reference.json",
+  );
+  await fs.mkdir(path.dirname(artifactPath), { recursive: true });
+  await fs.writeFile(
+    artifactPath,
+    JSON.stringify({
+      clinical_value: "visible",
+      runtime_note: "belongs in simulation staging, not artifacts",
+      hidden_lung_fluid_ml: 875,
+    }),
+  );
+
+  const r = await validateChart(scope);
+  assert(
+    r.errors.some((e) => /V-VISIBLE-01: visible artifact/.test(e.message) && e.message.includes("runtime_note")),
+    JSON.stringify(r.errors, null, 2),
+  );
+  assert(
+    r.errors.some((e) => /V-VISIBLE-01: visible artifact/.test(e.message) && e.message.includes("hidden_lung_fluid_ml")),
+    JSON.stringify(r.errors, null, 2),
+  );
+});
+
 test("artifact_ref absolute path is rejected", async () => {
   const scope = await copyFixture();
   const evPath = patientTimelineEvents(scope);

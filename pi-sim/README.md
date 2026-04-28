@@ -45,7 +45,7 @@ npm run sim:run:demo
 npm run sim:run:demo -- --out-dir .omx/evidence/pi-sim-m1-runtime-skeleton-smoke/vitals
 ```
 
-The scripted provider writes the same public scalar/latest-frame shape as the live provider: `current.json`, `timeline.json`, and `status.json`, including the backward-compatible `monitor` extension with `source: "pi-sim-scripted"`.
+The scripted provider writes the same public scalar/latest-frame shape as the live provider: `current.json`, `timeline.json`, and `status.json`, including the backward-compatible `monitor` extension with `source: "pi-sim-scripted"`. Provider-runtime runs also write additive public lanes: `events.jsonl` for lifecycle/action/alarm/provider events and `waveforms/status.json` for explicit waveform availability. Scripted runs report no waveform window.
 
 ### Pulse provider runtime (M2)
 
@@ -63,7 +63,9 @@ npm run sim:run:pulse:stable -- \
   --duration 60 --dt 10 --no-pacing
 ```
 
-If the Pulse Docker shim is unavailable, the Pulse provider command exits non-zero with a clear unavailable message and writes an `unavailable` `status.json`/`current.json` to the selected output directory. This is expected in no-Docker local environments and does not affect the M1 scripted path.
+If the Pulse Docker shim is unavailable, the Pulse provider command exits non-zero with a clear unavailable message and writes an `unavailable` `status.json`/`current.json` plus a `provider_unavailable` event to the selected output directory. This is expected in no-Docker local environments and does not affect the M1 scripted path.
+
+The current Pulse provider is scalar-only. It writes `waveforms/status.json` with `available: false` and removes any stale `waveforms/current.json` in the selected output directory. Do not infer, synthesize, or display Pulse waveforms as production clinical truth unless a later provider supplies real samples and the public waveform lane labels them accordingly.
 
 The stable Pulse smoke scenario is `vitals/scenarios/pulse_stable_observation.json`. It is intentionally low-acuity continuous observation: no ACLS/code blue, shock, sepsis, pressors, resuscitation, or decompensation story. Acute legacy scenarios remain compatibility/reference assets.
 
@@ -95,7 +97,7 @@ Speed knobs:
 - `BED="ICU 7"` — header label
 - `PULSE_SHIM=http://host:port` — override shim URL
 
-Ctrl-C exits cleanly. Every tick writes `vitals/current.json` atomically and appends to `vitals/timeline.json`. `current.json` is the latest scalar public frame; waveform/event lanes are future public surfaces and must not be inferred from hidden provider internals.
+Ctrl-C exits cleanly. Every tick writes `vitals/current.json` atomically and appends to `vitals/timeline.json`. `current.json` is the latest scalar public frame. Event and waveform lanes are public files under `vitals/`; consumers must use those files and must not infer hidden provider internals.
 
 ### Sepsis scenario setup
 
@@ -135,7 +137,7 @@ cd ~/pi-rn/pi-monitor && cargo run -p monitor-cli -- watch --source ../pi-sim/vi
 cd ~/pi-rn/pi-agent && npx pi
 ```
 
-Sibling projects consume `pi-sim` only through explicit public interfaces such as `vitals/current.json`, `vitals/timeline.json`, `vitals/scenarios/*.json`, and future documented telemetry/event/assessment surfaces. Pulse internals, Docker container state, Python shim files, and TypeScript harness internals are hidden implementation details.
+Sibling projects consume `pi-sim` only through explicit public interfaces such as `vitals/current.json`, `vitals/timeline.json`, `vitals/events.jsonl`, `vitals/encounter/current.json`, `vitals/assessments/status.json`, optional `vitals/assessments/current.json`, `vitals/waveforms/status.json`, optional `vitals/waveforms/current.json`, `vitals/scenarios/*.json`, and documented assessment surfaces. Pulse internals, Docker container state, Python shim files, and TypeScript harness internals are hidden implementation details.
 
 ## Optional: Pulse Explorer GUI for your own viewing
 
@@ -149,6 +151,7 @@ See `explorer/README.md`. Explorer is a Qt GUI that runs its own Pulse engine. I
 4. `pi-chart` owns chart/EHR truth; adapters may consume public telemetry, but the display path must not depend on those adapters.
 5. `pi-agent` reads only explicit clinical/public surfaces. It must never import `scripts/`, `pulse/`, provider internals, or scenario secrets.
 6. Runtime waveform support must come from truthful public telemetry. Do not synthesize fake clinical waveforms as production truth.
+7. Encounter and assessment files are reveal-only public runtime evidence. Providers may hold latent findings internally, but public assessment findings appear only after an `assessment_request` action and must be serialized through allowlist builders.
 
 ## Version notes
 

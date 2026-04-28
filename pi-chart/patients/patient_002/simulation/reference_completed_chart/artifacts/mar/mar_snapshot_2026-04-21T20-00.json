@@ -1,0 +1,153 @@
+{
+  "id": "derived-mar-002-20260421T2000",
+  "type": "derived_medication_administration_record_snapshot",
+  "subject": "patient_002",
+  "as_of": "2026-04-21T20:00:00-05:00",
+  "source": "derived from event-stream medication orders/administrations; not authoritative",
+  "active_medications": [
+    {
+      "medication": "ceftriaxone",
+      "dose": "1 g",
+      "route": "IV",
+      "frequency": "q24h",
+      "status": "active",
+      "indication": "severe community-acquired pneumonia after de-escalation",
+      "last_administered": "2026-04-21T12:30:00-05:00",
+      "next_due_estimate": "2026-04-22T12:30:00-05:00",
+      "planned_stop": "2026-04-24",
+      "evidence_event_ids": ["evt-002-0131", "evt-002-0134"]
+    },
+    {
+      "medication": "amlodipine",
+      "dose": "5 mg",
+      "route": "PO",
+      "frequency": "daily",
+      "status": "resumed",
+      "indication": "home antihypertensive resumed after shock resolution",
+      "last_administered": "2026-04-21T15:00:00-05:00",
+      "next_due_estimate": "2026-04-22T09:00:00-05:00",
+      "evidence_event_ids": ["evt-002-0155", "evt-002-0139", "evt-002-0140"]
+    },
+    {
+      "medication": "atorvastatin",
+      "dose": "40 mg",
+      "route": "per OG tube while intubated -> PO post-extubation",
+      "frequency": "qHS",
+      "status": "continued through admission",
+      "indication": "home medication for ASCVD risk; cardiology recommends continuation",
+      "last_administered_pre_snapshot": "2026-04-20T22:00:00-05:00",
+      "next_due_estimate": "2026-04-21T22:00:00-05:00",
+      "evidence_event_ids": ["evt-002-0157", "evt-002-0175", "evt-002-0188"]
+    },
+    {
+      "medication": "aspirin",
+      "dose": "81 mg",
+      "route": "per OG tube while intubated -> PO post-extubation",
+      "frequency": "daily",
+      "status": "continued",
+      "indication": "home antiplatelet for primary cardiovascular prevention; cardiology recommends continuation",
+      "last_administered": "2026-04-21T18:00:00-05:00",
+      "next_due_estimate": "2026-04-22T09:00:00-05:00",
+      "evidence_event_ids": ["evt-002-0156", "evt-002-0181", "evt-002-0200"]
+    },
+    {
+      "medication": "omeprazole",
+      "dose": "20 mg",
+      "route": "per OG tube",
+      "frequency": "daily",
+      "status": "continued",
+      "indication": "home GERD medication; continuation order with route-change while NPO/intubated",
+      "last_administered": "2026-04-20T08:00:00-05:00",
+      "evidence_event_ids": ["evt-002-0158", "evt-002-0182"]
+    },
+    {
+      "medication": "famotidine",
+      "dose": "20 mg",
+      "route": "IV",
+      "frequency": "q24h",
+      "status": "active; reassess at floor transfer",
+      "indication": "stress ulcer prophylaxis (intubated, on vasopressor at order time); patient is also on home omeprazole, so SUP add-on rather than substitution",
+      "last_administered": "2026-04-20T10:00:00-05:00",
+      "next_due_estimate": "2026-04-21T10:00:00-05:00",
+      "evidence_event_ids": ["evt-002-0150", "evt-002-0162", "evt-002-0180"]
+    },
+    {
+      "medication": "insulin regular (sliding scale)",
+      "scale": "BG 71-140: 0u; 141-180: 2u; 181-220: 4u; 221-260: 6u; 261-300: 8u; 301-350: 10u; <70 or >350 call MD",
+      "route": "subcutaneous",
+      "frequency": "q4h fingerstick",
+      "status": "active; tapering as stress hyperglycemia resolves",
+      "indication": "stress hyperglycemia in critically ill T2DM with home metformin held",
+      "admins_to_date": 7,
+      "last_administered": "2026-04-20T14:05:00-05:00",
+      "evidence_event_ids": ["evt-002-0151", "evt-002-0161", "evt-002-0164", "evt-002-0171", "evt-002-0173", "evt-002-0177", "evt-002-0179", "evt-002-0190"]
+    },
+    {
+      "medication": "heparin",
+      "dose": "5000 units",
+      "route": "subcutaneous",
+      "frequency": "q8h",
+      "status": "started 2026-04-21 15:30 once mobility/transfer plan finalized",
+      "indication": "VTE pharmacologic prophylaxis added to SCDs",
+      "last_administered": "2026-04-21T15:30:00-05:00",
+      "next_due_estimate": "2026-04-21T23:30:00-05:00",
+      "evidence_event_ids": ["evt-002-0195", "evt-002-0196"]
+    }
+  ],
+  "non_pharmacologic_prophylaxis": [
+    {
+      "intervention": "sequential compression devices (SCDs)",
+      "location": "bilateral lower extremities",
+      "mode": "continuous while in bed",
+      "indication": "VTE prophylaxis primary modality before heparin add-on",
+      "evidence_event_ids": ["evt-002-0159", "evt-002-0174"]
+    }
+  ],
+  "recently_discontinued_or_stopped": [
+    {
+      "medication": "norepinephrine",
+      "wean_summary": "0.05 -> 0.04 (08:00 04-20) -> 0.03 (09:00) -> 0.02 (12:00) -> off (16:00 04-20)",
+      "status": "off since 2026-04-20T16:00:00-05:00",
+      "evidence_event_ids": ["evt-002-0048", "evt-002-0186", "evt-002-0101", "evt-002-0187", "evt-002-0108"]
+    },
+    {
+      "medication": "vancomycin",
+      "status": "discontinued 2026-04-21T12:00:00-05:00",
+      "reason": "blood-culture contaminant profile; de-escalation",
+      "evidence_event_ids": ["evt-002-0131", "evt-002-0132"]
+    },
+    {
+      "medication": "cefepime",
+      "status": "discontinued 2026-04-21T12:00:00-05:00",
+      "reason": "narrowed to ceftriaxone for CAP",
+      "evidence_event_ids": ["evt-002-0131", "evt-002-0133"]
+    },
+    {
+      "medication": "propofol",
+      "status": "discontinued 2026-04-21T08:35:00-05:00 after extubation",
+      "evidence_event_ids": ["evt-002-0063", "evt-002-0126"]
+    },
+    {
+      "medication": "fentanyl infusion",
+      "status": "discontinued 2026-04-21T08:35:00-05:00 after extubation",
+      "evidence_event_ids": ["evt-002-0064", "evt-002-0127"]
+    }
+  ],
+  "held_home_medications": [
+    {
+      "medication": "metformin",
+      "reason": "sepsis/AKI; reassess at discharge or once stable renal function maintained",
+      "hold_event_id": "evt-002-0152"
+    },
+    {
+      "medication": "losartan",
+      "reason": "held during shock/AKI; plan to resume after 24 h stable BP/UOP",
+      "hold_event_id": "evt-002-0153"
+    },
+    {
+      "medication": "furosemide",
+      "reason": "held during septic shock and AKI; reassess volume status",
+      "hold_event_id": "evt-002-0154"
+    }
+  ]
+}

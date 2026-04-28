@@ -300,6 +300,14 @@ const EXAM_FINDING_STATES = new Set([
 ]);
 
 const EVIDENCE_DERIVED_FROM_MAX_DEPTH = 8;
+const VISIBLE_SURFACE_FORBIDDEN_KEYS = new Set([
+  "reference_expected_end_do_not_preload",
+  "runtime_note",
+  "scheduled_event_queue",
+]);
+const VISIBLE_SURFACE_FORBIDDEN_KEY_PREFIXES = ["hidden_", "ground_truth_"];
+const VISIBLE_SURFACE_FORBIDDEN_TEXT =
+  /\b(?:reference_expected_end_do_not_preload|runtime_note|scheduled_event_queue|hidden_[A-Za-z0-9_]*|ground_truth_[A-Za-z0-9_]*)\b/g;
 
 const STATUS_RULES: Readonly<Record<string, StatusRule>> = {
   "intent:order": {
@@ -916,6 +924,85 @@ function validateStatusDetailSemantics(state: State, where: string, ev: any) {
   }
 }
 
+function validateVisibleSurfaceObject(state: State, where: string, value: unknown) {
+  for (const keyPath of findForbiddenVisibleKeys(value)) {
+    ruleErr(
+      state,
+      where,
+      "V-VISIBLE-01",
+      `visible chart surface contains simulator/evaluator-only key '${keyPath}'`,
+    );
+  }
+}
+
+function findForbiddenVisibleKeys(value: unknown, basePath = ""): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) =>
+      findForbiddenVisibleKeys(entry, `${basePath}[${index}]`),
+    );
+  }
+  if (!value || typeof value !== "object") return [];
+
+  const matches: string[] = [];
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    const keyPath = basePath ? `${basePath}.${key}` : key;
+    if (isForbiddenVisibleKey(key)) matches.push(keyPath);
+    matches.push(...findForbiddenVisibleKeys(child, keyPath));
+  }
+  return matches;
+}
+
+function isForbiddenVisibleKey(key: string): boolean {
+  return (
+    VISIBLE_SURFACE_FORBIDDEN_KEYS.has(key) ||
+    VISIBLE_SURFACE_FORBIDDEN_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
+  );
+}
+
+async function validateVisibleArtifactSurface(state: State) {
+  const artifactsRoot = path.join(state.patientRoot, "artifacts");
+  let artifactPaths: string[];
+  try {
+    artifactPaths = await listFilesRecursive(artifactsRoot);
+  } catch {
+    return;
+  }
+
+  for (const filePath of artifactPaths) {
+    const rel = path.relative(state.patientRoot, filePath);
+    let text: string;
+    try {
+      text = await fs.readFile(filePath, "utf8");
+    } catch (e: any) {
+      err(state, rel, e?.message ?? String(e));
+      continue;
+    }
+    const tokens = [...new Set(text.match(VISIBLE_SURFACE_FORBIDDEN_TEXT) ?? [])].sort();
+    for (const token of tokens) {
+      ruleErr(
+        state,
+        rel,
+        "V-VISIBLE-01",
+        `visible artifact contains simulator/evaluator-only token '${token}'`,
+      );
+    }
+  }
+}
+
+async function listFilesRecursive(root: string): Promise<string[]> {
+  const entries = await fs.readdir(root, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const child = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listFilesRecursive(child)));
+    } else if (entry.isFile()) {
+      files.push(child);
+    }
+  }
+  return files;
+}
+
 export async function validateChart(scope: PatientScope): Promise<ValidationReport> {
   const pr = patientRoot(scope);
   const state: State = {
@@ -1010,6 +1097,11 @@ export async function validateChart(scope: PatientScope): Promise<ValidationRepo
   // timeline walk
   await validateTimeline(state, eventValidator, noteValidator, vitalsValidator);
 
+  // Visible chart surfaces must not carry simulator/evaluator metadata. Hidden
+  // truth may live in explicit simulation-only lanes, but timeline/artifact
+  // content is reader-visible and can flow into agent context.
+  await validateVisibleArtifactSurface(state);
+
   // referential integrity + assessment-evidence rule
   await checkReferentialIntegrity(state);
 
@@ -1067,6 +1159,7 @@ async function validateStructuralMarkdown(
   }
   validateSourceKind(state, rel, normalized);
   validateProfile(state, rel, normalized);
+  validateVisibleSurfaceObject(state, rel, normalized);
   validateAdr17ProfileRules(state, rel, normalized);
   validateTimeSemantics(state, rel, normalized);
   validateIntervalSemantics(state, rel, normalized);
@@ -1148,6 +1241,7 @@ async function validateTimeline(
         checkAuthorSentinel(state, where, ev?.author);
         validateSourceKind(state, where, ev);
         validateProfile(state, where, ev);
+        validateVisibleSurfaceObject(state, where, ev);
         validateAdr17ProfileRules(state, where, ev);
         validateTimeSemantics(state, where, ev);
         validateIntervalSemantics(state, where, ev);
@@ -1196,6 +1290,7 @@ async function validateTimeline(
           );
         }
         validateVitalSampleRules(state, where, v, contextSegments);
+        validateVisibleSurfaceObject(state, where, v);
       }
     } catch (e: any) {
       err(state, path.relative(state.patientRoot, vPath), `invalid JSON: ${e?.message ?? e}`);
@@ -1289,6 +1384,7 @@ async function validateNote(
     );
   }
   checkAuthorSentinel(state, rel, normalized.author);
+  validateVisibleSurfaceObject(state, rel, normalized);
   if (!body.trim()) warn(state, rel, "note body is empty");
   const day = rel.split(path.sep)[1];
   if (

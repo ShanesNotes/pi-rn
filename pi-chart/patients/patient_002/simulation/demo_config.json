@@ -1,0 +1,52 @@
+{
+  "patient_id": "patient_002",
+  "version": "v4",
+  "timezone": "America/Chicago",
+  "demo_start": "2026-04-19T06:45:00-05:00",
+  "simulation_mode": "live_pi_rn_runtime",
+  "initial_load": {
+    "include_paths": [
+      "patient.md",
+      "constraints.md",
+      "timeline/",
+      "artifacts/index.json",
+      "_derived/initial_current_state_2026-04-19T06-45.md"
+    ],
+    "exclude_paths": [
+      "simulation/live_expected/",
+      "simulation/latent_release/",
+      "simulation/hidden_truth/",
+      "simulation/reference_completed_chart/"
+    ]
+  },
+  "release_layers": {
+    "latent_release_schedule": "simulation/latent_release/release_schedule.ndjson",
+    "live_expected_task_queue": "simulation/live_expected/nursing_task_queue.ndjson",
+    "pi_sim_vitals_feed_reference": "simulation/hidden_truth/pi_sim_vitals_feed_reference.jsonl"
+  },
+  "start_patient_state": {
+    "location": "MICU bed 8 arrival from ED",
+    "oxygen": "HFNC 40 L/min, FiO2 0.50",
+    "latest_seed_vitals": {
+      "t": "2026-04-19T06:45:00-05:00",
+      "hr": 108,
+      "bp": "86/50",
+      "map": 62,
+      "rr": 24,
+      "spo2": 94,
+      "temp_c": 38.4
+    },
+    "active_contexts": [
+      "HFNC started in ED and active at arrival",
+      "vancomycin infusion from ED still in progress, expected to complete soon"
+    ],
+    "open_loops": [
+      "complete MICU transfer receipt",
+      "line placement plan",
+      "norepinephrine order expected",
+      "strict I&O/Foley plan",
+      "reassess respiratory fatigue on HFNC",
+      "pending cultures/RVP"
+    ]
+  }
+}

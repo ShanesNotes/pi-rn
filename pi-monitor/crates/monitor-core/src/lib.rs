@@ -1,4 +1,4 @@
-use pulse_public_frame::{PublicFrame, Quantity, VitalKey};
+use pulse_public_frame::{PublicFrame, Quantity, VitalKey, Waveform};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -35,6 +35,19 @@ pub enum AlarmSeverity {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WaveformStripModel {
+    pub signal: String,
+    pub unit: String,
+    pub sample_rate_hz: f64,
+    pub t0_s: f64,
+    pub values: Vec<f64>,
+    pub min: f64,
+    pub max: f64,
+    pub available: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DisplayModel {
     pub title: String,
     pub source: String,
@@ -47,6 +60,7 @@ pub struct DisplayModel {
     pub heart_rhythm: Option<String>,
     pub hr_tick_enabled: bool,
     pub waveform_message: String,
+    pub waveform_strips: Vec<WaveformStripModel>,
     pub footer: String,
     pub compatibility_notes: Vec<String>,
 }
@@ -129,6 +143,8 @@ impl MonitorCore {
             })
             .collect();
         let hr_tick_enabled = hr_tick_enabled(&accepted.frame, state);
+        let waveform_strips = build_waveform_strips(&accepted.frame.waveforms, state);
+        let waveform_message = waveform_summary(&waveform_strips, state);
         DisplayModel {
             title: "LIVE SIM MONITOR".to_string(),
             source: accepted.frame.source.clone(),
@@ -140,11 +156,8 @@ impl MonitorCore {
             alarms,
             heart_rhythm: accepted.frame.heart_rhythm.clone(),
             hr_tick_enabled,
-            waveform_message: if accepted.frame.waveforms.is_empty() {
-                "waveform feed unavailable — no synthetic ECG/pleth/capnogram".to_string()
-            } else {
-                "waveform feed available".to_string()
-            },
+            waveform_message,
+            waveform_strips,
             footer: "Live simulation display · not charted · not part of the medical record"
                 .to_string(),
             compatibility_notes: accepted.frame.compatibility_notes.clone(),
@@ -165,6 +178,7 @@ fn empty_model(state: SourceState, message: &str, alarm_feed_available: bool) ->
         heart_rhythm: None,
         hr_tick_enabled: false,
         waveform_message: "waveform feed unavailable — no source frame".to_string(),
+        waveform_strips: unavailable_strips("waveform feed unavailable — no source frame"),
         footer: "Live simulation display · not charted · not part of the medical record"
             .to_string(),
         compatibility_notes: Vec::new(),
@@ -257,19 +271,135 @@ fn tile(
     }
 }
 
+fn build_waveform_strips(
+    waveforms: &BTreeMap<String, Waveform>,
+    state: SourceState,
+) -> Vec<WaveformStripModel> {
+    if waveforms.is_empty() {
+        return unavailable_strips("waveform feed unavailable — no synthetic ECG/pleth/capnogram");
+    }
+    let mut strips = Vec::new();
+    for preferred in ["ECG_LeadII", "Pleth", "ArterialPressure", "CO2"] {
+        if let Some(waveform) = waveforms.get(preferred) {
+            strips.push(waveform_strip(preferred, waveform, state));
+        }
+    }
+    for (name, waveform) in waveforms {
+        if !strips.iter().any(|strip| strip.signal == *name) {
+            strips.push(waveform_strip(name, waveform, state));
+        }
+    }
+    strips
+}
+
+fn waveform_strip(name: &str, waveform: &Waveform, state: SourceState) -> WaveformStripModel {
+    let (mut min, mut max) = waveform
+        .values
+        .iter()
+        .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), value| {
+            (min.min(*value), max.max(*value))
+        });
+    if !min.is_finite() || !max.is_finite() || (max - min).abs() < f64::EPSILON {
+        min = -1.0;
+        max = 1.0;
+    }
+    let available = !matches!(state, SourceState::Offline | SourceState::Invalid)
+        && !waveform.values.is_empty();
+    WaveformStripModel {
+        signal: name.to_string(),
+        unit: waveform.unit.clone(),
+        sample_rate_hz: waveform.sample_rate_hz,
+        t0_s: waveform.t0_s,
+        values: waveform.values.clone(),
+        min,
+        max,
+        available,
+        message: if available {
+            format!(
+                "{} waveform feed available · {} samples @ {:.0} Hz",
+                display_signal_name(name),
+                waveform.values.len(),
+                waveform.sample_rate_hz
+            )
+        } else {
+            format!("{} waveform feed unavailable", display_signal_name(name))
+        },
+    }
+}
+
+fn unavailable_strips(message: &str) -> Vec<WaveformStripModel> {
+    ["ECG", "Pleth", "ABP", "CO2"]
+        .into_iter()
+        .map(|signal| WaveformStripModel {
+            signal: signal.to_string(),
+            unit: String::new(),
+            sample_rate_hz: 0.0,
+            t0_s: 0.0,
+            values: Vec::new(),
+            min: -1.0,
+            max: 1.0,
+            available: false,
+            message: if signal == "ECG" {
+                message.to_string()
+            } else {
+                format!("{signal} waveform feed unavailable")
+            },
+        })
+        .collect()
+}
+
+fn waveform_summary(strips: &[WaveformStripModel], state: SourceState) -> String {
+    if matches!(state, SourceState::Offline | SourceState::Invalid) {
+        return "waveform feed unavailable — source not live".to_string();
+    }
+    let available = strips.iter().filter(|strip| strip.available).count();
+    if available == 0 {
+        "waveform feed unavailable — no synthetic ECG/pleth/capnogram".to_string()
+    } else {
+        format!("waveform feed available — {available} frame-provided strip(s)")
+    }
+}
+
+fn display_signal_name(name: &str) -> &str {
+    match name {
+        "ECG_LeadII" => "ECG Lead II",
+        "ArterialPressure" => "ABP",
+        other => other,
+    }
+}
+
 fn severity_for(label: &str) -> AlarmSeverity {
-    match label {
+    let normalized = label.to_ascii_uppercase();
+    if matches!(
+        label,
         "CardiacArrest"
-        | "Asystole"
-        | "CoarseVentricularFibrillation"
-        | "FineVentricularFibrillation"
-        | "PulselessVentricularTachycardia"
-        | "HypovolemicShock"
-        | "CardiogenicShock"
-        | "CriticalBrainOxygenDeficit" => AlarmSeverity::Critical,
-        "Tachycardia" | "Bradycardia" | "Tachypnea" | "Bradypnea" | "Hypoxia" | "Hypercapnia"
-        | "Hyperthermia" | "Hypothermia" => AlarmSeverity::Warning,
-        _ => AlarmSeverity::Info,
+            | "Asystole"
+            | "CoarseVentricularFibrillation"
+            | "FineVentricularFibrillation"
+            | "PulselessVentricularTachycardia"
+            | "HypovolemicShock"
+            | "CardiogenicShock"
+            | "CriticalBrainOxygenDeficit"
+    ) || normalized.contains("CRITICAL")
+        || normalized.contains("ARREST")
+    {
+        AlarmSeverity::Critical
+    } else if matches!(
+        label,
+        "Tachycardia"
+            | "Bradycardia"
+            | "Tachypnea"
+            | "Bradypnea"
+            | "Hypoxia"
+            | "Hypercapnia"
+            | "Hyperthermia"
+            | "Hypothermia"
+    ) || normalized.ends_with("_LOW")
+        || normalized.ends_with("_HIGH")
+    {
+        AlarmSeverity::Warning
+    } else {
+        AlarmSeverity::Info
     }
 }
 
@@ -325,6 +455,7 @@ mod tests {
         assert!(model.hr_tick_enabled);
         assert!(model.footer.contains("not charted"));
         assert!(model.waveform_message.contains("unavailable"));
+        assert!(model.waveform_strips.iter().all(|strip| !strip.available));
     }
 
     #[test]
@@ -377,9 +508,45 @@ mod tests {
 
     #[test]
     fn suppresses_tick_for_asystole() {
-        let frame = parse_public_frame(r#"{"schemaVersion":1,"source":"pi-sim/pulse","simTime_s":1,"vitals":{"HeartRate":{"value":40,"unit":"1/min"}},"events":[],"heartRhythm":"Asystole","waveforms":{}}"#).unwrap();
+        let frame = parse_public_frame(r#"{"schemaVersion":1,"source":"pi-sim/pulse","simTime_s":1,"vitals":{"HeartRate":{"value":40,"unit":"1/min"}},"events":[],"heartRhythm":"Asystole","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":0,"values":[0,0,0]}}}"#).unwrap();
         let mut core = MonitorCore::new();
         core.accept_frame(frame, 0);
         assert!(!core.display_model(100).hr_tick_enabled);
+    }
+
+    #[test]
+    fn exposes_waveform_strip_models_when_samples_arrive() {
+        let frame = parse_public_frame(r#"{"t":44,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-pulse","sequence":1,"runState":"running","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":43,"values":[-0.1,0.8,0.1]}}}}"#).unwrap();
+        let mut core = MonitorCore::new();
+        core.accept_frame(frame, 0);
+        let model = core.display_model(100);
+        assert!(model.waveform_message.contains("available"));
+        let ecg = model
+            .waveform_strips
+            .iter()
+            .find(|strip| strip.signal == "ECG_LeadII")
+            .unwrap();
+        assert!(ecg.available);
+        assert_eq!(ecg.sample_rate_hz, 125.0);
+        assert_eq!(ecg.values.len(), 3);
+        assert!(ecg.max > ecg.min);
+    }
+
+    #[test]
+    fn waveform_samples_update_with_frame_sequence() {
+        let first = parse_public_frame(r#"{"t":1,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"sequence":1,"waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":0,"values":[0,1,0]}}}}"#).unwrap();
+        let second = parse_public_frame(r#"{"t":2,"hr":73,"alarms":[],"monitor":{"schemaVersion":1,"sequence":2,"waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":1,"values":[0,-1,0]}}}}"#).unwrap();
+        let mut core = MonitorCore::new();
+        core.accept_frame(first, 0);
+        let first_values = core.display_model(100).waveform_strips[0].values.clone();
+        core.accept_frame(second, 1_000);
+        let model = core.display_model(1_100);
+        assert_ne!(first_values, model.waveform_strips[0].values);
+        assert!(
+            model
+                .numeric_tiles
+                .iter()
+                .any(|tile| tile.label == "HR" && tile.value == "73")
+        );
     }
 }

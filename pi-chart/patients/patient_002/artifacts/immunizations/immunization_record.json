@@ -1,0 +1,86 @@
+{
+  "id": "art-002-imm-001",
+  "type": "artifact_ref",
+  "subtype": "immunization_record",
+  "subject": "patient_002",
+  "as_of": "2026-04-19",
+  "source": "patient registry, pharmacy records, PCP chart",
+  "immunizations": [
+    {
+      "vaccine": "Influenza, inactivated quadrivalent",
+      "doses": [
+        {"date": "2025-10-08", "site": "left deltoid", "lot": "FLU-2025-A", "manufacturer": "Sanofi", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2024-10-12", "site": "left deltoid", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2023-10-05", "site": "right deltoid", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2022-10-15", "site": "left deltoid", "administered_at": "Lakeside Pharmacy"}
+      ],
+      "next_due": "2026-10"
+    },
+    {
+      "vaccine": "COVID-19 mRNA",
+      "doses": [
+        {"date": "2025-09-22", "site": "left deltoid", "manufacturer": "Pfizer", "lot": "COV-2025-A", "administered_at": "PCP clinic", "evidence_event_id": "evt-002-h005-007"},
+        {"date": "2024-10-12", "manufacturer": "Pfizer", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2023-10-04", "manufacturer": "Pfizer (bivalent)", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2022-09-20", "manufacturer": "Pfizer (bivalent)", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2021-10-15", "manufacturer": "Pfizer (booster)", "administered_at": "PCP clinic"},
+        {"date": "2021-04-08", "manufacturer": "Pfizer (primary 2)", "administered_at": "Mass vax site"},
+        {"date": "2021-03-18", "manufacturer": "Pfizer (primary 1)", "administered_at": "Mass vax site"}
+      ]
+    },
+    {
+      "vaccine": "Pneumococcal 20-valent conjugate (PCV20)",
+      "doses": [
+        {"date": "2024-09-12", "site": "left deltoid", "manufacturer": "Pfizer", "administered_at": "PCP clinic", "evidence_event_id": "evt-002-h003-005"}
+      ],
+      "notes": "Replaces previous PCV13 (2014-08) + PPSV23 (2019-12) regimen per current ACIP guidance. No further pneumococcal vaccination required."
+    },
+    {
+      "vaccine": "Pneumococcal 13-valent conjugate (PCV13)",
+      "doses": [
+        {"date": "2014-08-10", "administered_at": "PCP clinic"}
+      ]
+    },
+    {
+      "vaccine": "Pneumococcal polysaccharide (PPSV23)",
+      "doses": [
+        {"date": "2019-12-04", "administered_at": "PCP clinic"}
+      ]
+    },
+    {
+      "vaccine": "Zoster (Shingrix)",
+      "doses": [
+        {"date": "2022-02-08", "site": "right deltoid", "dose_number": 1, "administered_at": "Lakeside Pharmacy"},
+        {"date": "2022-04-12", "site": "right deltoid", "dose_number": 2, "administered_at": "Lakeside Pharmacy"}
+      ],
+      "series_complete": true
+    },
+    {
+      "vaccine": "Tdap",
+      "doses": [
+        {"date": "2020-04-22", "administered_at": "Lakeside Pharmacy"},
+        {"date": "2010-04-15", "administered_at": "PCP clinic"}
+      ],
+      "next_due": "2030-04"
+    },
+    {
+      "vaccine": "RSV (Arexvy)",
+      "doses": [
+        {"date": "2024-10-15", "site": "right deltoid", "manufacturer": "GSK", "administered_at": "Lakeside Pharmacy"}
+      ]
+    },
+    {
+      "vaccine": "Hepatitis B series",
+      "status": "documented complete (3 doses) per PCP chart, dates per old paper record only"
+    },
+    {
+      "vaccine": "MMR",
+      "status": "documented immune by titer 2009"
+    },
+    {
+      "vaccine": "Varicella",
+      "status": "history of childhood disease (presumed immune)"
+    }
+  ],
+  "deferred_or_declined": []
+}

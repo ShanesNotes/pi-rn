@@ -1,0 +1,36 @@
+{
+  "art-002-002": {
+    "type": "imaging_report",
+    "study": "Portable AP chest radiograph \u2014 hospital day 2",
+    "effective_at": "2026-04-20T06:35:00-05:00",
+    "path": "simulation/latent_release/artifacts/imaging/20260420_0615_cxr_report.md",
+    "source_event_id": "evt-002-0095",
+    "release_policy": "release only when associated latent event is released; do not preload at demo start"
+  },
+  "art-002-003": {
+    "type": "imaging_report",
+    "study": "Portable AP chest radiograph \u2014 post-intubation and line placement",
+    "effective_at": "2026-04-19T10:35:00-05:00",
+    "path": "simulation/latent_release/artifacts/imaging/20260419_1035_post_intubation_cxr_report.md",
+    "source_event_id": "evt-002-0073",
+    "release_policy": "release only when associated latent event is released; do not preload at demo start"
+  },
+  "art-002-lab-002": {
+    "type": "lab_report",
+    "study": "ABG sequence \u2014 current admission",
+    "path": "simulation/latent_release/artifacts/labs/abg_sequence.json",
+    "release_policy": "release only when associated latent event is released; do not preload at demo start"
+  },
+  "art-002-lab-003": {
+    "type": "lab_report",
+    "study": "Blood culture results \u2014 current admission",
+    "path": "simulation/latent_release/artifacts/labs/20260419_blood_cultures.json",
+    "release_policy": "release only when associated latent event is released; do not preload at demo start"
+  },
+  "art-002-lab-004": {
+    "type": "lab_report",
+    "study": "Key trajectories (Cr, lactate, WBC) \u2014 current admission",
+    "path": "simulation/latent_release/artifacts/labs/key_trajectories.json",
+    "release_policy": "release only when associated latent event is released; do not preload at demo start"
+  }
+}

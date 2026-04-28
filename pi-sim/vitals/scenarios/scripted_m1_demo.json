@@ -27,7 +27,9 @@
         "temp_c": 37.2,
         "lactate_mmol_l": 1.8
       },
-      "events": ["SCRIPTED_DETERIORATION"]
+      "events": [
+        "SCRIPTED_DETERIORATION"
+      ]
     },
     {
       "t": 90,
@@ -42,7 +44,9 @@
         "temp_c": 37.1,
         "lactate_mmol_l": 1.4
       },
-      "events": ["SCRIPTED_SUPPORT_RESPONSE"]
+      "events": [
+        "SCRIPTED_SUPPORT_RESPONSE"
+      ]
     },
     {
       "t": 120,
@@ -56,6 +60,29 @@
         "spo2": 97,
         "temp_c": 37.0,
         "lactate_mmol_l": 1.2
+      }
+    }
+  ],
+  "encounter": {
+    "patientId": "demo_patient_001",
+    "encounterId": "enc_demo_001",
+    "visibleChartAsOf": "2026-04-19T06:45:00-05:00",
+    "phase": "baseline",
+    "display": {
+      "bed": "ICU 7",
+      "oxygenDevice": "nasal cannula"
+    }
+  },
+  "timeline": [
+    {
+      "t": 20,
+      "action": {
+        "type": "assessment_request",
+        "params": {
+          "requestId": "assess_demo_0001",
+          "assessmentType": "focused_respiratory",
+          "bodySystem": "respiratory"
+        }
       }
     }
   ]

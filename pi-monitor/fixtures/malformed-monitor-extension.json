@@ -1,0 +1,11 @@
+{
+  "t": 1,
+  "hr": 72,
+  "alarms": [],
+  "monitor": {
+    "schemaVersion": 1,
+    "waveforms": {
+      "ECG_LeadII": { "unit": "mV", "sampleRate_Hz": 0, "t0_s": 0, "values": [0] }
+    }
+  }
+}

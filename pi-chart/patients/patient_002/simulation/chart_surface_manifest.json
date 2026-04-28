@@ -1,0 +1,50 @@
+{
+  "patient_id": "patient_002",
+  "version": "v4",
+  "demo_start": "2026-04-19T06:45:00-05:00",
+  "layers": {
+    "initial_backend": {
+      "loaded_at_start": true,
+      "paths": [
+        "patient.md",
+        "constraints.md",
+        "timeline/",
+        "artifacts/index.json",
+        "_derived/initial_current_state_2026-04-19T06-45.md"
+      ],
+      "description": "Visible patient chart at live-demo startup."
+    },
+    "latent_release": {
+      "loaded_at_start": false,
+      "paths": [
+        "simulation/latent_release/latent_events.ndjson",
+        "simulation/latent_release/release_schedule.ndjson",
+        "simulation/latent_release/payload/",
+        "simulation/latent_release/artifacts/"
+      ],
+      "description": "Non-RN/system/provider/ancillary documentation released during the simulation."
+    },
+    "live_expected": {
+      "loaded_at_start": false,
+      "paths": [
+        "simulation/live_expected/expected_nurse_charting.ndjson",
+        "simulation/live_expected/nursing_task_queue.ndjson",
+        "simulation/live_expected/reference_payload/"
+      ],
+      "description": "Hidden expected RN/pi-agent charting reference for scoring and replay."
+    },
+    "hidden_truth": {
+      "loaded_at_start": false,
+      "paths": [
+        "simulation/hidden_truth/"
+      ],
+      "description": "Simulator physiology truth; never exposed to live nurse or agent."
+    }
+  },
+  "policy": {
+    "rn_owned_future_events_must_not_be_in_timeline": true,
+    "future_artifacts_must_not_be_in_active_artifact_index": true,
+    "open_intervals_allowed_at_start": true,
+    "latent_notes_requiring_live_RN_facts_should_remap_reference_ids": true
+  }
+}

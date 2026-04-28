@@ -1,0 +1,56 @@
+{
+  "purpose": "Score whether live RN/pi-agent charting captured the expected surfaces without preloading them.",
+  "critical_surfaces": [
+    {
+      "surface": "transfer_receipt",
+      "must_capture": [
+        "arrival location",
+        "handoff accepted",
+        "initial safety/monitor setup"
+      ]
+    },
+    {
+      "surface": "hemodynamics",
+      "must_capture": [
+        "norepinephrine start/titration when ordered",
+        "MAP response",
+        "line compatibility"
+      ]
+    },
+    {
+      "surface": "respiratory",
+      "must_capture": [
+        "HFNC context",
+        "worsening WOB/somnolence",
+        "ABG collection",
+        "pre/post-intubation reassessment"
+      ]
+    },
+    {
+      "surface": "mar",
+      "must_capture": [
+        "RSI meds",
+        "sedation/analgesia infusions",
+        "antibiotics",
+        "insulin/SUP/VTE prophylaxis as ordered"
+      ]
+    },
+    {
+      "surface": "i_and_o",
+      "must_capture": [
+        "Foley placement",
+        "hourly urine trend",
+        "shift net balance"
+      ]
+    },
+    {
+      "surface": "handoff",
+      "must_capture": [
+        "what changed",
+        "what is pending",
+        "what to watch next"
+      ]
+    }
+  ],
+  "use": "Compare actual live events against simulation/live_expected/expected_nurse_charting.ndjson. Do not expose expected events to the nurse or pi-agent during the run."
+}

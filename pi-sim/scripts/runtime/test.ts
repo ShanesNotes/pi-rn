@@ -7,7 +7,25 @@ import { buildVitalFrame } from "./frame.js";
 import { PublicTelemetryPublisher } from "./publisher.js";
 import { PulseProvider, type PulseTransport } from "./pulseProvider.js";
 import { loadPulseScenario } from "./pulseScenario.js";
-import { ProviderUnavailableError, isProviderUnavailableError, type ProviderAction, type ProviderSnapshot } from "./provider.js";
+import { loadScriptedScenario } from "./scenario.js";
+import {
+  ProviderUnavailableError,
+  isProviderUnavailableError,
+  type AssessmentRequest,
+  type PhysiologyProvider,
+  type ProviderAction,
+  type ProviderAssessmentResult,
+  type ProviderEncounterContext,
+  type ProviderMetadata,
+  type ProviderSnapshot,
+  type ProviderWaveformWindow,
+  type PublicAssessmentEnvelope,
+  type PublicAssessmentStatus,
+  type PublicEncounterContext,
+  type PublicTelemetryEvent,
+  type WaveformEnvelope,
+  type WaveformStatus,
+} from "./provider.js";
 import { runProviderRuntime } from "./runner.js";
 import { ScriptedProvider, type ScriptedScenario } from "./scriptedProvider.js";
 import type { AlarmThresholds, MonitorExtension, TimelineEntry, VitalFrame } from "../types.js";
@@ -106,6 +124,20 @@ async function testSharedRunnerScripted(): Promise<void> {
     assert.ok(existsSync(join(dir, "current.json")));
     assert.ok(existsSync(join(dir, "timeline.json")));
     assert.ok(existsSync(join(dir, "status.json")));
+    assert.ok(existsSync(join(dir, "events.jsonl")));
+    assert.ok(existsSync(join(dir, "waveforms", "status.json")));
+    assert.equal(existsSync(join(dir, "waveforms", "current.json")), false);
+
+    const waveformStatus = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
+    assert.deepEqual(
+      { available: waveformStatus.available, reason: waveformStatus.reason, sequence: waveformStatus.sequence, runState: waveformStatus.runState },
+      { available: false, reason: "provider_does_not_supply_waveforms", sequence: 3, runState: "ended" },
+    );
+
+    const events = readEvents(dir);
+    assert.equal(events[0].kind, "run_started");
+    assert.equal(events.at(-1)?.kind, "run_ended");
+    for (const event of events) assertPublicEventFields(event);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -141,8 +173,284 @@ async function testSharedRunnerActionOrder(): Promise<void> {
       "advance:10",
       "action:final",
     ]);
+    const events = readEvents(dir);
+    const kinds = events.map((event) => event.kind);
+    assert.deepEqual(kinds.filter((kind) => kind === "action_applied"), ["action_applied", "action_applied", "action_applied", "action_applied"]);
+    assert.ok(kinds.includes("alarm_observed"));
+    assert.deepEqual(
+      events.filter((event) => event.kind === "action_applied").map((event) => event.payload.action),
+      [...actions].sort((a, b) => a.t - b.t).map((entry) => ({ type: entry.action.type })),
+    );
+    assert.ok(kinds.indexOf("action_applied") < kinds.indexOf("alarm_observed"));
+    const alarmPayloads = events.filter((event) => event.kind === "alarm_observed").map((event) => event.payload.alarm);
+    assert.equal(alarmPayloads.length % 2, 0);
+    for (let i = 0; i < alarmPayloads.length; i += 2) assert.deepEqual(alarmPayloads.slice(i, i + 2), ["MAP_LOW", "SPO2_LOW"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function testM4AssessmentRevealReplayAndBoundary(): Promise<void> {
+  const dirNoRequest = mkdtempSync(join(tmpdir(), "pi-sim-m4-norequest-"));
+  const dirReveal = mkdtempSync(join(tmpdir(), "pi-sim-m4-reveal-"));
+  try {
+    const providerNoRequest = new M4AssessmentProvider();
+    await runProviderRuntime({
+      provider: providerNoRequest,
+      publisher: new PublicTelemetryPublisher(dirNoRequest),
+      thresholds,
+      duration_s: 0,
+      dt_s: 10,
+      now: deterministicNow(),
+    });
+    assert.ok(existsSync(join(dirNoRequest, "encounter", "current.json")));
+    assert.equal(existsSync(join(dirNoRequest, "assessments", "current.json")), false);
+    assertPublicTextOmits(dirNoRequest, [M4_REVEALED_FINDING, M4_FUTURE_FINDING, M4_ROOT_MARKER, M4_FINDING_MARKER]);
+    const noRequestStatus = readJson<PublicAssessmentStatus>(join(dirNoRequest, "assessments", "status.json"));
+    assert.equal(noRequestStatus.available, true);
+    assert.equal(noRequestStatus.lastRequestId, null);
+
+    const providerReveal = new M4AssessmentProvider();
+    await runProviderRuntime({
+      provider: providerReveal,
+      publisher: new PublicTelemetryPublisher(dirReveal),
+      thresholds,
+      duration_s: 20,
+      dt_s: 10,
+      actions: [
+        { t: 10, action: assessmentAction("assess_m4_001") },
+        { t: 10, action: assessmentAction("assess_m4_001") },
+      ],
+      now: deterministicNow(),
+    });
+    assert.equal(providerReveal.assessCalls, 1);
+
+    const encounter = readJson<PublicEncounterContext>(join(dirReveal, "encounter", "current.json"));
+    assert.equal(encounter.patientId, "patient_test_m4");
+    assert.equal(encounter.encounterId, "enc_test_m4");
+    assert.equal(encounter.visibleChartAsOf, "2026-04-19T06:45:00-05:00");
+    assert.equal(encounter.source, "pi-sim-m4-fixture");
+    assert.equal(Object.hasOwn(encounter, "futureFinding"), false);
+
+    const envelope = readJson<PublicAssessmentEnvelope>(join(dirReveal, "assessments", "current.json"));
+    assert.equal(envelope.requestId, "assess_m4_001");
+    assert.equal(envelope.assessmentType, "focused_respiratory");
+    assert.equal(envelope.bodySystem, "respiratory");
+    assert.equal(envelope.visibility, "revealed");
+    assert.equal(envelope.findings[0].value, M4_REVEALED_FINDING);
+    assert.equal(typeof envelope.envelopeDigest, "string");
+    assert.ok(envelope.envelopeDigest.length > 20);
+
+    const status = readJson<PublicAssessmentStatus>(join(dirReveal, "assessments", "status.json"));
+    assert.equal(status.available, true);
+    assert.equal(status.lastRequestId, "assess_m4_001");
+    assert.equal(status.lastRevealSequence, envelope.sequence);
+
+    const outputText = publicOutputText(dirReveal);
+    assert.match(outputText, new RegExp(M4_REVEALED_FINDING));
+    assert.doesNotMatch(outputText, new RegExp(`${M4_FUTURE_FINDING}|${M4_ROOT_MARKER}|${M4_FINDING_MARKER}`));
+
+    const events = readEvents(dirReveal);
+    const kinds = events.map((event) => event.kind);
+    assert.equal(kinds.filter((kind) => kind === "encounter_started").length, 1);
+    assert.equal(kinds.filter((kind) => kind === "encounter_phase_changed").length, 1);
+    assert.equal(kinds.filter((kind) => kind === "assessment_revealed").length, 2);
+    assert.equal(kinds.includes("assessment_replayed" as never), false);
+    const actionIndex = kinds.indexOf("action_applied");
+    const requestIndex = kinds.indexOf("assessment_requested");
+    const revealIndex = kinds.indexOf("assessment_revealed");
+    assert.ok(actionIndex >= 0 && actionIndex < requestIndex && requestIndex < revealIndex);
+    const appliedAssessmentAction = events.find((event) => event.kind === "action_applied" && event.payload.action && typeof event.payload.action === "object");
+    assert.deepEqual(appliedAssessmentAction?.payload.action, {
+      type: "assessment_request",
+      params: { requestId: "assess_m4_001", assessmentType: "focused_respiratory", bodySystem: "respiratory" },
+    });
+    const replay = events.find((event) => event.kind === "assessment_revealed" && event.payload.replay === true);
+    assert.ok(replay);
+    assert.equal(replay.payload.requestId, "assess_m4_001");
+    assert.equal(replay.payload.replayOfSequence, envelope.sequence);
+    assert.equal(replay.payload.envelopeDigest, envelope.envelopeDigest);
+    assert.ok(!events.some((event) => event.kind === "assessment_unavailable" && event.payload.requestId === "assess_m4_001"));
+
+    const draft = chartEventDraftFromAssessment(envelope);
+    assert.equal(draft.type, "assessment");
+    assert.equal(draft.status, "final");
+    assert.equal(draft.certainty, "observed");
+    assert.equal(draft.source.kind, "monitor_extension");
+    assert.notEqual(draft.status, "completed");
+    assert.notEqual(draft.certainty, "high");
+
+    const builderSources = ["scripts/runtime/provider.ts", "scripts/runtime/publisher.ts", "scripts/runtime/runner.ts"]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+    assert.doesNotMatch(builderSources, /hidden_truth|live_expected|scoringKey|expectedNurseEventId|referenceCompletedChartId/);
+  } finally {
+    rmSync(dirNoRequest, { recursive: true, force: true });
+    rmSync(dirReveal, { recursive: true, force: true });
+  }
+}
+
+async function testM4UnavailableAndStaleClearing(): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-m4-stale-"));
+  try {
+    await runProviderRuntime({
+      provider: new M4AssessmentProvider(),
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: 10,
+      dt_s: 10,
+      actions: [{ t: 10, action: assessmentAction("assess_m4_stale") }],
+      now: deterministicNow(),
+    });
+    assert.ok(existsSync(join(dir, "encounter", "current.json")));
+    assert.ok(existsSync(join(dir, "assessments", "current.json")));
+
+    await runProviderRuntime({
+      provider: new M4AssessmentProvider(),
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: 10,
+      dt_s: 10,
+      now: deterministicNow(),
+    });
+    assert.equal(existsSync(join(dir, "assessments", "current.json")), false);
+
+    await runProviderRuntime({
+      provider: new RecordingProvider(),
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: 10,
+      dt_s: 10,
+      actions: [{ t: 10, action: assessmentAction("assess_m4_unavailable") }],
+      now: deterministicNow(),
+    });
+    const unavailableEvents = readEvents(dir);
+    assert.ok(unavailableEvents.some((event) => event.kind === "assessment_requested" && event.payload.requestId === "assess_m4_unavailable"));
+    assert.ok(unavailableEvents.some((event) => event.kind === "assessment_unavailable" && event.payload.reason === "provider_does_not_supply_assessments"));
+    assert.equal(existsSync(join(dir, "encounter", "current.json")), false);
+    assert.equal(existsSync(join(dir, "encounter", "status.json")), false);
+    assert.equal(existsSync(join(dir, "assessments", "current.json")), false);
+    const status = readJson<PublicAssessmentStatus>(join(dir, "assessments", "status.json"));
+    assert.equal(status.available, false);
+    assert.equal(status.reason, "provider_does_not_supply_assessments");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const M4_REVEALED_FINDING = "moderate accessory muscle use";
+const M4_FUTURE_FINDING = "future crackles must stay latent";
+const M4_ROOT_MARKER = "score-key-marker";
+const M4_FINDING_MARKER = "expected-rn-event-marker";
+
+function assessmentAction(requestId: string): ProviderAction {
+  return {
+    type: "assessment_request",
+    params: { requestId, assessmentType: "focused_respiratory", bodySystem: "respiratory", scoringKey: M4_ROOT_MARKER },
+  };
+}
+
+function publicOutputText(dir: string): string {
+  const paths = [
+    "current.json",
+    "timeline.json",
+    "status.json",
+    "events.jsonl",
+    join("encounter", "current.json"),
+    join("assessments", "status.json"),
+    join("assessments", "current.json"),
+  ];
+  return paths
+    .filter((relativePath) => existsSync(join(dir, relativePath)))
+    .map((relativePath) => readFileSync(join(dir, relativePath), "utf8"))
+    .join("\n");
+}
+
+function assertPublicTextOmits(dir: string, markers: readonly string[]): void {
+  const text = publicOutputText(dir);
+  for (const marker of markers) assert.doesNotMatch(text, new RegExp(marker));
+}
+
+function chartEventDraftFromAssessment(envelope: PublicAssessmentEnvelope): {
+  type: "assessment";
+  status: "final";
+  certainty: "observed";
+  source: { kind: "monitor_extension" };
+  supports: { ref: string }[];
+} {
+  return {
+    type: "assessment",
+    status: "final",
+    certainty: "observed",
+    source: { kind: "monitor_extension" },
+    supports: envelope.findings.flatMap((finding) => finding.evidence ?? []).map((evidence) => ({ ref: evidence.ref })),
+  };
+}
+
+class M4AssessmentProvider implements PhysiologyProvider {
+  readonly metadata: ProviderMetadata = { name: "m4 assessment fixture", source: "pi-sim-m4-fixture", fidelity: "fixture" };
+  assessCalls = 0;
+  private t = 0;
+  private actionEvents: string[] = [];
+
+  init(): ProviderSnapshot {
+    this.t = 0;
+    this.actionEvents = [];
+    return this.snapshot();
+  }
+
+  advance(dtSeconds: number): ProviderSnapshot {
+    this.t += dtSeconds;
+    return this.snapshot();
+  }
+
+  applyAction(action: ProviderAction): ProviderSnapshot {
+    this.actionEvents = [...this.actionEvents, `ACTION_${action.type.toUpperCase()}`];
+    return this.snapshot();
+  }
+
+  snapshot(): ProviderSnapshot {
+    return {
+      t: this.t,
+      phase: this.t >= 10 ? "focused_assessment" : "arrival",
+      vitals: { hr: 92, map: 74, rr: 24, spo2: 92 },
+      events: [...this.actionEvents],
+    };
+  }
+
+  encounterContext(): ProviderEncounterContext {
+    return {
+      patientId: "patient_test_m4",
+      encounterId: "enc_test_m4",
+      visibleChartAsOf: "2026-04-19T06:45:00-05:00",
+      phase: this.snapshot().phase,
+      display: { oxygenDevice: "nasal cannula" },
+    };
+  }
+
+  assess(request: AssessmentRequest): ProviderAssessmentResult | undefined {
+    this.assessCalls += 1;
+    const result = {
+      requestId: request.requestId,
+      assessmentType: request.assessmentType,
+      bodySystem: request.bodySystem,
+      findings: [
+        {
+          id: "finding_work_of_breathing",
+          label: "work of breathing",
+          value: M4_REVEALED_FINDING,
+          severity: "moderate",
+          evidence: [{ kind: "event", ref: `events.jsonl#requestId=${request.requestId}`, role: "primary" }],
+          expectedNurseEventId: M4_FINDING_MARKER,
+          futureFinding: M4_FUTURE_FINDING,
+        },
+      ],
+      summary: "Increased work of breathing with moderate accessory muscle use.",
+      evidence: [{ kind: "vitals_window", ref: "vitals://enc_test_m4?name=spo2", role: "context" }],
+      scoringKey: M4_ROOT_MARKER,
+      referenceCompletedChartId: "reference-chart-marker",
+    };
+    return result as ProviderAssessmentResult;
   }
 }
 
@@ -185,6 +493,13 @@ async function testPulseRunnerUnavailable(): Promise<void> {
     assert.equal(Object.hasOwn(current.monitor ?? {}, "waveforms"), false);
     const status = JSON.parse(readFileSync(join(dir, "status.json"), "utf8")) as { runState: string; source: string };
     assert.deepEqual({ runState: status.runState, source: status.source }, { runState: "unavailable", source: "pi-sim-pulse" });
+    const events = readEvents(dir);
+    assert.equal(events.at(-1)?.kind, "provider_unavailable");
+    const waveformStatus = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
+    assert.deepEqual(
+      { available: waveformStatus.available, reason: waveformStatus.reason, runState: waveformStatus.runState, source: waveformStatus.source },
+      { available: false, reason: "provider_unavailable", runState: "unavailable", source: "pi-sim-pulse" },
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -213,9 +528,69 @@ async function testPulseRunnerFakeSuccess(): Promise<void> {
     assert.equal(result.finalFrame.monitor?.sequence, 3);
     assert.equal(Object.hasOwn(result.finalFrame.monitor ?? {}, "waveforms"), false);
     assert.deepEqual(transport.actions, [{ type: "position_change", params: { position: "sitting" } }]);
+    const waveformStatus = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
+    assert.equal(waveformStatus.available, false);
+    assert.equal(existsSync(join(dir, "waveforms", "current.json")), false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+async function testFixtureWaveformLaneAndStaleClearing(): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-waveforms-"));
+  try {
+    const fixtureProvider = new FixtureWaveformProvider();
+    const fixtureResult = await runProviderRuntime({
+      provider: fixtureProvider,
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: 10,
+      dt_s: 10,
+      now: deterministicNow(),
+    });
+
+    const currentPath = join(dir, "waveforms", "current.json");
+    const statusPath = join(dir, "waveforms", "status.json");
+    assert.ok(existsSync(currentPath));
+    const current = readJson<WaveformEnvelope>(currentPath);
+    const status = readJson<WaveformStatus>(statusPath);
+    assert.equal(status.available, true);
+    assert.equal(status.sequence, current.sequence);
+    assert.equal(status.simTime_s, current.simTime_s);
+    assert.equal(status.source, current.source);
+    assert.equal(status.sourceKind, "fixture");
+    assert.equal(status.fidelity, "fixture");
+    assert.equal(status.synthetic, true);
+    assert.equal(current.synthetic, true);
+    assert.equal(current.sourceKind, "fixture");
+    assert.equal(current.fidelity, "fixture");
+    assert.deepEqual(Object.keys(current.windows), ["ECG_LeadII"]);
+    assert.equal(current.sequence, fixtureResult.finalFrame.monitor?.sequence);
+
+    await runProviderRuntime({
+      provider: new ScriptedProvider({ ...scenario, duration_s: 10 }),
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: 10,
+      dt_s: 10,
+      now: deterministicNow(),
+    });
+
+    const clearedStatus = readJson<WaveformStatus>(statusPath);
+    assert.equal(clearedStatus.available, false);
+    assert.equal(clearedStatus.reason, "provider_does_not_supply_waveforms");
+    assert.equal(existsSync(currentPath), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function testPatient002ScriptedScenarioLoading(): void {
+  const patient002 = loadScriptedScenario("vitals/scenarios/patient_002_septic_shock_recovery.scripted.json");
+  assert.equal(patient002.provider, "scripted");
+  assert.equal(patient002.name, "patient_002_septic_shock_recovery");
+  assert.equal(patient002.initial.spo2, 94);
+  assert.ok(patient002.waypoints.some((point) => point.events?.some((event) => event.startsWith("NOREPI_"))));
 }
 
 function testPulseScenarioLoading(): void {
@@ -229,7 +604,40 @@ function testPulseScenarioLoading(): void {
   assert.throws(() => loadPulseScenario("vitals/scenarios/scripted_m1_demo.json"), /not a Pulse scenario|state_file/);
 }
 
-class RecordingProvider {
+function readJson<T>(path: string): T {
+  return JSON.parse(readFileSync(path, "utf8")) as T;
+}
+
+function readEvents(dir: string): PublicTelemetryEvent[] {
+  return readFileSync(join(dir, "events.jsonl"), "utf8")
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as PublicTelemetryEvent);
+}
+
+function assertPublicEventFields(event: PublicTelemetryEvent): void {
+  assert.equal(event.schemaVersion, 1);
+  assert.equal(typeof event.sequence, "number");
+  assert.equal(typeof event.simTime_s, "number");
+  assert.match(event.wallTime, /^2026-04-27T00:00:\d{2}\.000Z$/);
+  assert.equal(typeof event.source, "string");
+  assert.ok(["running", "paused", "ended", "unavailable"].includes(event.runState));
+  assert.ok([
+    "run_started",
+    "action_applied",
+    "alarm_observed",
+    "provider_unavailable",
+    "run_ended",
+    "encounter_started",
+    "encounter_phase_changed",
+    "assessment_requested",
+    "assessment_revealed",
+    "assessment_unavailable",
+  ].includes(event.kind));
+}
+
+class RecordingProvider implements PhysiologyProvider {
   readonly metadata = { name: "recording", source: "recording", fidelity: "fixture" as const };
   readonly calls: string[] = [];
   private t = 0;
@@ -253,7 +661,46 @@ class RecordingProvider {
   }
 
   snapshot(): ProviderSnapshot {
-    return { t: this.t, vitals: { hr: 80, map: 80, spo2: 98 }, events: [...this.events] };
+    return { t: this.t, vitals: { hr: 80, map: 60, spo2: 88 }, events: [...this.events] };
+  }
+}
+
+class FixtureWaveformProvider implements PhysiologyProvider {
+  readonly metadata: ProviderMetadata = { name: "fixture waveform provider", source: "pi-sim-fixture-waveform", fidelity: "fixture" };
+  private t = 0;
+
+  init(): ProviderSnapshot {
+    this.t = 0;
+    return this.snapshot();
+  }
+
+  advance(dtSeconds: number): ProviderSnapshot {
+    this.t += dtSeconds;
+    return this.snapshot();
+  }
+
+  applyAction(action: ProviderAction): ProviderSnapshot {
+    return { ...this.snapshot(), events: [`ACTION_${action.type.toUpperCase()}`] };
+  }
+
+  snapshot(): ProviderSnapshot {
+    return { t: this.t, vitals: { hr: 80, map: 82, spo2: 99 }, events: [] };
+  }
+
+  waveformWindow(): ProviderWaveformWindow {
+    return {
+      sourceKind: "fixture",
+      fidelity: "fixture",
+      synthetic: true,
+      windows: {
+        ECG_LeadII: {
+          unit: "mV",
+          sampleRate_Hz: 125,
+          t0_s: Math.max(0, this.t - 1),
+          values: [0, 0.8, -0.1],
+        },
+      },
+    };
   }
 }
 
@@ -306,10 +753,14 @@ async function main(): Promise<void> {
   testFrameAndPublisher();
   await testSharedRunnerScripted();
   await testSharedRunnerActionOrder();
+  await testM4AssessmentRevealReplayAndBoundary();
+  await testM4UnavailableAndStaleClearing();
   await testPulseProviderFakeTransport();
   await testPulseRunnerUnavailable();
   await testPulseRunnerFakeSuccess();
   testPulseScenarioLoading();
+  testPatient002ScriptedScenarioLoading();
+  await testFixtureWaveformLaneAndStaleClearing();
   console.log("runtime tests passed");
 }
 

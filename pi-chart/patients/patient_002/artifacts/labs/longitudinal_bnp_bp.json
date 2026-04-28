@@ -1,0 +1,22 @@
+{
+  "id": "art-002-lab-008",
+  "type": "artifact_ref",
+  "subtype": "lab_trajectory",
+  "subject": "patient_002",
+  "panel": "BNP and outpatient blood pressure",
+  "bnp_trajectory": [
+    {"effective_at": "2022-08-03T20:30:00-05:00", "bnp": 612, "context": "HF admission [evt-002-h001-004]"},
+    {"effective_at": "2022-08-08T06:00:00-05:00", "bnp": 198, "context": "HF discharge [evt-002-h001-019]"},
+    {"effective_at": "2023-09-06", "bnp": 124, "context": "outpatient follow-up"},
+    {"effective_at": "2025-08-05T13:50:00-05:00", "bnp": 98, "context": "cardiology follow-up [enc-002-h004]"}
+  ],
+  "office_bp_trajectory": [
+    {"effective_at": "2018-09-04", "sbp": 142, "dbp": 84, "context": "PCP annual; pre-amlodipine titration"},
+    {"effective_at": "2022-08-03T18:42:00-05:00", "sbp": 188, "dbp": 102, "context": "HF admission, hypertensive urgency [evt-002-h001-001]"},
+    {"effective_at": "2024-03-15T10:05:00-05:00", "sbp": 142, "dbp": 80, "context": "nephrology [evt-002-h002-001]"},
+    {"effective_at": "2024-09-10T09:05:00-05:00", "sbp": 146, "dbp": 82, "context": "PCP annual [evt-002-h003-001]"},
+    {"effective_at": "2025-08-05T13:35:00-05:00", "sbp": 138, "dbp": 78, "context": "cardiology [evt-002-h004-001]"},
+    {"effective_at": "2025-09-15T09:05:00-05:00", "sbp": 148, "dbp": 82, "context": "PCP annual [evt-002-h005-001]"}
+  ],
+  "home_bp_summary": "Per patient log shared at most recent PCP visit (2025-09-15): readings 122/72 to 154/88 over 3 months, average ~138/78."
+}

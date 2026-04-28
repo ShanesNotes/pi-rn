@@ -1,0 +1,59 @@
+{
+  "id": "art-002-lab-002",
+  "type": "artifact_ref",
+  "subtype": "lab_report",
+  "subject": "patient_002",
+  "encounter_id": "enc-002-001",
+  "source": { "kind": "lab_interface_hl7", "ref": "abg_lab" },
+  "status": "final",
+  "abg_sequence": [
+    {
+      "effective_at": "2026-04-19T05:35:00-05:00",
+      "oxygen_context": "4 L NC",
+      "ph": 7.31,
+      "pco2": 32,
+      "po2": 64,
+      "hco3": 16,
+      "base_excess": -9,
+      "sao2": 91,
+      "interpretation": "primary metabolic acidosis with respiratory compensation; hypoxemia",
+      "event_id": "evt-002-0030"
+    },
+    {
+      "effective_at": "2026-04-19T08:45:00-05:00",
+      "oxygen_context": "HFNC 60L 80%",
+      "ph": 7.26,
+      "pco2": 38,
+      "po2": 62,
+      "hco3": 17,
+      "base_excess": -9,
+      "sao2": 89,
+      "interpretation": "worsening acidemia, persistent hypoxemia at high HFNC settings",
+      "event_id": "evt-002-0057"
+    },
+    {
+      "effective_at": "2026-04-19T10:00:00-05:00",
+      "oxygen_context": "AC/VC TV 380 RR 22 PEEP 8 FiO2 1.0",
+      "ph": 7.32,
+      "pco2": 36,
+      "po2": 102,
+      "hco3": 18,
+      "base_excess": -7,
+      "sao2": 98,
+      "interpretation": "post-intubation: oxygenation normalized; mild residual metabolic acidosis from sepsis",
+      "event_id": "evt-002-0067"
+    },
+    {
+      "effective_at": "2026-04-21T07:30:00-05:00",
+      "oxygen_context": "PS 5 / PEEP 5 / FiO2 0.30 (post-SBT)",
+      "ph": 7.40,
+      "pco2": 40,
+      "po2": 88,
+      "hco3": 24,
+      "base_excess": 0,
+      "sao2": 98,
+      "interpretation": "normal acid-base, adequate oxygenation off vent support",
+      "event_id": "evt-002-0120"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ Public telemetry boundary for the hidden `pi-sim` patient runtime. Current publi
 
 ## Architecture status
 
-Current authority: `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` and `.omx/plans/plan-pi-sim-architecture-rebase-patient-runtime.md`. `current.json` is the backward-compatible scalar/latest-frame boundary. The optional `monitor` extension carries display metadata for `../pi-monitor`; it is display-only and not chart/EHR truth. Future waveform windows and event streams must be added as documented public lanes when truthful provider samples/events exist.
+Current authority: `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` and `.omx/plans/plan-pi-sim-architecture-rebase-patient-runtime.md`. `current.json` is the backward-compatible scalar/latest-frame boundary. The optional `monitor` extension carries display metadata for `../pi-monitor`; it is display-only and not chart/EHR truth. Public event and waveform lanes are additive files beside the scalar contract, not hidden imports into provider internals.
 
 ## Files
 
@@ -15,6 +15,12 @@ alarms.json          per-field threshold bands {low, high}; monitor emits *_LOW 
 current.json         latest tick — written atomically per advance
 timeline.json        array of every emitted frame since monitor/sim run launched
 status.json          latest publisher status: source, runState, sequence, simTime
+events.jsonl         append-only public event lane for lifecycle/action/alarm/provider/encounter/assessment events
+encounter/current.json latest public encounter context when provider supplies one
+assessments/status.json latest assessment capability/request/reveal status
+assessments/current.json latest revealed assessment envelope only after request
+waveforms/status.json latest waveform availability; written by provider runtime runs
+waveforms/current.json latest waveform window only when a provider supplies one
 ```
 
 ## Run
@@ -26,7 +32,7 @@ npm run sim:run:demo
 npm run sim:run:demo -- --out-dir .omx/evidence/pi-sim-m1-runtime-skeleton-smoke/vitals
 ```
 
-The scripted runtime uses `vitals/scenarios/scripted_m1_demo.json`, writes deterministic scalar frames, and labels `monitor.source` as `pi-sim-scripted`. It is a runtime-boundary/reference provider only; it is not clinical physiology truth and does not emit runtime waveform samples.
+The scripted runtime uses `vitals/scenarios/scripted_m1_demo.json`, writes deterministic scalar frames, and labels `monitor.source` as `pi-sim-scripted`. It is a runtime-boundary/reference provider only; it is not clinical physiology truth and does not emit runtime waveform samples. Its waveform lane reports `available: false`. The demo scenario also includes a public encounter context and a scheduled `assessment_request` so smoke runs exercise reveal-only assessment output under `assessments/`.
 
 ### Pulse provider runtime
 
@@ -35,7 +41,7 @@ npm run sim:run:pulse:stable
 npm run sim:run:pulse:stable -- --out-dir .omx/evidence/pi-sim-m2-pulse-provider/pulse-stable/vitals --duration 60 --dt 10 --no-pacing
 ```
 
-The Pulse runtime uses `vitals/scenarios/pulse_stable_observation.json` by default. That scenario is deliberately low-acuity continuous observation and emits scalar vitals only. If the Pulse shim is unavailable, the command exits non-zero and writes `runState: "unavailable"` to the selected output directory rather than leaving a stale successful frame.
+The Pulse runtime uses `vitals/scenarios/pulse_stable_observation.json` by default. That scenario is deliberately low-acuity continuous observation and emits scalar vitals only. The current Pulse shim path does not supply waveform samples, so `waveforms/status.json` reports `available: false` and no `waveforms/current.json` is preserved. If the Pulse shim is unavailable, the command exits non-zero and writes `runState: "unavailable"` plus a `provider_unavailable` event to the selected output directory rather than leaving a stale successful frame.
 
 ### Legacy Pulse monitor compatibility
 
@@ -103,9 +109,9 @@ Fields:
 - `runState`: `running`, `paused`, `ended`, or `unavailable`.
 - `events`: monitor event/alarm feed for display; currently mirrors top-level `alarms`.
 - `heartRhythm`: rhythm label when public rhythm telemetry exists. Current shim output is scalar-only, so this is `unavailable`.
-- `waveforms`: optional bounded waveform sample windows keyed by signal name. Current Pulse shim output does not expose real waveform samples; when absent, renderers must show an explicit waveform-unavailable state and must not silently synthesize physiology as truth.
+- `waveforms`: legacy optional display extension field. The shared provider runtime does not put M3 waveform windows inside `current.json`; renderers must use `waveforms/status.json` and `waveforms/current.json` and show an explicit waveform-unavailable state when absent.
 
-Example waveform object, when a future public publisher exposes real samples:
+Example legacy waveform object, if a future compatibility layer exposes real samples inside `monitor`:
 
 ```json
 "waveforms": {
@@ -115,6 +121,132 @@ Example waveform object, when a future public publisher exposes real samples:
 ```
 
 **Note**: this schema replaces the prior 6-vital TypeScript-engine schema. pi-agent readers updated in coordination with this change.
+
+## Schema — `events.jsonl`
+
+`events.jsonl` is append-only JSON Lines. Events share the runner-owned `sequence`, `simTime_s`, `wallTime`, `source`, and `runState` context used by frames at the same boundary. M3/M4 emits:
+
+- `run_started`
+- `action_applied`
+- `encounter_started` — first public context for an encounter id
+- `encounter_phase_changed` — public phase changed after encounter start
+- `assessment_requested`
+- `assessment_revealed`
+- `assessment_unavailable`
+- `alarm_observed` — per-frame observation for each active alarm
+- `provider_unavailable`
+- `run_ended`
+
+Example:
+
+```json
+{"schemaVersion":1,"sequence":4,"simTime_s":30,"wallTime":"2026-04-27T00:00:03.000Z","source":"pi-sim-scripted","runState":"running","kind":"action_applied","payload":{"action":{"type":"position_change"}}}
+```
+
+## Schema — `encounter/current.json`
+
+`encounter/current.json` exists only when the provider supplies public encounter context. If a later run/provider does not supply encounter context, the publisher removes stale `encounter/current.json`; there is no `encounter/status.json`. The file contains chart-visible identity and clock/phase anchors only, not hidden findings, scoring targets, expected nurse charting ids, or future truth.
+
+```json
+{
+  "schemaVersion": 1,
+  "patientId": "demo_patient_001",
+  "encounterId": "enc_demo_001",
+  "visibleChartAsOf": "2026-04-19T06:45:00-05:00",
+  "phase": "early_deterioration",
+  "sequence": 4,
+  "simTime_s": 30,
+  "wallTime": "2026-04-27T00:00:03.000Z",
+  "source": "pi-sim-scripted",
+  "runState": "running",
+  "display": { "bed": "ICU 7", "oxygenDevice": "nasal cannula" }
+}
+```
+
+## Schema — `assessments/status.json` and `assessments/current.json`
+
+`assessments/status.json` is the latest capability and request/reveal status. It is written even when assessment support is absent. Before a request, status can report `available: true` while `assessments/current.json` remains absent. If assessment support is unavailable, stale `assessments/current.json` is removed and status carries `reason: "provider_does_not_supply_assessments"`.
+
+```json
+{
+  "schemaVersion": 1,
+  "sequence": 4,
+  "simTime_s": 30,
+  "wallTime": "2026-04-27T00:00:03.000Z",
+  "source": "pi-sim-scripted",
+  "runState": "running",
+  "available": true,
+  "lastRequestId": null,
+  "lastRevealSequence": null
+}
+```
+
+`assessments/current.json` exists only after an `assessment_request` action reveals findings through `provider.assess(request)`. The generic `action_applied` event remains the M3 audit record; reveal data comes from the provider assessment capability and allowlist serialization, not from the action snapshot. Duplicate same-window request ids re-emit `assessment_revealed` with `replay: true`, `replayOfSequence`, and `envelopeDigest` without a second hidden reveal.
+
+```json
+{
+  "schemaVersion": 1,
+  "requestId": "assess_demo_0001",
+  "assessmentType": "focused_respiratory",
+  "bodySystem": "respiratory",
+  "visibility": "revealed",
+  "sequence": 5,
+  "simTime_s": 40,
+  "wallTime": "2026-04-27T00:00:04.000Z",
+  "source": "pi-sim-scripted",
+  "runState": "running",
+  "findings": [
+    {
+      "id": "finding_demo_work_of_breathing",
+      "label": "work of breathing",
+      "value": "mildly increased",
+      "severity": "mild",
+      "evidence": [{ "kind": "event", "ref": "events.jsonl#requestId=assess_demo_0001", "role": "primary" }]
+    }
+  ],
+  "summary": "Mildly increased work of breathing with stable oxygenation.",
+  "envelopeDigest": "..."
+}
+```
+
+## Schema — `waveforms/status.json` and `waveforms/current.json`
+
+`waveforms/status.json` is the availability source of truth. It is written by provider runtime runs even when no waveform is available:
+
+```json
+{
+  "schemaVersion": 1,
+  "sequence": 4,
+  "simTime_s": 30,
+  "wallTime": "2026-04-27T00:00:03.000Z",
+  "source": "pi-sim-pulse",
+  "runState": "running",
+  "available": false,
+  "reason": "provider_does_not_supply_waveforms"
+}
+```
+
+`waveforms/current.json` exists only when a provider supplies a waveform window. If a later frame has no waveform or the provider is unavailable, the publisher removes stale `waveforms/current.json` and updates status. Consumers must never treat an old waveform file as current without checking matching `sequence`/`simTime_s`/`source`/`runState` in status.
+
+Fixture/demo waveform windows are allowed only for contract tests and demos. They must be explicitly labeled and are not production clinical truth:
+
+```json
+{
+  "schemaVersion": 1,
+  "sequence": 4,
+  "simTime_s": 30,
+  "wallTime": "2026-04-27T00:00:03.000Z",
+  "source": "pi-sim-fixture-waveform",
+  "runState": "running",
+  "available": true,
+  "sourceKind": "fixture",
+  "fidelity": "fixture",
+  "synthetic": true,
+  "windows": {
+    "ECG_LeadII": { "unit": "mV", "sampleRate_Hz": 125, "t0_s": 29, "values": [0, 0.8, -0.1] }
+  }
+}
+```
 
 ## Schema — `scenarios/*.json`
 
@@ -135,7 +267,7 @@ Example waveform object, when a future public publisher exposes real samples:
 
 `provider: "pulse"` marks provider-runner scenarios. For legacy compatibility, scenario files with a `state_file` and no `provider` are inferred as Pulse by the Pulse scenario loader. `state_file` paths are resolved by the shim inside the Docker container. `./states/...` maps to Pulse's shipped engine states under `/pulse/bin/states/`; `./state/...` maps to baked runtime states under `/workspace/state/`. Scenarios requiring preset conditions (e.g. sepsis) reference baked state files produced by `pulse/shim/bake_states.py`.
 
-Supported action types: `hemorrhage`, `hemorrhage_stop`, `fluid_bolus`, `norepinephrine`, `norepinephrine_stop`. See `pulse/README.md#action-types` for params.
+Supported Pulse action types: `hemorrhage`, `hemorrhage_stop`, `fluid_bolus`, `norepinephrine`, `norepinephrine_stop`. Scripted provider-runtime scenarios may also schedule `{ "type": "assessment_request", "params": { "requestId": "...", "assessmentType": "...", "bodySystem": "..." } }` to request matching provider-owned assessment fixtures. See `pulse/README.md#action-types` for Pulse params.
 
 ## Agent boundary
 

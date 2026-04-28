@@ -1,5 +1,15 @@
 import { assertPositiveFinite } from "./clock.js";
-import type { PhysiologyProvider, ProviderAction, ProviderMetadata, ProviderSnapshot, VitalScalars } from "./provider.js";
+import type {
+  AssessmentRequest,
+  PhysiologyProvider,
+  ProviderAction,
+  ProviderAssessmentResult,
+  ProviderEncounterContext,
+  ProviderMetadata,
+  ProviderSnapshot,
+  VitalScalars,
+} from "./provider.js";
+import type { TimelineEntry } from "../types.js";
 
 export interface ScriptedWaypoint {
   readonly t: number;
@@ -15,6 +25,8 @@ export interface ScriptedScenario {
   readonly provider: "scripted";
   readonly initial: VitalScalars;
   readonly waypoints: ScriptedWaypoint[];
+  readonly timeline?: readonly TimelineEntry[];
+  readonly encounter?: ProviderEncounterContext;
 }
 
 export class ScriptedProvider implements PhysiologyProvider {
@@ -63,6 +75,41 @@ export class ScriptedProvider implements PhysiologyProvider {
       events: [...(before.events ?? []), ...this.actionEvents],
     };
   }
+
+  encounterContext(): ProviderEncounterContext | undefined {
+    if (!this.scenario.encounter) return undefined;
+    const snapshot = this.snapshot();
+    return {
+      patientId: this.scenario.encounter.patientId,
+      encounterId: this.scenario.encounter.encounterId,
+      visibleChartAsOf: this.scenario.encounter.visibleChartAsOf,
+      phase: snapshot.phase ?? this.scenario.encounter.phase,
+      display: this.scenario.encounter.display,
+    };
+  }
+
+  assess(request: AssessmentRequest): ProviderAssessmentResult | undefined {
+    const assessment = hiddenScriptedAssessmentFor(this.scenario.name, request);
+    if (!assessment) return undefined;
+
+    return {
+      requestId: request.requestId,
+      assessmentType: assessment.assessmentType,
+      bodySystem: assessment.bodySystem ?? request.bodySystem,
+      findings: assessment.findings.map((finding) => ({
+        id: finding.id,
+        label: finding.label,
+        value: finding.value,
+        severity: finding.severity,
+        evidence: [
+          { kind: "event", ref: `events.jsonl#requestId=${request.requestId}`, role: "primary" },
+          { kind: "vitals_window", ref: `vitals://current?simTime_s=${this.t}`, role: "context" },
+        ],
+      })),
+      summary: assessment.summary,
+      evidence: [{ kind: "encounter", ref: this.scenario.encounter?.encounterId ?? "encounter/current.json", role: "context" }],
+    };
+  }
 }
 
 export function normalizeScenario(scenario: ScriptedScenario): ScriptedScenario {
@@ -109,4 +156,46 @@ function interpolateVitals(a: VitalScalars, b: VitalScalars, ratio: number): Vit
 
 function round(value: number): number {
   return Math.round(value * 1000) / 1000;
+}
+
+interface HiddenScriptedAssessment {
+  readonly requestId?: string;
+  readonly assessmentType: string;
+  readonly bodySystem?: string;
+  readonly findings: readonly HiddenScriptedFinding[];
+  readonly summary?: string;
+}
+
+interface HiddenScriptedFinding {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly severity?: string;
+}
+
+const BUILTIN_SCRIPTED_ASSESSMENTS: Record<string, readonly HiddenScriptedAssessment[]> = {
+  scripted_m1_demo: [
+    {
+      assessmentType: "focused_respiratory",
+      bodySystem: "respiratory",
+      findings: [
+        {
+          id: "finding_demo_work_of_breathing",
+          label: "work of breathing",
+          value: "mildly increased",
+          severity: "mild",
+        },
+      ],
+      summary: "Mildly increased work of breathing with stable oxygenation.",
+    },
+  ],
+};
+
+function hiddenScriptedAssessmentFor(scenarioName: string, request: AssessmentRequest): HiddenScriptedAssessment | undefined {
+  return BUILTIN_SCRIPTED_ASSESSMENTS[scenarioName]?.find((candidate) => {
+    const requestMatches = candidate.requestId === undefined || candidate.requestId === request.requestId;
+    const typeMatches = candidate.assessmentType === request.assessmentType;
+    const bodyMatches = candidate.bodySystem === undefined || candidate.bodySystem === request.bodySystem;
+    return requestMatches && typeMatches && bodyMatches;
+  });
 }

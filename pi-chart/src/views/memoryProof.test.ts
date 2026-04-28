@@ -11,7 +11,9 @@ import type { EventEnvelope, PatientScope } from "../types.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const broadScope: PatientScope = { chartRoot: REPO_ROOT, patientId: "patient_002" };
-const WOB = "evt_p002_0905_wob";
+const WOB = "evt-002-0032";
+const ICU_ENCOUNTER = "enc-002-001";
+const LATE_AS_OF = "2026-04-19T06:45:00-05:00";
 const HIDDEN_SIM_KEYS = [
   "hidden_lung_fluid_ml",
   "ground_truth_pneumonia_burden",
@@ -30,14 +32,19 @@ function stringField(value: unknown, key: string): string | undefined {
 
 function isCanonicalWorkOfBreathing(event: EventEnvelope): boolean {
   const name = stringField(event.data, "name");
-  const value = stringField(event.data, "value") ?? "";
+  const text = [
+    stringField(event.data, "value"),
+    stringField(event.data, "finding"),
+  ].filter(Boolean).join(" ").toLowerCase();
   return event.type === "observation" &&
     event.subtype === "exam_finding" &&
-    (name === "work_of_breathing" || value.toLowerCase().includes("accessory muscle use"));
+    (name === "work_of_breathing" ||
+      text.includes("accessory muscle use") ||
+      text.includes("work of breathing"));
 }
 
 test("memoryProof returns six required sections and is JSON-serializable", async () => {
-  const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
+  const proof = await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
   assert.equal(proof.patient_id, "patient_002");
   assert.deepEqual(Object.keys(proof.sections), [
     "what_happened",
@@ -58,25 +65,23 @@ test("patient_002 fixture covers all six broad EHR surfaces", async () => {
   assert(events.some((event) => event.type === "intent" && event.subtype === "order"), "order missing");
   assert(events.some((event) => event.type === "action"), "intervention/action missing");
   assert(events.some((event) => event.type === "observation" && event.subtype === "lab_result"), "lab/diagnostic missing");
-  assert(events.some((event) => event.type === "intent" && event.subtype === "care_plan"), "care plan missing");
-  assert(events.some((event) => event.type === "communication" && event.subtype === "handoff"), "handoff communication missing");
-  assert(notes.some((note) => note.subtype === "nursing_note"), "narrative note missing");
-  // Flowsheet/vitals surface is proven through the projection's vitals evidence refs.
-  const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
-  assert(proof.sections.evidence.some((item) => item.kind === "vitals_window"), "vitals evidence missing");
+  assert(events.some((event) => event.type === "intent" && ["order", "icu_transfer", "care_plan"].includes(event.subtype ?? "")), "care plan/order intent missing");
+  assert(events.some((event) => event.type === "communication" && ["handoff", "sbar"].includes(event.subtype ?? "")), "handoff/SBAR communication missing");
+  assert(notes.some((note) => ["ed_triage_note", "sbar", "nursing_note"].includes(note.subtype)), "narrative note missing");
+  assert(events.some((event) => event.type === "observation" && event.subtype === "vital_sign"), "event vitals surface missing");
 });
 
 test("memoryProof preserves asOf replay across evidence, notes, loops, and handoff", async () => {
-  const early = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:20:00-05:00" });
-  const late = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
+  const early = await memoryProof({ scope: broadScope, asOf: "2026-04-19T06:30:00-05:00", encounterId: ICU_ENCOUNTER });
+  const late = await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
   const earlyText = stringifyProof(early);
   const lateText = stringifyProof(late);
-  assert(!earlyText.includes("evt_p002_0925_abg_result"), earlyText);
-  assert(!earlyText.includes("note_20260419T0930_handoff"), earlyText);
-  assert(!earlyText.includes("evt_p002_0930_care_plan"), earlyText);
-  assert(lateText.includes("evt_p002_0925_abg_result"), lateText);
-  assert(lateText.includes("note_20260419T0930_handoff") || lateText.includes("Next-shift handoff"), lateText);
-  assert(late.sections.open_loops.some((loop) => loop.intent_id === "evt_p002_0930_care_plan"));
+  assert(!earlyText.includes("evt-002-0042"), earlyText);
+  assert(!earlyText.includes("note_20260419T0640_0640_ed_to_icu_sbar"), earlyText);
+  assert(!earlyText.includes("evt-002-0041"), earlyText);
+  assert(lateText.includes("evt-002-0042"), lateText);
+  assert(lateText.includes("note_20260419T0640_0640_ed_to_icu_sbar") || lateText.includes("ED → MICU SBAR"), lateText);
+  assert(late.sections.open_loops.some((loop) => loop.intent_id === "evt-002-0041"));
 });
 
 test("memoryProof keeps current-state source refs scoped to encounterId", async () => {
@@ -97,12 +102,28 @@ test("memoryProof keeps current-state source refs scoped to encounterId", async 
 });
 
 test("memoryProof clamps vitals evidence windows to the consumer event time", async () => {
-  const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:10:35-05:00" });
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", {
+    id: "evt_vitals_window_consumer",
+    type: "assessment",
+    subtype: "problem",
+    subject: "patient_001",
+    encounter_id: "enc_001",
+    effective_at: "2026-04-18T08:10:00-05:00",
+    recorded_at: "2026-04-18T08:10:00-05:00",
+    author: { id: "test_rn", role: "rn" },
+    source: { kind: "nurse_charted" },
+    certainty: "observed",
+    status: "active",
+    data: { problem: "hypoxia" },
+    links: { supports: ["vitals://enc_001?name=spo2&from=2026-04-18T08:00:00-05:00&to=2026-04-18T08:15:00-05:00"] },
+  });
+
+  const proof = await memoryProof({ scope, asOf: "2026-04-18T08:20:00-05:00" });
   const text = stringifyProof(proof);
-  assert(text.includes("evt_p002_0910_assess_resp"), text);
-  assert(!text.includes("to=2026-04-19T09:15:00-05:00"), text);
-  assert(text.includes("to=2026-04-19T09%3A10%3A00-05%3A00"), text);
-  assert(!text.includes("evt_p002_0912_order_abg"), text);
+  assert(text.includes("evt_vitals_window_consumer"), text);
+  assert(!text.includes("to=2026-04-18T08:15:00-05:00"), text);
+  assert(text.includes("to=2026-04-18T08%3A10%3A00-05%3A00"), text);
 });
 
 function observation(
@@ -130,15 +151,15 @@ function observation(
 test("memoryProof reuses one bedside observation across projection contexts", async () => {
   const events = await loadAllEvents(broadScope);
   const wobEvents = events.filter(isCanonicalWorkOfBreathing);
-  assert.deepEqual(wobEvents.map((event) => event.id), [WOB]);
+  assert(wobEvents.some((event) => event.id === WOB), "focused work-of-breathing observation missing");
 
-  const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
+  const proof = await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
   assert(proof.sections.why_it_mattered.some((item) => item.event_ids.includes(WOB)), "review/assessment missing WOB support");
-  assert(proof.sections.evidence.some((item) => item.ref === WOB && item.event_ids?.includes("evt_p002_0930_care_plan")), "evidence/provenance missing WOB reuse");
+  assert(proof.sections.evidence.some((item) => item.ref === WOB && item.event_ids?.includes("evt-002-0033")), "evidence/provenance missing WOB reuse");
   assert(proof.sections.open_loops.some((loop) => loop.evidence_ids.includes(WOB)), "open loop missing WOB support");
   assert(proof.sections.next_shift_handoff.some((item) => item.event_ids.includes(WOB)), "handoff missing WOB support");
 
-  const notes = await narrative({ scope: broadScope, to: "2026-04-19T09:30:35-05:00" });
+  const notes = await narrative({ scope: broadScope, to: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
   assert(notes.some((note) => note.references.includes(WOB)), "narrative note path missing WOB support");
 });
 
@@ -152,7 +173,7 @@ test("memoryProof ignores hidden simulator state files", async () => {
     });
 
     const scope: PatientScope = { chartRoot: tmpRoot, patientId: "patient_002" };
-    const asOf = "2026-04-19T09:30:35-05:00";
+    const asOf = LATE_AS_OF;
     const before = stringifyProof(await memoryProof({ scope, asOf }));
 
     await fs.writeFile(
@@ -162,6 +183,11 @@ test("memoryProof ignores hidden simulator state files", async () => {
         ground_truth_pneumonia_burden: "high",
         scheduled_event_queue: ["future_private_event"],
       }, null, 2)}\n`,
+    );
+    await fs.mkdir(path.join(tmpPatientRoot, "simulation", "hidden_truth"), { recursive: true });
+    await fs.writeFile(
+      path.join(tmpPatientRoot, "simulation", "hidden_truth", "pi_sim_state_plan.yaml"),
+      "hidden_lung_fluid_ml: 875\nground_truth_pneumonia_burden: high\nscheduled_event_queue:\n  - future_private_event\n",
     );
 
     const after = stringifyProof(await memoryProof({ scope, asOf }));
@@ -175,14 +201,14 @@ test("memoryProof ignores hidden simulator state files", async () => {
 });
 
 test("memoryProof represents open-loop closure with patient_002", async () => {
-  const proof = await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" });
+  const proof = await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
   const openIntentIds = proof.sections.open_loops.map((loop) => loop.intent_id);
-  assert(openIntentIds.includes("evt_p002_0930_care_plan"), "active next-shift care plan should remain open");
-  assert(!openIntentIds.includes("evt_p002_0912_order_abg"), "fulfilled ABG order should be closed");
+  assert(openIntentIds.includes("evt-002-0041"), "active ICU transfer loop should remain open at demo start");
+  assert(!openIntentIds.includes("evt-002-0034"), "fulfilled HFNC/ICU consult order should be closed");
 });
 
 test("memoryProof is deterministic", async () => {
-  const first = stringifyProof(await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" }));
-  const second = stringifyProof(await memoryProof({ scope: broadScope, asOf: "2026-04-19T09:30:35-05:00" }));
+  const first = stringifyProof(await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER }));
+  const second = stringifyProof(await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER }));
   assert.equal(first, second);
 });

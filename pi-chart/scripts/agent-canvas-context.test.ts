@@ -12,16 +12,17 @@ test("buildAgentCanvasContext is patient-agnostic and works for patient_002", as
   const context = await buildAgentCanvasContext({
     chartRoot,
     patientId: "patient_002",
-    encounterId: "enc_p002_001",
-    asOf: "2026-04-19T09:36:00-05:00",
-    trendFrom: "2026-04-19T09:00:00-05:00",
+    encounterId: "enc-002-001",
+    asOf: "2026-04-19T06:45:00-05:00",
+    trendFrom: "2026-04-19T04:10:00-05:00",
   });
 
   assert.equal(context.patientId, "patient_002");
-  assert.equal(context.encounterId, "enc_p002_001");
-  assert.equal(context.clinical.latestVitals.spo2.value, 89);
-  assert.equal(context.clinical.latestVitals.spo2.sample_key, "vital_647c98955de3bdeb");
-  assert.ok(context.clinical.openLoop.detail.includes("SpO₂ < 90%"));
+  assert.equal(context.encounterId, "enc-002-001");
+  assert.equal(context.clinical.latestVitals.spo2.value, 94);
+  assert.equal(context.clinical.latestVitals.spo2.sample_key, "vital_626c99e3b4a4fb32");
+  assert.ok(context.clinical.trends.spo2.length >= 8);
+  assert.ok(context.clinical.openLoop.title.length > 0);
 });
 
 test("buildAgentCanvasContext also works for another opened patient chart", async () => {

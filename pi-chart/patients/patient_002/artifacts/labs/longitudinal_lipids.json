@@ -1,0 +1,18 @@
+{
+  "id": "art-002-lab-007",
+  "type": "artifact_ref",
+  "subtype": "lab_trajectory",
+  "subject": "patient_002",
+  "panel": "lipid panel",
+  "source": "outpatient PCP labs",
+  "atorvastatin_started": "2018-09",
+  "trajectory": [
+    {"effective_at": "2014-08-10", "tc": 224, "ldl": 142, "hdl": 48, "trig": 168, "context": "pre-statin"},
+    {"effective_at": "2018-08-12", "tc": 230, "ldl": 148, "hdl": 50, "trig": 162, "context": "PCP, started atorvastatin 40 mg"},
+    {"effective_at": "2019-08-15", "tc": 178, "ldl": 100, "hdl": 52, "trig": 130, "context": "PCP follow-up; LDL improved on statin"},
+    {"effective_at": "2022-08-03T20:32:00-05:00", "tc": 176, "ldl": 96, "hdl": 50, "trig": 150, "context": "HF admission labs"},
+    {"effective_at": "2024-09-08T08:00:00-05:00", "tc": 172, "ldl": 92, "hdl": 52, "trig": 138, "context": "PCP annual [evt-002-h003-002]"},
+    {"effective_at": "2025-09-13T08:00:00-05:00", "tc": 170, "ldl": 88, "hdl": 54, "trig": 142, "context": "PCP annual [evt-002-h005-002]"}
+  ],
+  "summary": "LDL well-controlled on atorvastatin 40 mg since 2018. Currently LDL 88, at goal for ASCVD risk reduction in this profile."
+}

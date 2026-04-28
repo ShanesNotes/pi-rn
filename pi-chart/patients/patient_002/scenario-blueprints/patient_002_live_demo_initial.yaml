@@ -1,0 +1,31 @@
+patient_id: patient_002
+scenario_name: severe_cap_septic_shock_live_demo_initial_load
+version: v4
+purpose: >
+  Safe, non-future-leaking scenario scaffold for the pi-rn live ICU demo.
+  This file describes the chart state loaded at demo start and the staged
+  runtime surfaces without exposing the completed clinical trajectory.
+timezone: America/Chicago
+current_admission: enc-002-001
+initial_chart_as_of: "2026-04-19T06:45:00-05:00"
+startup_rule: >
+  Load patient.md, constraints.md, historical timeline records, current-admission
+  events recorded before demo start, active artifacts/index.json, and derived
+  initial current-state files. Do not load simulation/live_expected,
+  simulation/latent_release, or simulation/hidden_truth into the nurse/agent view.
+visible_at_start:
+  - ED triage and ED provider documentation
+  - admission labs and first chest radiograph
+  - HFNC escalation already performed in ED
+  - ICU consult acceptance and ED-to-ICU SBAR
+  - active HFNC context at arrival
+  - active sepsis, hypoxemic respiratory failure, and AKI problems
+not_visible_at_start:
+  - future provider orders and notes
+  - future lab, imaging, RT, pharmacy, ID, nutrition, SLP, PT/OT, case-management documentation
+  - future MAR administrations, I&O, nursing assessments, nursing notes, and handoffs
+  - hidden physiologic truth and reference completed transcript
+runtime_surfaces:
+  latent_release: simulation/latent_release/
+  live_nurse_expected: simulation/live_expected/
+  hidden_pi_sim_truth: simulation/hidden_truth/

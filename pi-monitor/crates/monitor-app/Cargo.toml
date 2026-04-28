@@ -1,0 +1,13 @@
+[package]
+name = "monitor-app"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+version = "0.1.0"
+
+[dependencies]
+anyhow.workspace = true
+eframe.workspace = true
+monitor-core = { path = "../monitor-core" }
+monitor-ingest = { path = "../monitor-ingest" }
+monitor-ui = { path = "../monitor-ui" }

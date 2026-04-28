@@ -1,3 +1,8 @@
+> **Status: HISTORICAL VISUAL REFERENCE ONLY.**
+> These notes describe the old in-repo PySide `monitor-ui` visual research. Current display implementation authority lives in sibling `../pi-monitor`; current `pi-sim` architecture authority is ADR 003. Do not treat PySide-specific implementation hints here as current direction.
+
+---
+
 # Module 26 — Navigate the IntelliVue X3 (3-model synthesis)
 
 Source: Philips IntelliVue training video #26 (`JmAc_1Y9Ync`), 720p, 246s.
