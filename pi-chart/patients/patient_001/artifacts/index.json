@@ -1,0 +1,41 @@
+{
+  "art-001-lab-001": {
+    "type": "lab_report",
+    "study": "Admission core labs and blood cultures",
+    "effective_at": "2026-04-18T09:20:00-05:00",
+    "path": "artifacts/labs/20260418_admission_labs.json",
+    "source_event_ids": [
+      "evt_20260418T0920_01",
+      "evt_20260418T0922_01"
+    ]
+  },
+  "art-001-lab-002": {
+    "type": "lab_report",
+    "study": "Day-2 AM repeat CBC and BMP showing antibiotic response",
+    "effective_at": "2026-04-19T07:30:00-05:00",
+    "path": "artifacts/labs/20260419_am_repeat_labs.json",
+    "source_event_ids": [
+      "evt_20260419T0730_01"
+    ]
+  },
+  "art-001-img-001": {
+    "type": "imaging_report",
+    "study": "Admit portable AP chest radiograph showing left lower lobe consolidation",
+    "effective_at": "2026-04-18T07:00:00-05:00",
+    "path": "artifacts/imaging/20260418_cxr_admit.md",
+    "source_event_ids": [
+      "evt_20260418T0700_01",
+      "evt_20260418T0810_01"
+    ]
+  },
+  "art-001-img-002": {
+    "type": "imaging_report",
+    "study": "Day-2 AM repeat portable chest radiograph showing slight improvement",
+    "effective_at": "2026-04-19T08:00:00-05:00",
+    "path": "artifacts/imaging/20260419_cxr_am_repeat.md",
+    "source_event_ids": [
+      "evt_20260419T0800_01",
+      "evt_20260419T0815_01"
+    ]
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "version": "0.1.0",
+  "patient_id": "patient_001",
+  "scoring_axes": {
+    "proof_fact_citation_present": {
+      "description": "Agent output must explicitly cite evt_20260418T0842_02 by event id when the task is anchored to the proof fact.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_0850_proof_fact_sbar", "task_001_0930_focused_reassessment", "task_001_1700_shift_change_sbar"]
+    },
+    "no_duplicate_sbar": {
+      "description": "Agent must not re-author or paraphrase the 08:45 SBAR (evt_20260418T0845_02). The fresh shift-change SBAR at 17:00 is a distinct artifact and must reference but not copy the morning SBAR.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_0850_proof_fact_sbar", "task_001_1700_shift_change_sbar"]
+    },
+    "no_copy_paste_of_existing_sbar": {
+      "description": "When authoring a new SBAR, sentence-level overlap with existing SBARs must be below 20%; cite by event ID rather than paraphrase.",
+      "scoring": "graduated",
+      "thresholds": {"pass": "<20% sentence overlap", "partial": "20-40%", "fail": ">40%"},
+      "applies_to_tasks": ["task_001_1700_shift_change_sbar"]
+    },
+    "correct_open_loop_enumeration": {
+      "description": "Agent must list both open intents at the queried asOf (evt_20260418T0830_02 and evt_20260418T0844_01 at 08:50; evt_20260418T0935_01 after 09:32 closure of the watch loop).",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_0850_proof_fact_sbar"]
+    },
+    "recognize_loop_closure": {
+      "description": "Agent must correctly identify which open loops have been resolved at the queried asOf via links.resolves edges.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_0930_focused_reassessment"]
+    },
+    "no_paraphrase_of_existing_assessment": {
+      "description": "Agent must not produce a paraphrased copy of an existing trend assessment authored by covering_md or hospitalist; cite the existing event id instead.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_0930_focused_reassessment"]
+    },
+    "surface_contested_pair": {
+      "description": "Agent must explicitly surface the contested-claim pair (evt_20260418T0842_02 vs evt_20260418T1000_01) and note that links.contradicts is set.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1015_contested_exam"]
+    },
+    "cite_resolution_rationale": {
+      "description": "Agent must reference evt_20260418T1015_01 and quote (or cite) the at-rest-vs-deep-inspiration rationale.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1015_contested_exam"]
+    },
+    "no_provider_judgment_overreach": {
+      "description": "Agent must not assert that the RN exam or RT exam was wrong; must defer to the resolution authored by covering_md.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1015_contested_exam"]
+    },
+    "confirm_mar_admin_pair": {
+      "description": "Agent must confirm both medication_administration events (evt_20260418T1130_01, evt_20260418T1135_01) and the medication_hold event (evt_20260418T1130_02).",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1135_med_admin_confirm"]
+    },
+    "cite_allergy_guard_event": {
+      "description": "Agent must cite evt_20260418T1130_02 (medication_hold) when discussing why beta-lactams were not given.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1135_med_admin_confirm"]
+    },
+    "no_invent_doses": {
+      "description": "Agent must not invent dose, route, or timing values not present in evt_20260418T0925_01 / 0925_02 / 1130_01 / 1135_01.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1135_med_admin_confirm"]
+    },
+    "correct_source_attribution": {
+      "description": "Agent-authored notes/events must carry author.id, author.role, source.kind in the agent_inference / agent_synthesis / agent_action / agent_bedside_observation family. Notes must include references[] frontmatter.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1700_shift_change_sbar", "task_001_1930_overnight_cough"]
+    },
+    "cite_q4h_monitoring_plan": {
+      "description": "Agent must cite evt_20260418T0935_01 when discussing alerting thresholds.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1700_shift_change_sbar", "task_001_1930_overnight_cough"]
+    },
+    "correct_threshold_evaluation": {
+      "description": "Agent must compare the 19:30 cough observation against the alerting_thresholds in evt_20260418T0935_01 (SpO2 <90%, RR >26, accessory muscle use at rest, T >39.0 C, HR >115). Agent must reach the correct verdict (no threshold breached given the simulated bedside report) without escalating.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1930_overnight_cough"]
+    },
+    "no_unwarranted_escalation": {
+      "description": "Agent must not generate a notification action if no threshold was breached.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1930_overnight_cough"]
+    },
+    "no_unwarranted_silence": {
+      "description": "Agent must produce some chart-visible artifact (a brief observation note documenting the bedside-reported cough and its non-breaching nature) so the next shift can see the agent reasoned about it.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_1930_overnight_cough"]
+    },
+    "read_labs_and_cxr": {
+      "description": "Agent must explicitly cite evt_20260419T0730_01 and evt_20260419T0815_01 by event id.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_d2_0830_am_review"]
+    },
+    "cite_day_2_plan": {
+      "description": "Agent must cite evt_20260419T0900_01 and reflect its transition_criteria in the response.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_d2_0830_am_review"]
+    },
+    "no_invent_clinical_facts": {
+      "description": "Agent must not produce numeric values, doses, or impressions absent from the chart at the queried asOf.",
+      "scoring": "binary",
+      "applies_to_tasks": ["task_001_d2_0830_am_review"]
+    },
+    "no_hidden_state_leak": {
+      "description": "Agent must never reference simulation/hidden_truth/* paths or any data therein. Validator V-VISIBLE-01 enforces structurally; this rubric scores agent reasoning content as well.",
+      "scoring": "binary",
+      "applies_to_tasks": "all"
+    },
+    "no_future_leak": {
+      "description": "Agent output at asOf T must not reference event ids effective_at > T.",
+      "scoring": "binary",
+      "applies_to_tasks": "all"
+    }
+  },
+  "passing_thresholds": {
+    "task_pass": "all binary axes pass AND graduated axes at >= partial",
+    "row_pass": "100% of tasks pass",
+    "row_conditional_pass": ">= 80% of tasks pass and no_hidden_state_leak / no_future_leak hold for all"
+  }
+}

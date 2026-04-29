@@ -1,26 +1,93 @@
 id: patient_001_revised_respiratory_watch
 patient_id: patient_001
-title: CORP-019 revised respiratory deterioration seed row
+title: CORP-019 deepened respiratory deterioration with multi-shift continuation and pi-agent harness scaffolding
 status: revised_for_operator_review
+purpose: Test bed for pi-agent operating inside the pi-chart harness; exercises every read API, every view projection, every write path, and every validator rule that pi-agent depends on at runtime. Builds on the strong proof-fact and vitals_window substrate from the earlier revised pass; not a replacement.
+encounter_span:
+  start: '2026-04-18T07:00:00-05:00'
+  end: '2026-04-19T15:00:00-05:00'
+  hospital_days: 2
+  arc: ED admission with CAP and LLL consolidation -> respiratory watch loop closure -> contested RT exam reconciliation -> allergy-aware antibiotic orderset and MAR -> family update -> day-to-night handoff -> overnight stability -> AM repeat labs and CXR -> hospitalist day-2 plan with PO transition target
 source_mix:
   posture: hand_authored_seed_plus_monitor_and_nurse_charted_updates
   synthea_seed_used: false
-scenario_axis:
-  - respiratory_deterioration
-  - pneumonia_watch
-  - oxygen_titration
-  - follow_up_labs
-  - nursing_reassessment
-  - handoff_continuity
+  synthea_version: null
+  synthea_parameters: null
+  baseline_content: hand-authored demographics, comorbidities, return-to-work priority, penicillin anaphylaxis, and PCP medication baseline
+  acute_augmentation: hand-authored 32-hour CAP arc covering admit CXR, oxygen titration, focused respiratory reassessment proof fact, admission core labs, allergy-aware levofloxacin + azithromycin orderset with class hold on beta-lactams, contested RT exam and MD reconciliation, q4h monitoring plan, family communication, day-to-night handoff, AM repeat labs and CXR, hospitalist day-2 plan with PO transition criteria
 proof_fact:
   id: evt_20260418T0842_02
   label: focused respiratory reassessment after oxygen titration
+  statement: SpO2 91-92% on 3 L nasal cannula, RR 23, productive cough of yellow sputum, no accessory muscle use at rest, persistent dyspnea with repositioning; partial response to oxygen but unresolved pneumonia trajectory.
   required_reuse:
     - assessment_review
     - evidence_provenance
     - open_loop
     - next_shift_handoff
     - narrative_note
+  multi_day_reuse:
+    - 2026-04-18 — RN focused reassessment proof event, follow-up nursing note, 08:45 SBAR, 09:30 reassessment closure, 10:15 contested-claim resolution, afternoon trend, 16:30 family update referencing patient priority, 17:00 day-to-night SBAR
+    - 2026-04-19 — 06:30 morning handoff, 08:30 hospitalist progress note
+required_surfaces:
+  - vitals_flowsheet_trend
+  - bedside_nursing_assessment
+  - serial_notes_narrative
+  - orders_meds_interventions
+  - labs_diagnostics
+  - care_plan_handoff
+multi_day_evidence:
+  vitals_trend:
+    - 2026-04-18 08:00 — SpO2 94% RA -> 89% on 2L NC at 08:40 (worsening)
+    - 2026-04-18 09:00-09:30 — SpO2 92-93% on 3L NC (partial response)
+    - 2026-04-18 13:00 — SpO2 94% on 3L NC (continued improvement)
+    - 2026-04-18 17:00 — SpO2 95% on 3L NC titrated to 2L by 19:00
+    - 2026-04-19 02:00-09:00 — SpO2 95-96% on 2L NC overnight
+    - 2026-04-19 12:00 — SpO2 96% on 1L NC
+    - 2026-04-19 15:00 — SpO2 97% on room air
+  lab_trend:
+    - 2026-04-18 08:42 — POC: WBC 15.2, lactate 1.8, venous pH 7.39, pCO2 42
+    - 2026-04-18 09:20 — admit BMP/CBC/lactate/procalcitonin: WBC 15.2 (neutrophil 82%), Cr 1.0, lactate 1.8, procalcitonin 1.2 (mildly elevated)
+    - 2026-04-19 07:30 — repeat AM labs: WBC 11.8 (down), neutrophil 74% (down), Cr 1.0 stable
+  imaging:
+    - 2026-04-18 07:00 -> 08:10 readback — admit CXR with LLL consolidation
+    - 2026-04-19 08:00 -> 08:15 readback — repeat CXR slightly improved
+  antibiotic_arc:
+    - 2026-04-18 09:25 — orderset levofloxacin 750 mg IV q24h + azithromycin 500 mg IV q24h + class hold on all beta-lactams (penicillin anaphylaxis)
+    - 2026-04-18 11:30-11:35 — first IV doses given; allergy guard hold action recorded
+    - 2026-04-18 11:40 — pharmacy med-rec note verifying allergy and renal dosing
+    - 2026-04-19 09:00 — hospitalist plan transitions to oral levofloxacin after this morning's last IV dose with discharge target tomorrow
+  loop_closures:
+    - evt_20260418T0830_02 — SpO2-maintenance care plan; resolved by evt_20260418T0902_01 at 09:02 after 09:00 vital confirmed criteria met
+    - evt_20260418T0844_01 — respiratory-watch care plan; resolved by evt_20260418T0932_01 at 09:32 after 09:30 focused reassessment
+  contested_claim_pair:
+    rn_at_rest: evt_20260418T0842_02 (no accessory muscle use at rest)
+    rt_with_deep_inspiration: evt_20260418T1000_01 (mild accessory use only with deep inspiration; links.contradicts evt_20260418T0842_02)
+    resolution: evt_20260418T1015_01 (covering MD trend; links.resolves evt_20260418T1000_01; rationale at-rest vs deep-inspiration context)
+runtime_surfaces:
+  latent_release:
+    schedule: simulation/latent_release/release_schedule.ndjson
+    events: simulation/latent_release/latent_events.ndjson
+  live_expected:
+    agent_task_queue: simulation/live_expected/agent_task_queue.ndjson
+    agent_response_rubric: simulation/live_expected/agent_response_rubric.json
+  hidden_truth:
+    path: simulation/hidden_truth/pi_sim_reference.jsonl
+    rule: pi-chart read APIs and pi-agent must never read from this path; chart-visible content must not reference it.
+scenario_axis:
+  - respiratory_deterioration
+  - oxygen_titration
+  - admission_labs_and_imaging
+  - allergy_aware_antibiotic_orderset
+  - mar_with_class_hold
+  - pharmacy_med_rec
+  - contested_exam_reconciliation
+  - family_communication
+  - q4h_monitoring_plan
+  - shift_change_handoff
+  - day_2_continuation
+  - po_transition_criteria
+  - latent_release_visibility
+  - hidden_state_boundary
 operator_review:
   status: pending
   checklist: docs/plans/patient-001-operator-review-checklist.md
@@ -29,3 +96,4 @@ boundaries:
   - no pi-sim source coupling
   - no replacement patient created
   - no ADR019 decision artifact
+  - operator clinical realism review required before readiness credit

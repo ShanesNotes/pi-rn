@@ -4,7 +4,7 @@ default_timezone: America/Chicago
 patients:
   - id: patient_001
     directory: patients/patient_001
-    display_name: Patient 001
+    display_name: Patient 001 — CORP-019 deepened respiratory watch with pi-agent harness scaffolding
     created_at: 2026-04-18T11:00:00.000Z
     source: synthetic
   - id: patient_002

@@ -50,7 +50,7 @@ test("current.md 'as of' uses chart timestamp, not wall clock", async () => {
     path.join(patientRoot(scope), "_derived/current.md"),
     "utf8",
   );
-  assert(text.includes("as of latest chart event: 2026-04-18T08:45"));
+  assert(text.includes("as of latest chart event: 2026-04-19T15:00"));
 });
 
 test("latest-vitals.md orders clinically (heart_rate before bp_systolic before spo2)", async () => {

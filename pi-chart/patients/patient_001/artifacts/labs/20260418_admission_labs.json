@@ -1,0 +1,34 @@
+{
+  "collected_at": "2026-04-18T09:15:00-05:00",
+  "resulted_at": "2026-04-18T09:20:00-05:00",
+  "verified_at": "2026-04-18T09:22:00-05:00",
+  "panels": {
+    "cbc_with_diff": {
+      "wbc": {"value": 15.2, "unit": "10^3/uL", "reference_range": "4.5-11.0", "flag": "H"},
+      "hgb": {"value": 14.1, "unit": "g/dL", "reference_range": "13.5-17.5"},
+      "hct": {"value": 42, "unit": "%", "reference_range": "41-53"},
+      "plt": {"value": 240, "unit": "10^3/uL", "reference_range": "150-400"},
+      "neutrophil_pct": {"value": 82, "unit": "%", "reference_range": "40-70", "flag": "H"}
+    },
+    "bmp": {
+      "sodium": {"value": 138, "unit": "mEq/L", "reference_range": "136-145"},
+      "potassium": {"value": 4.2, "unit": "mEq/L", "reference_range": "3.5-5.0"},
+      "chloride": {"value": 104, "unit": "mEq/L", "reference_range": "98-107"},
+      "co2": {"value": 24, "unit": "mEq/L", "reference_range": "22-29"},
+      "bun": {"value": 16, "unit": "mg/dL", "reference_range": "7-20"},
+      "creatinine": {"value": 1.0, "unit": "mg/dL", "reference_range": "0.7-1.3"},
+      "glucose": {"value": 108, "unit": "mg/dL", "reference_range": "70-99", "flag": "H"}
+    },
+    "lactate": {"value": 1.8, "unit": "mmol/L", "reference_range": "0.5-2.0"},
+    "procalcitonin": {"value": 1.2, "unit": "ng/mL", "reference_range": "<0.5", "flag": "H"},
+    "blood_culture": {
+      "specimens": ["aerobic x 2", "anaerobic x 2"],
+      "preliminary_status": "incubating; no growth at 4 hours"
+    }
+  },
+  "interpretation": "Neutrophil-predominant leukocytosis with mildly elevated procalcitonin consistent with bacterial pneumonia. Renal function and electrolytes intact. Lactate within normal limits.",
+  "source_event_ids": [
+    "evt_20260418T0920_01",
+    "evt_20260418T0922_01"
+  ]
+}

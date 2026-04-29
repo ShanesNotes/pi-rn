@@ -119,9 +119,9 @@ test("readActiveConstraints includes canonical constraint events and review acti
 });
 
 test("readRecentEvents defaults asOf to latest chart event, not wall clock", async () => {
-  const events = await readRecentEvents({ scope: FIXTURE_SCOPE, withinMinutes: 60 });
+  const events = await readRecentEvents({ scope: FIXTURE_SCOPE, withinMinutes: 720 });
   assert(events.length > 0);
-  assert(events.some((e) => e.id.startsWith("evt_20260418T08")));
+  assert(events.some((e) => e.id.startsWith("evt_20260419T")));
 });
 
 test("readRecentEvents respects explicit asOf", async () => {
@@ -193,14 +193,14 @@ test("readRecentEvents enforces inclusive bounds and excludes future/invalid tim
 
 test("readLatestVitals picks newest by parsed timestamp", async () => {
   const latest = await readLatestVitals(FIXTURE_SCOPE);
-  assert.equal(latest.spo2.value, 89);
-  assert.equal(latest.heart_rate.value, 108);
+  assert.equal(latest.spo2.value, 97);
+  assert.equal(latest.heart_rate.value, 76);
 });
 
 test("latestEffectiveAt walks events + vitals", async () => {
   const t = await latestEffectiveAt(FIXTURE_SCOPE);
   assert(t);
-  assert.equal(t!.toISOString(), new Date("2026-04-18T08:45:00-05:00").toISOString());
+  assert.equal(t!.toISOString(), new Date("2026-04-19T15:00:00-05:00").toISOString());
 });
 
 test("readRecentEvents sim-time default uses appended event time", async () => {

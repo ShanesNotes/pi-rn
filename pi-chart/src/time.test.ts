@@ -30,7 +30,7 @@ test("latestEffectiveAt returns max across events + vitals", async () => {
   assert(t);
   assert.equal(
     t!.toISOString(),
-    new Date("2026-04-18T08:45:00-05:00").toISOString(),
+    new Date("2026-04-19T15:00:00-05:00").toISOString(),
   );
 });
 
