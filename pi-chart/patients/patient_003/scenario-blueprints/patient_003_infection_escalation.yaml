@@ -1,0 +1,24 @@
+id: patient_003_infection_escalation
+patient: patient_003
+purpose: CORP-019 pilot row after patient_002 signoff
+status: revised_for_operator_review
+scenario_family: infection_escalation_sepsis_with_ed_to_icu_transition
+visible_truth_only: true
+proof_fact:
+  id: evt-003-0018
+  statement: MAP 58 with lactate 4.6 and delayed capillary refill after initial fluid resuscitation, reused through ED/MICU handoff and overnight source-control bridge.
+required_surfaces:
+  - vitals_flowsheet_trend
+  - bedside_nursing_assessment
+  - serial_notes_narrative
+  - orders_meds_interventions
+  - labs_diagnostics
+  - care_plan_handoff
+boundaries:
+  - no hidden simulator state counted as chart truth
+  - no pi-sim source coupling
+  - no ADR019 decision artifact
+
+operator_review:
+  status: pending
+  checklist: docs/plans/patient-003-operator-review-checklist.md

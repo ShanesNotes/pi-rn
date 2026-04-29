@@ -1,0 +1,21 @@
+chart_id: chart_patient_004
+chart_version: 0.2.0-corp019-cardiac-renal-multiday
+schema_version: 0.3.0-partial
+subject: patient_004
+mode: simulation
+clock: sim_time
+sim_start: '2026-04-25T13:00:00-05:00'
+created_at: '2026-04-23T07:05:00-05:00'
+timezone: America/Chicago
+source: fully hand-authored synthetic CORP-019 cardiac/renal medication-management row spanning 3-day admission to discharge; no Synthea seed used
+source_mix:
+  posture: fully_hand_authored
+  synthea_seed_used: false
+  synthea_version: null
+  synthea_parameters: null
+  baseline_content: hand-authored demographics, comorbidities, home medications, and baseline renal function
+  acute_augmentation: hand-authored 3-day HFpEF volume overload arc covering ED admission, AKI/hyperkalemia recognition, sustained diuresis, cardiology and nephrology consults, IV-to-PO diuretic transition, discharge medication reconciliation, and outpatient restart criteria
+encounter_span:
+  start: '2026-04-23T07:05:00-05:00'
+  end: '2026-04-25T13:00:00-05:00'
+  hospital_days: 3

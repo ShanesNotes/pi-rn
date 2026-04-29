@@ -1,0 +1,53 @@
+id: patient_004_cardiac_renal_med_management
+patient: patient_004
+purpose: CORP-019 cardiac/renal medication-management corpus row after patient_003 pilot; introduces multi-day continuity for ADR-019 corpus-readiness
+scenario_family: cardiac_renal_medication_management_hfpef_aki_hyperkalemia
+visible_truth_only: true
+encounter_span:
+  start: '2026-04-23T07:05:00-05:00'
+  end: '2026-04-25T13:00:00-05:00'
+  hospital_days: 3
+  arc: ED admission → telemetry diuresis → discharge home with documented outpatient restart criteria
+source_mix:
+  posture: fully_hand_authored
+  synthea_seed_used: false
+  synthea_version: null
+  synthea_parameters: null
+  baseline_content: hand-authored baseline demographics, CKD/HFpEF/AF/diabetes history, home medications, baseline creatinine
+  acute_augmentation: hand-authored 3-day arc spanning volume-overload admission, IV diuresis, cardiology and nephrology consults, IV-to-PO diuretic transition, discharge medication reconciliation, MAR holds/admins, renal/K trends, care-plan and handoff loops
+proof_fact:
+  id: evt-004-0017
+  statement: K 5.6 with creatinine 2.2 from baseline 1.4 after home losartan, spironolactone, and ibuprofen exposure; hold losartan/spironolactone/metformin/NSAIDs and repeat BMP after diuresis.
+  multi_day_reuse:
+    - 2026-04-23 — admission recognition, MAR holds, ED→telemetry SBAR, night handoff
+    - 2026-04-24 — morning handoff, hospitalist progress, cardiology consult, nephrology consult, pharmacy med review, patient education, night handoff
+    - 2026-04-25 — morning handoff, discharge rounds, cardiology discharge note, nephrology discharge note, pharmacy discharge med-rec, discharge education, discharge SBAR
+required_surfaces:
+  - vitals_flowsheet_trend
+  - bedside_nursing_assessment
+  - serial_notes_narrative
+  - orders_meds_interventions
+  - labs_diagnostics
+  - care_plan_handoff
+multi_day_evidence:
+  bmp_trend:
+    - 2026-04-23 08:12 — K 5.6 / Cr 2.2 (proof fact)
+    - 2026-04-23 12:10 — K 5.2 / Cr 2.1
+    - 2026-04-23 18:05 — K 4.9 / Cr 2.0
+    - 2026-04-24 04:30 — K 4.6 / Cr 1.8
+    - 2026-04-24 14:45 — K 4.4 / Cr 1.6
+    - 2026-04-25 06:00 — K 4.2 / Cr 1.5 (predischarge, baseline 1.4)
+  weight_trend:
+    - 2026-04-23 07:05 — 90.4 kg (admission)
+    - 2026-04-24 06:30 — 88.6 kg (-1.8)
+    - 2026-04-25 06:15 — 87.2 kg (-3.2)
+  diuretic_transition: IV furosemide 40 mg q12h → PO torsemide 20 mg daily on discharge
+  outpatient_restart_criteria_documented:
+    - losartan/spironolactone — outpatient cardiology in 1 week with K below 5.0 and Cr 1.5 or lower
+    - metformin — outpatient nephrology in 2 weeks with confirmatory BMP Cr 1.5 or lower
+    - NSAIDs — avoid indefinitely; acetaminophen for knee pain
+boundaries:
+  - no hidden simulator state counted as chart truth
+  - no pi-sim source coupling
+  - no ADR019 decision artifact
+  - operator clinical realism review required before readiness credit

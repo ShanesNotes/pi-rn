@@ -1,0 +1,31 @@
+id: patient_001_revised_respiratory_watch
+patient_id: patient_001
+title: CORP-019 revised respiratory deterioration seed row
+status: revised_for_operator_review
+source_mix:
+  posture: hand_authored_seed_plus_monitor_and_nurse_charted_updates
+  synthea_seed_used: false
+scenario_axis:
+  - respiratory_deterioration
+  - pneumonia_watch
+  - oxygen_titration
+  - follow_up_labs
+  - nursing_reassessment
+  - handoff_continuity
+proof_fact:
+  id: evt_20260418T0842_02
+  label: focused respiratory reassessment after oxygen titration
+  required_reuse:
+    - assessment_review
+    - evidence_provenance
+    - open_loop
+    - next_shift_handoff
+    - narrative_note
+operator_review:
+  status: pending
+  checklist: docs/plans/patient-001-operator-review-checklist.md
+boundaries:
+  - no hidden simulator state counted as chart truth
+  - no pi-sim source coupling
+  - no replacement patient created
+  - no ADR019 decision artifact

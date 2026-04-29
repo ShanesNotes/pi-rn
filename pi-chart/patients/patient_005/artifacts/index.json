@@ -1,0 +1,16 @@
+{
+  "art-005-lab-001": {
+    "type": "lab_report",
+    "study": "Post-op CBC/BMP",
+    "effective_at": "2026-04-23T21:28:00-05:00",
+    "path": "artifacts/labs/20260423_postop_labs.json",
+    "source_event_id": "evt-005-0009"
+  },
+  "art-005-lab-002": {
+    "type": "lab_report",
+    "study": "POD1 morning CBC/BMP",
+    "effective_at": "2026-04-24T06:58:00-05:00",
+    "path": "artifacts/labs/20260424_morning_labs.json",
+    "source_event_id": "evt-005-0012"
+  }
+}

@@ -16,32 +16,22 @@ source:
 references:
   - evt_20260418T0815_01
   - evt_20260418T0830_01
-  - evt_20260418T0830_02
+  - evt_20260418T0842_02
+  - evt_20260418T0843_01
+  - evt_20260418T0844_01
 status: final
 ---
 
 # SBAR — respiratory status update
 
 ## Situation
-Patient in bed 3A, admitted 2026-04-18 with community-acquired pneumonia. Over
-the last 45 minutes, SpO2 has trended from 94% to 89% on 2L NC; HR from 88 to
-108; RR from 18 to 24. Patient reports increased work of breathing since
-waking.
+Patient in bed 3A, admitted 2026-04-18 with community-acquired pneumonia. Over the last 45 minutes, SpO2 trended from 94% to 89% on 2L NC with HR from 88 to 108 and RR from 18 to 24. After provider orders, oxygen was increased to 3 L/min. The focused reassessment shows only partial response: SpO2 91-92%, RR 23, speaking full sentences, productive cough, no accessory muscle use, and persistent dyspnea with repositioning [evt_20260418T0842_02].
 
 ## Background
-Baseline SpO2 ~94% on room air at outpatient visits; former smoker, quit 2018.
-Admission antibiotics: levofloxacin + azithromycin (selected to avoid
-beta-lactam given penicillin anaphylaxis). Full code. No prior respiratory
-decompensations this encounter.
+Baseline SpO2 ~94% on room air at outpatient visits; former smoker, quit 2018. Admission antibiotics: levofloxacin + azithromycin (selected to avoid beta-lactam given penicillin anaphylaxis). Full code. Point-of-care labs show leukocytosis without lactic acidosis or ventilatory failure [evt_20260418T0842_01].
 
 ## Assessment
-Trend consistent with progressing hypoxia. Patient remains conversational
-without accessory muscle use, but trajectory is concerning and does not yet
-meet rapid-response criteria. Differential includes worsening pneumonia,
-mucus plugging, and less likely new PE.
+Trend is improving but unresolved after oxygen titration [evt_20260418T0843_01]. Patient remains conversational without accessory muscle use, but still needs repeat nursing reassessment because worsening pneumonia or mucus plugging could still declare itself.
 
 ## Recommendation
-Request bedside evaluation and consider titrating supplemental oxygen.
-Continue close monitoring. Active escalation plan (see
-`evt_20260418T0830_02`) sets triggers at SpO2 <88% sustained, RR >28, or
-accessory muscle use.
+Keep respiratory-watch loop active after this SBAR. Continue close monitoring and notify provider for SpO2 below 90%, RR above 26, accessory muscle use, fever spike, or increased confusion [evt_20260418T0844_01].

@@ -12,6 +12,7 @@ inline (short form) and in the collected `OPEN-SCHEMA-QUESTIONS.md`
 modes this template enforces.
 
 **Section rules:**
+
 - Every section is mandatory. Thin content is fine; empty sections are not.
 - Section ordering is required. Do not reorder.
 - Tables use markdown tables, not HTML.
@@ -192,12 +193,15 @@ or depend on this one? Use A{N} references.
 ```
 
 ### Link conventions
+
 Which of `supports`, `fulfills`, `addresses`, `supersedes`, `corrects`
 apply naturally. Propose new link types only if necessary — flag
 `[open-schema]`.
 
 ### Evidence addressability
+
 How other claims should cite this artifact as evidence. One or more of:
+
 - `event id`
 - `note id`
 - `artifact id`
@@ -206,23 +210,28 @@ How other claims should cite this artifact as evidence. One or more of:
 - `child event ids` (for parent artifacts like ordersets)
 
 ### Storage placement
+
 `events.ndjson` / `vitals.jsonl` / `notes/*.md` / `artifacts/` / new file.
 Justify in one line.
 
 ### Frequency class
+
 `continuous` / `periodic` / `event-driven` / `one-shot` / `per-shift` /
 `per-encounter`
 
 ### View consumers
+
 Which of the six views consume it:
 `timeline` / `currentState` / `trend` / `evidenceChain` / `openLoops` /
 `narrative`
 
 ### Schema confidence
+
 `high` / `medium` / `low` — researcher's confidence the proposal is
 correct as stated.
 
 ### Schema impact
+
 `none` / `new subtype` / `new payload shape` / `new link convention` /
 `new storage pattern` / `new event type`
 
@@ -232,18 +241,22 @@ will scrutinize first.
 ## 15. Validator and fixture implications
 
 ### Validator rules
+
 Propose at least one rule, or say "none" with justification.
 
 Example:
+
 > - `action.subtype = medication_admin` must carry `links.fulfills`
->   pointing to an `intent.subtype = medication_order`, unless
->   `data.override_reason` is present.
+> pointing to an `intent.subtype = medication_order`, unless
+> `data.override_reason` is present.
 
 ### Minimal fixture
+
 What examples should exist to prove this artifact works? Aim for 3–6
 rows covering normal + edge cases.
 
 Example for A1 Lab result:
+
 - one normal lab
 - one critical lab
 - one amended lab superseding an earlier result
@@ -254,9 +267,9 @@ Example for A1 Lab result:
 Each question appears in two places:
 
 1. **Here** (short form, inline): one-line question + "see
-   `OPEN-SCHEMA-QUESTIONS.md#a{N}-<slug>`" anchor.
+  `OPEN-SCHEMA-QUESTIONS.md#a{N}-<slug>`" anchor.
 2. **In `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md`** (full
-   form, durable home): grouped by artifact, using the shape below.
+  form, durable home): grouped by artifact, using the shape below.
 
 Durable-home shape:
 
@@ -271,6 +284,7 @@ Up to 5 per artifact (A9b exempt).
 
 Primary sources used. APA, MLA, or plain-URL acceptable. Just enough
 that a reviewer can verify.
+
 ```
 
 # Template ends here
@@ -290,3 +304,4 @@ that a reviewer can verify.
   included defensively.
 
 *End of template. Next: `PHASE-A-EXECUTION.md` for the work plan.*
+```

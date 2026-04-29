@@ -1,0 +1,20 @@
+{
+  "collected_at": "2026-04-24T06:30:00-05:00",
+  "resulted_at": "2026-04-24T06:58:00-05:00",
+  "cbc": {
+    "hemoglobin": 9.8,
+    "wbc": 10.6,
+    "platelets": 205
+  },
+  "bmp": {
+    "sodium": 136,
+    "potassium": 4.3,
+    "bun": 27,
+    "creatinine": 1.2,
+    "glucose": 148
+  },
+  "interpretation": "POD1 labs do not explain delirium/fall-risk finding; functional/safety observation remains primary.",
+  "source_event_ids": [
+    "evt-005-0012"
+  ]
+}
