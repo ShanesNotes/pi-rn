@@ -118,6 +118,11 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
   let lastAssessmentRequestId: string | null = null;
   let lastRevealSequence: number | null = null;
   const wallStart = Date.now();
+  let nextEventIndex = 0;
+
+  const appendEvent = (input: EventForInput): void => {
+    options.publisher.appendEvent(eventFor({ ...input, eventIndex: nextEventIndex++ }));
+  };
 
   const queueEvent = (
     kind: PublicTelemetryEventKind,
@@ -188,7 +193,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
     const metadata = publicFrameMetadataFor(frame, options.provider.metadata.source);
 
     for (const event of pendingEvents.splice(0)) {
-      options.publisher.appendEvent(eventFor({
+      appendEvent({
         kind: event.kind,
         runState: event.runState,
         snapshot: event.snapshot,
@@ -196,7 +201,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
         wallTime,
         source: metadata.source,
         payload: event.payload,
-      }));
+      });
     }
 
     const encounterContext = await options.provider.encounterContext?.();
@@ -206,7 +211,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
       const encounterKey = publicEncounterContext.encounterId;
       if (!startedEncounterIds.has(encounterKey)) {
         startedEncounterIds.add(encounterKey);
-        options.publisher.appendEvent(eventFor({
+        appendEvent({
           kind: "encounter_started",
           runState,
           snapshot: current,
@@ -214,9 +219,9 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
           wallTime,
           source: metadata.source,
           payload: encounterEventPayload(publicEncounterContext),
-        }));
+        });
       } else if (lastEncounterKey !== undefined && lastEncounterKey !== `${encounterKey}\u0000${publicEncounterContext.phase ?? ""}`) {
-        options.publisher.appendEvent(eventFor({
+        appendEvent({
           kind: "encounter_phase_changed",
           runState,
           snapshot: current,
@@ -224,7 +229,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
           wallTime,
           source: metadata.source,
           payload: encounterEventPayload(publicEncounterContext),
-        }));
+        });
       }
       lastEncounterKey = `${encounterKey}\u0000${publicEncounterContext.phase ?? ""}`;
     } else {
@@ -234,7 +239,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
     let assessmentEnvelopeToPublish: PublicAssessmentEnvelope | undefined;
     let clearAssessmentCurrent = false;
     for (const pending of pendingAssessments.splice(0)) {
-      options.publisher.appendEvent(eventFor({
+      appendEvent({
         kind: "assessment_requested",
         runState: pending.runState,
         snapshot: pending.snapshot,
@@ -242,10 +247,10 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
         wallTime,
         source: metadata.source,
         payload: assessmentRequestPayload(pending.request),
-      }));
+      });
 
       if (pending.kind === "unavailable") {
-        options.publisher.appendEvent(eventFor({
+        appendEvent({
           kind: "assessment_unavailable",
           runState: pending.runState,
           snapshot: pending.snapshot,
@@ -253,7 +258,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
           wallTime,
           source: metadata.source,
           payload: { ...assessmentRequestPayload(pending.request), reason: pending.reason },
-        }));
+        });
         clearAssessmentCurrent = true;
         continue;
       }
@@ -261,7 +266,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
       if (pending.kind === "replay") {
         const original = assessmentRecordForReplay(pending.original);
         lastRevealSequence = original.sequence;
-        options.publisher.appendEvent(eventFor({
+        appendEvent({
           kind: "assessment_revealed",
           runState: pending.runState,
           snapshot: pending.snapshot,
@@ -274,7 +279,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
             replayOfSequence: original.sequence,
             envelopeDigest: original.digest,
           },
-        }));
+        });
         continue;
       }
 
@@ -289,7 +294,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
         digest: envelope.envelopeDigest,
         envelope,
       });
-      options.publisher.appendEvent(eventFor({
+      appendEvent({
         kind: "assessment_revealed",
         runState: pending.runState,
         snapshot: pending.snapshot,
@@ -297,7 +302,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
         wallTime,
         source: metadata.source,
         payload: assessmentRevealPayload(envelope),
-      }));
+      });
     }
 
     const assessmentAvailable = Boolean(options.provider.assess);
@@ -317,7 +322,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
     options.publisher.publish(frame);
     await publishWaveformLane(options.provider, options.publisher, frame, unavailableReason);
     for (const alarm of frame.alarms) {
-      options.publisher.appendEvent(eventFor({
+      appendEvent({
         kind: "alarm_observed",
         runState,
         snapshot: current,
@@ -325,7 +330,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
         wallTime,
         source: metadata.source,
         payload: { alarm },
-      }));
+      });
     }
     frames.push(frame);
     options.onFrame?.(frame);
@@ -372,15 +377,15 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
 
     const ended = clock.markEnded();
     const finalFrame = await publish(ended.runState, snapshot);
-    options.publisher.appendEvent(eventFor({
+    appendEvent({
       kind: "run_ended",
       runState: "ended",
       snapshot,
       sequence: ended.sequence,
       wallTime: finalFrame.wallTime,
       source: options.provider.metadata.source,
-      payload: { frames: frames.length },
-    }));
+      payload: { frames: frames.length, terminal: true, terminalReason: "normal_end" },
+    });
     return { finalFrame, frames };
   } catch (error) {
     const unavailable = toUnavailable(error, options.provider.metadata.source);
@@ -394,20 +399,20 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
       events: [...new Set([...fallbackSnapshot.events, "PROVIDER_UNAVAILABLE"])],
     };
     const frame = await publish("unavailable", unavailableSnapshot, "provider_unavailable");
-    options.publisher.appendEvent(eventFor({
+    appendEvent({
       kind: "provider_unavailable",
       runState: "unavailable",
       snapshot: unavailableSnapshot,
       sequence: frame.monitor?.sequence ?? clock.snapshot().sequence,
       wallTime: frame.wallTime,
       source: options.provider.metadata.source,
-      payload: { message: unavailable.message },
-    }));
+      payload: { message: unavailable.message, terminal: true, terminalReason: "provider_unavailable" },
+    });
     throw unavailable;
   }
 }
 
-function eventFor(input: {
+interface EventForInput {
   readonly kind: PublicTelemetryEventKind;
   readonly runState: RunState;
   readonly snapshot: ProviderSnapshot;
@@ -415,9 +420,12 @@ function eventFor(input: {
   readonly wallTime: string;
   readonly source: string;
   readonly payload: Record<string, unknown>;
-}): PublicTelemetryEvent {
+}
+
+function eventFor(input: EventForInput & { readonly eventIndex: number }): PublicTelemetryEvent {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    eventIndex: input.eventIndex,
     sequence: input.sequence,
     simTime_s: input.snapshot.t,
     wallTime: input.wallTime,

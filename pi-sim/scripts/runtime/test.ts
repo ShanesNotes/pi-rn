@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SimClock } from "./clock.js";
@@ -28,6 +28,7 @@ import {
 } from "./provider.js";
 import { runProviderRuntime } from "./runner.js";
 import { ScriptedProvider, type ScriptedScenario } from "./scriptedProvider.js";
+import { DemoWaveformProvider } from "./demoWaveformProvider.js";
 import type { AlarmThresholds, MonitorExtension, TimelineEntry, VitalFrame } from "../types.js";
 import type { RawVitals } from "../client.js";
 
@@ -96,9 +97,19 @@ function testFrameAndPublisher(): void {
     assert.equal(timeline.length, 2);
     assert.equal(timeline[0].t, 0);
     assert.equal(timeline[1].t, 60);
+    const timelineJsonl = readJsonLines<VitalFrame>(join(dir, "timeline.jsonl"));
+    assert.equal(timelineJsonl.length, timeline.length);
+    assert.deepEqual(
+      timelineJsonl.map((frame) => ({ t: frame.t, wallTime: frame.wallTime, sequence: frame.monitor?.sequence })),
+      timeline.map((frame) => ({ t: frame.t, wallTime: frame.wallTime, sequence: frame.monitor?.sequence })),
+    );
 
     const status = JSON.parse(readFileSync(join(dir, "status.json"), "utf8")) as { runState: string; sequence: number; source: string };
     assert.deepEqual(status, { runState: "ended", sequence: 2, source: "pi-sim-scripted", schemaVersion: 1, simTime_s: 60, updatedAt: "2026-04-27T00:01:00.000Z" });
+
+    const resetPublisher = new PublicTelemetryPublisher(dir);
+    resetPublisher.publish(frameFor(provider, provider.snapshot(), 99, "running", "2026-04-27T00:02:00.000Z"));
+    assert.equal(readJsonLines<VitalFrame>(join(dir, "timeline.jsonl")).length, 1);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -123,6 +134,7 @@ async function testSharedRunnerScripted(): Promise<void> {
     assert.equal(Object.hasOwn(result.finalFrame.monitor ?? {}, "waveforms"), false);
     assert.ok(existsSync(join(dir, "current.json")));
     assert.ok(existsSync(join(dir, "timeline.json")));
+    assert.ok(existsSync(join(dir, "timeline.jsonl")));
     assert.ok(existsSync(join(dir, "status.json")));
     assert.ok(existsSync(join(dir, "events.jsonl")));
     assert.ok(existsSync(join(dir, "waveforms", "status.json")));
@@ -137,7 +149,11 @@ async function testSharedRunnerScripted(): Promise<void> {
     const events = readEvents(dir);
     assert.equal(events[0].kind, "run_started");
     assert.equal(events.at(-1)?.kind, "run_ended");
+    assert.equal(events.at(-1)?.payload.terminal, true);
+    assert.equal(events.at(-1)?.payload.terminalReason, "normal_end");
+    assertEventIndexes(events);
     for (const event of events) assertPublicEventFields(event);
+    assert.equal(readJsonLines<VitalFrame>(join(dir, "timeline.jsonl")).length, result.frames.length);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -174,6 +190,7 @@ async function testSharedRunnerActionOrder(): Promise<void> {
       "action:final",
     ]);
     const events = readEvents(dir);
+    assertEventIndexes(events);
     const kinds = events.map((event) => event.kind);
     assert.deepEqual(kinds.filter((kind) => kind === "action_applied"), ["action_applied", "action_applied", "action_applied", "action_applied"]);
     assert.ok(kinds.includes("alarm_observed"));
@@ -251,6 +268,7 @@ async function testM4AssessmentRevealReplayAndBoundary(): Promise<void> {
     assert.doesNotMatch(outputText, new RegExp(`${M4_FUTURE_FINDING}|${M4_ROOT_MARKER}|${M4_FINDING_MARKER}`));
 
     const events = readEvents(dirReveal);
+    assertEventIndexes(events);
     const kinds = events.map((event) => event.kind);
     assert.equal(kinds.filter((kind) => kind === "encounter_started").length, 1);
     assert.equal(kinds.filter((kind) => kind === "encounter_phase_changed").length, 1);
@@ -270,6 +288,9 @@ async function testM4AssessmentRevealReplayAndBoundary(): Promise<void> {
     assert.equal(replay.payload.requestId, "assess_m4_001");
     assert.equal(replay.payload.replayOfSequence, envelope.sequence);
     assert.equal(replay.payload.envelopeDigest, envelope.envelopeDigest);
+    const originalReveal = events.find((event) => event.kind === "assessment_revealed" && event.payload.replay !== true);
+    assert.ok(originalReveal);
+    assert.notEqual(replay.eventIndex, originalReveal.eventIndex);
     assert.ok(!events.some((event) => event.kind === "assessment_unavailable" && event.payload.requestId === "assess_m4_001"));
 
     const draft = chartEventDraftFromAssessment(envelope);
@@ -325,6 +346,7 @@ async function testM4UnavailableAndStaleClearing(): Promise<void> {
       now: deterministicNow(),
     });
     const unavailableEvents = readEvents(dir);
+    assertEventIndexes(unavailableEvents);
     assert.ok(unavailableEvents.some((event) => event.kind === "assessment_requested" && event.payload.requestId === "assess_m4_unavailable"));
     assert.ok(unavailableEvents.some((event) => event.kind === "assessment_unavailable" && event.payload.reason === "provider_does_not_supply_assessments"));
     assert.equal(existsSync(join(dir, "encounter", "current.json")), false);
@@ -354,6 +376,7 @@ function publicOutputText(dir: string): string {
   const paths = [
     "current.json",
     "timeline.json",
+    "timeline.jsonl",
     "status.json",
     "events.jsonl",
     join("encounter", "current.json"),
@@ -494,7 +517,11 @@ async function testPulseRunnerUnavailable(): Promise<void> {
     const status = JSON.parse(readFileSync(join(dir, "status.json"), "utf8")) as { runState: string; source: string };
     assert.deepEqual({ runState: status.runState, source: status.source }, { runState: "unavailable", source: "pi-sim-pulse" });
     const events = readEvents(dir);
+    assertEventIndexes(events);
     assert.equal(events.at(-1)?.kind, "provider_unavailable");
+    assert.equal(events.at(-1)?.payload.terminal, true);
+    assert.equal(events.at(-1)?.payload.terminalReason, "provider_unavailable");
+    assert.equal(events.some((event) => event.kind === "run_ended"), false);
     const waveformStatus = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
     assert.deepEqual(
       { available: waveformStatus.available, reason: waveformStatus.reason, runState: waveformStatus.runState, source: waveformStatus.source },
@@ -585,12 +612,161 @@ async function testFixtureWaveformLaneAndStaleClearing(): Promise<void> {
   }
 }
 
+function testDemoWaveformProviderUsesCausalStableSampleGrid(): void {
+  const provider = new DemoWaveformProvider({ duration_s: 2 });
+  provider.init();
+  const initial = provider.waveformWindow();
+  for (const window of Object.values(initial.windows)) {
+    assert.equal(window.t0_s, 0);
+    assert.equal(window.values.length, 1, "initial waveform must not include future samples");
+  }
+
+  provider.advance(0.1);
+  const atPointOne = provider.waveformWindow();
+  const ecg = atPointOne.windows.ECG_LeadII;
+  assert.equal(ecg.t0_s, 0);
+  assert.equal(ecg.values.length, 13);
+  const lastEcgSampleTime = ecg.t0_s + (ecg.values.length - 1) / ecg.sampleRate_Hz;
+  assert.ok(lastEcgSampleTime <= 0.1, `last ECG sample ${lastEcgSampleTime} must be <= provider time`);
+  assert.equal(Math.round(lastEcgSampleTime * ecg.sampleRate_Hz), 12);
+
+  provider.advance(0.1);
+  const atPointTwo = provider.waveformWindow().windows.ECG_LeadII;
+  assert.equal(atPointTwo.t0_s, 0);
+  assert.equal(atPointTwo.values.length, 26);
+  const nextLastTime = atPointTwo.t0_s + (atPointTwo.values.length - 1) / atPointTwo.sampleRate_Hz;
+  assert.equal(Math.round(nextLastTime * atPointTwo.sampleRate_Hz), 25);
+}
+
+async function testDemoWaveformProviderPublishesReferenceWaveformsAndLabels(): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-demo-waveforms-"));
+  try {
+    const result = await runProviderRuntime({
+      provider: new DemoWaveformProvider({ duration_s: 2 }),
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: 2,
+      dt_s: 0.5,
+      now: deterministicNow(),
+    });
+    const current = readJson<WaveformEnvelope>(join(dir, "waveforms", "current.json"));
+    const status = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
+    assert.equal(status.available, true);
+    assert.equal(status.sequence, current.sequence);
+    assert.equal(status.simTime_s, current.simTime_s);
+    assert.equal(status.source, current.source);
+    assert.equal(status.runState, current.runState);
+    assert.equal(status.sourceKind, "demo");
+    assert.equal(status.fidelity, "demo");
+    assert.equal(status.synthetic, true);
+    assert.equal(current.sourceKind, "demo");
+    assert.equal(current.fidelity, "demo");
+    assert.equal(current.synthetic, true);
+    assert.deepEqual(Object.keys(current.windows).sort(), ["ArterialPressure", "CO2", "ECG_LeadII", "Pleth"]);
+    assert.equal(current.windows.ECG_LeadII.sampleRate_Hz, 125);
+    assert.equal(current.windows.Pleth.sampleRate_Hz, 50);
+    assert.equal(current.windows.ArterialPressure.sampleRate_Hz, 50);
+    assert.equal(current.windows.CO2.sampleRate_Hz, 50);
+    assert.ok(current.windows.ECG_LeadII.values.some((value) => value !== current.windows.ECG_LeadII.values[0]));
+    assert.ok(current.windows.Pleth.values.some((value) => value !== current.windows.Pleth.values[0]));
+    assert.ok(current.windows.ArterialPressure.values.some((value) => value !== current.windows.ArterialPressure.values[0]));
+    assert.ok(current.windows.CO2.values.some((value) => value !== current.windows.CO2.values[0]));
+    assert.ok(result.frames.length >= 3);
+    assert.notDeepEqual(result.frames[0].hr, result.frames.at(-1)?.hr);
+    assert.notDeepEqual(result.frames[0].spo2, result.frames.at(-1)?.spo2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 function testPatient002ScriptedScenarioLoading(): void {
   const patient002 = loadScriptedScenario("vitals/scenarios/patient_002_septic_shock_recovery.scripted.json");
   assert.equal(patient002.provider, "scripted");
   assert.equal(patient002.name, "patient_002_septic_shock_recovery");
   assert.equal(patient002.initial.spo2, 94);
   assert.ok(patient002.waypoints.some((point) => point.events?.some((event) => event.startsWith("NOREPI_"))));
+}
+
+async function testScriptedAlarmSmokeScenario(): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-alarm-smoke-"));
+  try {
+    const alarmScenario = loadScriptedScenario("vitals/scenarios/scripted_alarm_smoke.json");
+    const result = await runProviderRuntime({
+      provider: new ScriptedProvider(alarmScenario),
+      publisher: new PublicTelemetryPublisher(dir),
+      thresholds,
+      duration_s: alarmScenario.duration_s,
+      dt_s: 10,
+      actions: alarmScenario.timeline,
+      now: deterministicNow(),
+    });
+    const events = readEvents(dir);
+    assertEventIndexes(events);
+    const alarmEvents = events.filter((event) => event.kind === "alarm_observed");
+    assert.ok(alarmEvents.length >= 2);
+    assert.ok(alarmEvents.some((event) => event.payload.alarm === "MAP_LOW"));
+    assert.ok(alarmEvents.some((event) => event.payload.alarm === "SPO2_LOW"));
+    const timeline = readJsonLines<VitalFrame>(join(dir, "timeline.jsonl"));
+    const frameSequences = new Set(timeline.map((frame) => frame.monitor?.sequence));
+    for (const event of alarmEvents) assert.ok(frameSequences.has(event.sequence));
+    assert.equal(timeline.length, result.frames.length);
+    assert.equal(events.at(-1)?.kind, "run_ended");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function testLaneManifest(): void {
+  const manifest = readJson<{ lanes: Array<Record<string, unknown>> }>("vitals/.lanes.json");
+  const required = [
+    "current.json",
+    "timeline.json",
+    "timeline.jsonl",
+    "status.json",
+    "events.jsonl",
+    "encounter/current.json",
+    "assessments/status.json",
+    "assessments/current.json",
+    "waveforms/status.json",
+    "waveforms/current.json",
+  ];
+  for (const path of required) {
+    const lane = manifest.lanes.find((entry) => entry.path === path);
+    assert.ok(lane, `missing lane ${path}`);
+    assert.equal(typeof lane.schemaVersion, "number");
+    assert.ok(Array.isArray(lane.writeSemantics));
+    assert.equal(typeof lane.producer, "string");
+    assert.equal(typeof lane.preferredConsumerMode, "string");
+  }
+  const events = manifest.lanes.find((entry) => entry.path === "events.jsonl");
+  assert.ok((events?.writeSemantics as string[]).includes("append-jsonl"));
+  assert.ok((events?.writeSemantics as string[]).includes("reset-on-construction"));
+  assert.equal(events?.schemaVersion, 2);
+  const timelineJsonl = manifest.lanes.find((entry) => entry.path === "timeline.jsonl");
+  assert.ok((timelineJsonl?.writeSemantics as string[]).includes("append-jsonl"));
+  const timelineJson = manifest.lanes.find((entry) => entry.path === "timeline.json");
+  assert.ok((timelineJson?.writeSemantics as string[]).includes("compat-array"));
+}
+
+function testScenarioValidationFailures(): void {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-scenario-validation-"));
+  try {
+    const writeScenario = (name: string, value: unknown): string => {
+      const path = join(dir, name);
+      writeFileSync(path, `${JSON.stringify(value)}\n`);
+      return path;
+    };
+    assert.throws(() => loadScriptedScenario(writeScenario("missing-provider.json", { name: "x", duration_s: 1, initial: {}, waypoints: [] })), /not a scripted/);
+    assert.throws(() => loadScriptedScenario(writeScenario("wrong-provider.json", { provider: "pulse", name: "x", duration_s: 1, initial: {}, waypoints: [] })), /not a scripted/);
+    assert.throws(() => loadScriptedScenario(writeScenario("bad-duration.json", { provider: "scripted", name: "x", duration_s: -1, initial: {}, waypoints: [] })), /duration_s/);
+    assert.throws(() => loadScriptedScenario(writeScenario("bad-initial.json", { provider: "scripted", name: "x", duration_s: 1, waypoints: [] })), /initial/);
+    assert.throws(() => loadScriptedScenario(writeScenario("bad-waypoint.json", { provider: "scripted", name: "x", duration_s: 1, initial: {}, waypoints: [{ t: -1, vitals: {} }] })), /waypoints\[0\]\.t/);
+    assert.throws(() => loadPulseScenario(writeScenario("missing-state.json", { provider: "pulse", name: "x", duration_s: 1, timeline: [], checkpoints: [] })), /state_file/);
+    assert.throws(() => loadPulseScenario(writeScenario("scripted-provider.json", { provider: "scripted", name: "x", state_file: "./states/x", duration_s: 1, timeline: [], checkpoints: [] })), /not a Pulse scenario/);
+    assert.throws(() => loadPulseScenario(writeScenario("bad-timeline.json", { provider: "pulse", name: "x", state_file: "./states/x", duration_s: 1, timeline: [{ t: 1, action: {} }], checkpoints: [] })), /timeline\[0\]\.action\.type/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function testPulseScenarioLoading(): void {
@@ -609,15 +785,25 @@ function readJson<T>(path: string): T {
 }
 
 function readEvents(dir: string): PublicTelemetryEvent[] {
-  return readFileSync(join(dir, "events.jsonl"), "utf8")
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as PublicTelemetryEvent);
+  return readJsonLines<PublicTelemetryEvent>(join(dir, "events.jsonl"));
+}
+
+function readJsonLines<T>(path: string): T[] {
+  const text = readFileSync(path, "utf8").trim();
+  if (text.length === 0) return [];
+  return text.split("\n").filter(Boolean).map((line) => JSON.parse(line) as T);
+}
+
+function assertEventIndexes(events: readonly PublicTelemetryEvent[]): void {
+  events.forEach((event, index) => {
+    assert.equal(event.schemaVersion, 2);
+    assert.equal(event.eventIndex, index);
+  });
 }
 
 function assertPublicEventFields(event: PublicTelemetryEvent): void {
-  assert.equal(event.schemaVersion, 1);
+  assert.equal(event.schemaVersion, 2);
+  assert.equal(typeof event.eventIndex, "number");
   assert.equal(typeof event.sequence, "number");
   assert.equal(typeof event.simTime_s, "number");
   assert.match(event.wallTime, /^2026-04-27T00:00:\d{2}\.000Z$/);
@@ -755,12 +941,17 @@ async function main(): Promise<void> {
   await testSharedRunnerActionOrder();
   await testM4AssessmentRevealReplayAndBoundary();
   await testM4UnavailableAndStaleClearing();
+  await testScriptedAlarmSmokeScenario();
+  testLaneManifest();
+  testScenarioValidationFailures();
   await testPulseProviderFakeTransport();
   await testPulseRunnerUnavailable();
   await testPulseRunnerFakeSuccess();
   testPulseScenarioLoading();
   testPatient002ScriptedScenarioLoading();
   await testFixtureWaveformLaneAndStaleClearing();
+  testDemoWaveformProviderUsesCausalStableSampleGrid();
+  await testDemoWaveformProviderPublishesReferenceWaveformsAndLabels();
   console.log("runtime tests passed");
 }
 

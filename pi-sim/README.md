@@ -45,7 +45,33 @@ npm run sim:run:demo
 npm run sim:run:demo -- --out-dir .omx/evidence/pi-sim-m1-runtime-skeleton-smoke/vitals
 ```
 
-The scripted provider writes the same public scalar/latest-frame shape as the live provider: `current.json`, `timeline.json`, and `status.json`, including the backward-compatible `monitor` extension with `source: "pi-sim-scripted"`. Provider-runtime runs also write additive public lanes: `events.jsonl` for lifecycle/action/alarm/provider events and `waveforms/status.json` for explicit waveform availability. Scripted runs report no waveform window.
+The scripted provider writes the same public scalar/latest-frame shape as the live provider: `current.json`, `timeline.json`, and `status.json`, including the backward-compatible `monitor` extension with `source: "pi-sim-scripted"`. Provider-runtime runs also write additive public lanes: `events.jsonl` for lifecycle/action/alarm/provider events, `timeline.jsonl` for append-friendly frame history, and `waveforms/status.json` for explicit waveform availability. The static `vitals/.lanes.json` manifest documents lane semantics for default public telemetry consumers. Scripted runs report no waveform window.
+
+
+### Popup live waveform monitor MVP (demo provider)
+
+For the first visible bedside-monitor MVP, use the waveform-capable demo provider rather than Pulse-native waveforms:
+
+```bash
+cd ~/pi-rn/pi-sim
+npm run monitor:live-demo
+```
+
+That command starts `pi-sim` publishing public telemetry to `vitals/` and launches the sibling `pi-monitor` native window against `--source-dir vitals`. It shows ECG Lead II + pleth waveform strips, fluctuating HR/SpO2/BP/MAP/RR/temp numerics, and visible labels: `sourceKind: "demo"`, `fidelity: "demo"`, `synthetic: true`. Stop it with Ctrl-C.
+
+Headless/two-terminal fallback:
+
+```bash
+# Terminal A
+cd ~/pi-rn/pi-sim && npm run sim:run:live-demo
+
+# Terminal B
+cd ~/pi-rn/pi-monitor && cargo run -p monitor-cli -- watch --source-dir ../pi-sim/vitals
+# or native popup:
+cd ~/pi-rn/pi-monitor && cargo run -p monitor-app -- --source-dir ../pi-sim/vitals --windowed
+```
+
+Pulse is deferred for this MVP because the local Pulse shim/provider currently exposes scalar vitals only. This demo provider exists to prove live waveform transport/rendering through the public lane before later replacing the provider with Pulse-native or higher-fidelity samples. It does not add `pi-chart` embedding, chart writes, or `pi-agent` automation.
 
 ### Pulse provider runtime (M2)
 
@@ -97,7 +123,7 @@ Speed knobs:
 - `BED="ICU 7"` — header label
 - `PULSE_SHIM=http://host:port` — override shim URL
 
-Ctrl-C exits cleanly. Every tick writes `vitals/current.json` atomically and appends to `vitals/timeline.json`. `current.json` is the latest scalar public frame. Event and waveform lanes are public files under `vitals/`; consumers must use those files and must not infer hidden provider internals.
+Ctrl-C exits cleanly. Every tick writes `vitals/current.json` atomically and rewrites the compatibility array `vitals/timeline.json`. Provider-runtime runs also append each frame to `vitals/timeline.jsonl` for tailing consumers. `current.json` is the latest scalar public frame. Event and waveform lanes are public files under `vitals/`; consumers must use those files and must not infer hidden provider internals.
 
 ### Sepsis scenario setup
 
@@ -109,13 +135,25 @@ docker compose -f pulse/docker-compose.yml exec pulse   python3 /workspace/shim/
 
 ## Validate the current provider
 
+Docker-free CI gate:
+
 ```bash
-npm run validate                                                    # regression — both scenarios
-npm run validate -- --mode reference --scenario vitals/scenarios/hemorrhagic_shock.json
-npm run validate -- --observe vitals/scenarios/sepsis_norepi.json
+npm test                         # typecheck + runtime tests + scripted scenario validation
+npm run test:runtime             # runtime/publisher/ABI regression harness
+npm run test:validate:scripted   # validates scripted scenario files without Pulse/Docker
 ```
 
-Three modes:
+Legacy Pulse validation remains explicit and may be red without scenario retuning per `docs/adr/001-validation-recovery-bounded-stop.md`:
+
+```bash
+npm run validate:pulse                                                    # Pulse regression — requires sidecar
+npm run validate:pulse -- --mode reference --scenario vitals/scenarios/hemorrhagic_shock.json
+npm run validate:pulse -- --observe vitals/scenarios/sepsis_norepi.json
+```
+
+`npm run validate` is retained as a legacy alias for `validate:pulse`; do not use it as the Docker-free green CI gate.
+
+Pulse validation modes:
 
 - **regression** — Pulse output stays inside per-scenario `expect` bands (default)
 - **reference** — Pulse output stays inside validation curves at `resources/physiology/validation-curves/<scenario>.json`
@@ -137,7 +175,7 @@ cd ~/pi-rn/pi-monitor && cargo run -p monitor-cli -- watch --source ../pi-sim/vi
 cd ~/pi-rn/pi-agent && npx pi
 ```
 
-Sibling projects consume `pi-sim` only through explicit public interfaces such as `vitals/current.json`, `vitals/timeline.json`, `vitals/events.jsonl`, `vitals/encounter/current.json`, `vitals/assessments/status.json`, optional `vitals/assessments/current.json`, `vitals/waveforms/status.json`, optional `vitals/waveforms/current.json`, `vitals/scenarios/*.json`, and documented assessment surfaces. Pulse internals, Docker container state, Python shim files, and TypeScript harness internals are hidden implementation details.
+Sibling projects consume `pi-sim` only through explicit public interfaces such as `vitals/current.json`, `vitals/timeline.json`, `vitals/timeline.jsonl`, `vitals/events.jsonl`, `vitals/encounter/current.json`, `vitals/assessments/status.json`, optional `vitals/assessments/current.json`, `vitals/waveforms/status.json`, optional `vitals/waveforms/current.json`, `vitals/scenarios/*.json`, and documented assessment surfaces. Pulse internals, Docker container state, Python shim files, and TypeScript harness internals are hidden implementation details.
 
 ## Optional: Pulse Explorer GUI for your own viewing
 

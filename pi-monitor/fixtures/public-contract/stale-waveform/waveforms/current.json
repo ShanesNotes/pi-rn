@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "sequence": 4,
+  "simTime_s": 29,
+  "wallTime": "2026-04-28T19:59:30.796Z",
+  "source": "pi-sim-scripted",
+  "runState": "ended",
+  "available": true,
+  "sourceKind": "fixture",
+  "fidelity": "synthetic-test",
+  "synthetic": true,
+  "windows": {
+    "ECG_LeadII": {
+      "unit": "mV",
+      "sampleRate_Hz": 125,
+      "t0_s": 29,
+      "values": [
+        0,
+        0.4,
+        -0.1,
+        0.2
+      ]
+    }
+  }
+}

@@ -1,0 +1,2 @@
+{"schemaVersion":2,"eventIndex":0,"sequence":0,"simTime_s":0,"wallTime":"2026-04-29T00:37:33.780Z","source":"pi-sim-demo-waveform","runState":"running","kind":"run_started","payload":{"provider":"deterministic demo ECG + pleth waveform provider"}}
+{"schemaVersion":2,"eventIndex":1,"sequence":5,"simTime_s":2,"wallTime":"2026-04-29T00:37:33.791Z","source":"pi-sim-demo-waveform","runState":"ended","kind":"run_ended","payload":{"frames":6,"terminal":true,"terminalReason":"normal_end"}}

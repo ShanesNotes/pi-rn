@@ -71,6 +71,188 @@ pub struct CurrentScalarFrame {
     pub monitor: Option<MonitorExtension>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PublicLaneManifest {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    pub producer: String,
+    #[serde(rename = "resetSemantics")]
+    pub reset_semantics: String,
+    pub lanes: Vec<PublicLaneSpec>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PublicLaneSpec {
+    pub name: String,
+    pub path: String,
+    #[serde(rename = "artifactKind")]
+    pub artifact_kind: String,
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    #[serde(rename = "recordSchemaVersion")]
+    pub record_schema_version: Option<u32>,
+    #[serde(rename = "writeSemantics")]
+    pub write_semantics: Vec<String>,
+    #[serde(rename = "resetSemantics")]
+    pub reset_semantics: String,
+    pub producer: String,
+    #[serde(rename = "preferredConsumerMode")]
+    pub preferred_consumer_mode: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunStatus {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    pub source: String,
+    pub sequence: Option<u64>,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PublicEventV2 {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    #[serde(rename = "eventIndex")]
+    pub event_index: u64,
+    pub sequence: Option<u64>,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+    pub source: String,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    pub kind: String,
+    #[serde(default)]
+    pub payload: serde_json::Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EncounterCurrent {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    #[serde(rename = "patientId")]
+    pub patient_id: String,
+    #[serde(rename = "encounterId")]
+    pub encounter_id: String,
+    #[serde(rename = "visibleChartAsOf")]
+    pub visible_chart_as_of: String,
+    pub sequence: Option<u64>,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+    pub source: String,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    pub phase: Option<String>,
+    #[serde(default)]
+    pub display: serde_json::Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AssessmentStatus {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    pub sequence: Option<u64>,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+    pub source: String,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    pub available: bool,
+    #[serde(rename = "lastRequestId")]
+    pub last_request_id: Option<String>,
+    #[serde(rename = "lastRevealSequence")]
+    pub last_reveal_sequence: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AssessmentCurrent {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    #[serde(rename = "requestId")]
+    pub request_id: String,
+    #[serde(rename = "assessmentType")]
+    pub assessment_type: String,
+    pub visibility: String,
+    pub sequence: Option<u64>,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+    pub source: String,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    #[serde(default)]
+    pub findings: Vec<serde_json::Value>,
+    #[serde(rename = "bodySystem")]
+    pub body_system: Option<String>,
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub evidence: Vec<serde_json::Value>,
+    #[serde(rename = "envelopeDigest")]
+    pub envelope_digest: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WaveformStatus {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    pub sequence: Option<u64>,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+    pub source: String,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    pub available: bool,
+    pub reason: Option<String>,
+    #[serde(rename = "sourceKind")]
+    pub source_kind: Option<String>,
+    pub fidelity: Option<String>,
+    pub synthetic: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WaveformCurrent {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: u32,
+    pub sequence: Option<u64>,
+    #[serde(rename = "simTime_s")]
+    pub sim_time_s: f64,
+    #[serde(rename = "wallTime")]
+    pub wall_time: Option<String>,
+    pub source: String,
+    #[serde(rename = "runState")]
+    pub run_state: String,
+    pub available: bool,
+    #[serde(rename = "sourceKind")]
+    pub source_kind: Option<String>,
+    pub fidelity: Option<String>,
+    pub synthetic: Option<bool>,
+    #[serde(default)]
+    pub windows: BTreeMap<String, Waveform>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WaveformSourceDetails {
+    pub source_kind: String,
+    pub fidelity: String,
+    pub synthetic: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum FrameVariant {
     Target(TargetFrame),
@@ -88,6 +270,7 @@ pub struct PublicFrame {
     pub alarms: AlarmFeed,
     pub heart_rhythm: Option<String>,
     pub waveforms: BTreeMap<String, Waveform>,
+    pub waveform_source: Option<WaveformSourceDetails>,
     pub compatibility_notes: Vec<String>,
 }
 
@@ -208,6 +391,107 @@ pub fn parse_public_frame(input: &str) -> Result<PublicFrame, FrameError> {
     }
 }
 
+pub fn parse_lane_manifest(input: &str) -> Result<PublicLaneManifest, FrameError> {
+    let manifest: PublicLaneManifest =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("manifest.schemaVersion", manifest.schema_version)?;
+    if manifest.lanes.is_empty() {
+        return Err(FrameError::MissingRequired("lanes".to_string()));
+    }
+    Ok(manifest)
+}
+
+pub fn parse_run_status(input: &str) -> Result<RunStatus, FrameError> {
+    let status: RunStatus =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("status.schemaVersion", status.schema_version)?;
+    finite("status.simTime_s", status.sim_time_s)?;
+    if status.source.trim().is_empty() {
+        return Err(FrameError::MissingRequired("status.source".to_string()));
+    }
+    if status.run_state.trim().is_empty() {
+        return Err(FrameError::MissingRequired("status.runState".to_string()));
+    }
+    Ok(status)
+}
+
+pub fn parse_public_events_jsonl(input: &str) -> Result<Vec<PublicEventV2>, FrameError> {
+    let mut events = Vec::new();
+    let mut expected_index = 0;
+    for (line_number, line) in input.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let event: PublicEventV2 =
+            serde_json::from_str(line).map_err(|err| FrameError::Json(err.to_string()))?;
+        if event.schema_version != 2 {
+            return Err(FrameError::InvalidNumber {
+                field: format!("events.jsonl:{} schemaVersion", line_number + 1),
+                value: event.schema_version as f64,
+            });
+        }
+        if event.event_index != expected_index {
+            return Err(FrameError::InvalidNumber {
+                field: format!("events.jsonl:{} eventIndex", line_number + 1),
+                value: event.event_index as f64,
+            });
+        }
+        finite("event.simTime_s", event.sim_time_s)?;
+        if event.kind.trim().is_empty() {
+            return Err(FrameError::MissingRequired("event.kind".to_string()));
+        }
+        expected_index += 1;
+        events.push(event);
+    }
+    Ok(events)
+}
+
+pub fn parse_encounter_current(input: &str) -> Result<EncounterCurrent, FrameError> {
+    let encounter: EncounterCurrent =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("encounter.schemaVersion", encounter.schema_version)?;
+    finite("encounter.simTime_s", encounter.sim_time_s)?;
+    Ok(encounter)
+}
+
+pub fn parse_assessment_status(input: &str) -> Result<AssessmentStatus, FrameError> {
+    let status: AssessmentStatus =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("assessment.status.schemaVersion", status.schema_version)?;
+    finite("assessment.status.simTime_s", status.sim_time_s)?;
+    Ok(status)
+}
+
+pub fn parse_assessment_current(input: &str) -> Result<AssessmentCurrent, FrameError> {
+    let current: AssessmentCurrent =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("assessment.current.schemaVersion", current.schema_version)?;
+    finite("assessment.current.simTime_s", current.sim_time_s)?;
+    Ok(current)
+}
+
+pub fn parse_waveform_status(input: &str) -> Result<WaveformStatus, FrameError> {
+    let status: WaveformStatus =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("waveform.status.schemaVersion", status.schema_version)?;
+    finite("waveform.status.simTime_s", status.sim_time_s)?;
+    Ok(status)
+}
+
+pub fn parse_waveform_current(input: &str) -> Result<WaveformCurrent, FrameError> {
+    let current: WaveformCurrent =
+        serde_json::from_str(input).map_err(|err| FrameError::Json(err.to_string()))?;
+    validate_schema_version("waveform.current.schemaVersion", current.schema_version)?;
+    finite("waveform.current.simTime_s", current.sim_time_s)?;
+    if !current.available {
+        return Err(FrameError::MissingRequired(
+            "waveform.current.available true".to_string(),
+        ));
+    }
+    validate_waveforms(&current.windows)?;
+    Ok(current)
+}
+
 pub fn normalize_target(frame: TargetFrame) -> Result<PublicFrame, FrameError> {
     finite("simTime_s", frame.sim_time_s)?;
     validate_schema_version("schemaVersion", frame.schema_version)?;
@@ -250,6 +534,7 @@ pub fn normalize_target(frame: TargetFrame) -> Result<PublicFrame, FrameError> {
         alarms,
         heart_rhythm: frame.heart_rhythm,
         waveforms: frame.waveforms,
+        waveform_source: None,
         compatibility_notes: notes,
     })
 }
@@ -354,6 +639,7 @@ pub fn normalize_current_scalar(frame: CurrentScalarFrame) -> Result<PublicFrame
         alarms: alarm_feed,
         heart_rhythm,
         waveforms,
+        waveform_source: None,
         compatibility_notes: notes,
     })
 }
@@ -508,5 +794,53 @@ mod tests {
     fn rejects_malformed_monitor_waveform() {
         let err = parse_public_frame(r#"{"t":1,"hr":72,"monitor":{"schemaVersion":1,"waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":0,"t0_s":0,"values":[0]}}}}"#).unwrap_err();
         assert!(format!("{err}").contains("sampleRate"));
+    }
+
+    #[test]
+    fn parses_public_lane_models_with_mixed_case_fields() {
+        let status = parse_run_status(
+            r#"{"schemaVersion":1,"source":"pi-sim-scripted","sequence":4,"runState":"ended","simTime_s":30,"updatedAt":"now"}"#,
+        )
+        .unwrap();
+        assert_eq!(status.run_state, "ended");
+        assert_eq!(status.updated_at.as_deref(), Some("now"));
+
+        let events = parse_public_events_jsonl(
+            r#"{"schemaVersion":2,"eventIndex":0,"sequence":0,"simTime_s":0,"wallTime":"now","source":"pi-sim-scripted","runState":"running","kind":"run_started","payload":{"provider":"fixture"}}
+{"schemaVersion":2,"eventIndex":1,"sequence":1,"simTime_s":10,"wallTime":"later","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"MAP_LOW"}}"#,
+        )
+        .unwrap();
+        assert_eq!(events[1].event_index, 1);
+        assert_eq!(events[1].kind, "alarm_observed");
+
+        let encounter = parse_encounter_current(
+            r#"{"schemaVersion":1,"patientId":"p","encounterId":"e","visibleChartAsOf":"2026-04-19T06:45:00-05:00","sequence":1,"simTime_s":1,"wallTime":"now","source":"pi-sim-scripted","runState":"running","phase":"baseline","display":{"bed":"ICU 7"}}"#,
+        )
+        .unwrap();
+        assert_eq!(encounter.visible_chart_as_of, "2026-04-19T06:45:00-05:00");
+        assert_eq!(encounter.display["bed"], "ICU 7");
+
+        let assessment = parse_assessment_status(
+            r#"{"schemaVersion":1,"sequence":1,"simTime_s":1,"wallTime":"now","source":"pi-sim-scripted","runState":"running","available":true,"lastRequestId":"req","lastRevealSequence":1}"#,
+        )
+        .unwrap();
+        assert_eq!(assessment.last_request_id.as_deref(), Some("req"));
+
+        let waveform = parse_waveform_current(
+            r#"{"schemaVersion":1,"sequence":1,"simTime_s":1,"wallTime":"now","source":"pi-sim-scripted","runState":"running","available":true,"sourceKind":"fixture","fidelity":"synthetic-test","synthetic":true,"windows":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":0,"values":[0,1,0]}}}"#,
+        )
+        .unwrap();
+        assert_eq!(waveform.source_kind.as_deref(), Some("fixture"));
+        assert!(waveform.synthetic.unwrap());
+        assert_eq!(waveform.windows["ECG_LeadII"].values.len(), 3);
+    }
+
+    #[test]
+    fn rejects_non_monotonic_event_index() {
+        let err = parse_public_events_jsonl(
+            r#"{"schemaVersion":2,"eventIndex":1,"sequence":0,"simTime_s":0,"source":"pi-sim-scripted","runState":"running","kind":"run_started","payload":{}}"#,
+        )
+        .unwrap_err();
+        assert!(format!("{err}").contains("eventIndex"));
     }
 }

@@ -13,15 +13,31 @@ scenarios/*.json     scenario manifests — state file + action timeline + regre
 scenario.json        default scenario (used when monitor runs without --scenario)
 alarms.json          per-field threshold bands {low, high}; monitor emits *_LOW / *_HIGH flags
 current.json         latest tick — written atomically per advance
-timeline.json        array of every emitted frame since monitor/sim run launched
+timeline.json        compatibility array of every emitted frame since monitor/sim run launched; whole-file rewrite
+timeline.jsonl       append-friendly JSONL frame lane for provider-runtime runs
 status.json          latest publisher status: source, runState, sequence, simTime
 events.jsonl         append-only public event lane for lifecycle/action/alarm/provider/encounter/assessment events
+.lanes.json          public lane manifest: schema versions, write/reset semantics, consumer modes
 encounter/current.json latest public encounter context when provider supplies one
 assessments/status.json latest assessment capability/request/reveal status
 assessments/current.json latest revealed assessment envelope only after request
 waveforms/status.json latest waveform availability; written by provider runtime runs
 waveforms/current.json latest waveform window only when a provider supplies one
 ```
+
+
+## Public contract fixtures
+
+Tracked consumer examples live under `vitals/fixtures/public-contract/`. They are golden examples for downstream readers, not a second ABI authority. The public contract remains this README plus `.lanes.json`; runtime producer tests remain the source-freshness gate.
+
+Current fixture cases:
+
+- `scripted-demo/` — normal Docker-free scripted run with frames, JSONL lanes, encounter context, reveal-only assessment output, explicit waveform-unavailable status, and terminal `run_ended`.
+- `scripted-alarm/` — alarm smoke fixture with public `MAP_LOW` and `SPO2_LOW` event records.
+- `provider-unavailable/` — deterministic Pulse-unavailable fixture. Its refresh command is expected to exit non-zero while still writing fallback public files with terminal `provider_unavailable`, `runState: "unavailable"`, and no terminal `run_ended`.
+- `live-demo-waveform/` — positive ECG Lead II + pleth fixture from the demo waveform provider with `sourceKind: "demo"`, `fidelity: "demo"`, and `synthetic: true`.
+
+See `vitals/fixtures/public-contract/README.md` for provenance and refresh commands. Fixture JSON must not include hidden scenario truth, scoring keys, future findings, or sibling/runtime import paths. Waveform fixtures must explicitly label source/fidelity/synthetic status. The demo waveform fixture is labeled `sourceKind: "demo"`, `fidelity: "demo"`, and `synthetic: true`; pure static fixture-only waveform samples should use fixture labels.
 
 ## Run
 
@@ -32,7 +48,28 @@ npm run sim:run:demo
 npm run sim:run:demo -- --out-dir .omx/evidence/pi-sim-m1-runtime-skeleton-smoke/vitals
 ```
 
-The scripted runtime uses `vitals/scenarios/scripted_m1_demo.json`, writes deterministic scalar frames, and labels `monitor.source` as `pi-sim-scripted`. It is a runtime-boundary/reference provider only; it is not clinical physiology truth and does not emit runtime waveform samples. Its waveform lane reports `available: false`. The demo scenario also includes a public encounter context and a scheduled `assessment_request` so smoke runs exercise reveal-only assessment output under `assessments/`.
+The scripted runtime uses `vitals/scenarios/scripted_m1_demo.json`, writes deterministic scalar frames, appends frames to `timeline.jsonl`, and labels `monitor.source` as `pi-sim-scripted`. It is a runtime-boundary/reference provider only; it is not clinical physiology truth and does not emit runtime waveform samples. Its waveform lane reports `available: false`. The demo scenario also includes a public encounter context and a scheduled `assessment_request` so smoke runs exercise reveal-only assessment output under `assessments/`.
+
+
+### Live waveform demo provider
+
+```bash
+npm run sim:run:live-demo
+# writes to vitals/ for 300 simulated seconds at real-time pacing
+
+npm run sim:run:live-demo -- --out-dir .omx/evidence/live-waveform-monitor-mvp/vitals --duration 60 --dt 0.1 --time-scale 1
+npm run sim:run:live-demo -- --tcp-port 8791  # optional private localhost NDJSON stream for pi-monitor
+```
+
+The demo provider emits coherent but synthetic ECG Lead II, arterial pressure, pleth, and CO2 windows through `waveforms/current.json`, with matching `waveforms/status.json` labels: `sourceKind: "demo"`, `fidelity: "demo"`, `synthetic: true`. Numeric HR, SpO2, BP/MAP, RR, temperature, and EtCO2 fluctuate deterministically. This is the current MVP waveform source because the local Pulse provider is scalar-only. The optional `--tcp-port` stream is private localhost, non-durable, and mirrors frame envelopes for smoother monitor display; public JSON lanes remain the authoritative durable contract.
+
+To open the popup monitor against this lane:
+
+```bash
+npm run monitor:live-demo
+```
+
+No `pi-chart` embedding, chart writes, or `pi-agent` automation are part of this MVP path.
 
 ### Pulse provider runtime
 
@@ -59,7 +96,7 @@ Env knobs:
 - `PULSE_SHIM=http://localhost:8765` — override shim URL
 - `BED="ICU 7"` — header label
 
-Ctrl-C exits cleanly. `monitor:pulse` remains a compatibility/discoverability alias for this legacy interactive path while new provider work routes through `sim:run:pulse:*`. `current.json` is the primary latest-frame public telemetry boundary for pi-agent, pi-monitor, and future adapters.
+Ctrl-C exits cleanly. `monitor:pulse` remains a compatibility/discoverability alias for this legacy interactive path while new provider work routes through `sim:run:pulse:*`. `current.json` is the primary latest-frame public telemetry boundary for pi-agent, pi-monitor, and future adapters. Provider-runtime consumers that need durable offsets should prefer `timeline.jsonl`; `timeline.json` remains a compatibility array and is rewritten as a whole file.
 
 ## Schema — `current.json`
 
@@ -124,7 +161,9 @@ Example legacy waveform object, if a future compatibility layer exposes real sam
 
 ## Schema — `events.jsonl`
 
-`events.jsonl` is append-only JSON Lines. Events share the runner-owned `sequence`, `simTime_s`, `wallTime`, `source`, and `runState` context used by frames at the same boundary. M3/M4 emits:
+`events.jsonl` is append-only JSON Lines within a run and is reset when a new `PublicTelemetryPublisher` is constructed for that output directory. Event records use `schemaVersion: 2` and include a runner-owned, per-run monotonic `eventIndex` starting at `0`. Frame `sequence` remains the frame-correlation key; `eventIndex` is the total ordering key for same-frame events.
+
+Events share the runner-owned `sequence`, `simTime_s`, `wallTime`, `source`, and `runState` context used by frames at the same boundary. M3/M4 emits:
 
 - `run_started`
 - `action_applied`
@@ -140,8 +179,18 @@ Example legacy waveform object, if a future compatibility layer exposes real sam
 Example:
 
 ```json
-{"schemaVersion":1,"sequence":4,"simTime_s":30,"wallTime":"2026-04-27T00:00:03.000Z","source":"pi-sim-scripted","runState":"running","kind":"action_applied","payload":{"action":{"type":"position_change"}}}
+{"schemaVersion":2,"eventIndex":3,"sequence":4,"simTime_s":30,"wallTime":"2026-04-27T00:00:03.000Z","source":"pi-sim-scripted","runState":"running","kind":"action_applied","payload":{"action":{"type":"position_change"}}}
 ```
+
+
+Terminal semantics:
+
+- Normal completion emits `run_ended` as the terminal event with `payload.terminal: true` and `payload.terminalReason: "normal_end"`.
+- Provider failure emits `provider_unavailable` as the abnormal terminal event with `runState: "unavailable"`, `payload.terminal: true`, and `payload.terminalReason: "provider_unavailable"`. It does not emit `run_ended`.
+
+## Schema — `timeline.jsonl`
+
+`timeline.jsonl` is the preferred append-friendly frame history for provider-runtime runs. Each line is one `VitalFrame` record with the same frame schema as entries in `timeline.json`. The lane is reset on `PublicTelemetryPublisher` construction and then appended once per published frame. Consumers that tail files should use `timeline.jsonl`; consumers that still need the historical array may keep reading `timeline.json` during the compatibility window.
 
 ## Schema — `encounter/current.json`
 
@@ -265,7 +314,7 @@ Fixture/demo waveform windows are allowed only for contract tests and demos. The
 }
 ```
 
-`provider: "pulse"` marks provider-runner scenarios. For legacy compatibility, scenario files with a `state_file` and no `provider` are inferred as Pulse by the Pulse scenario loader. `state_file` paths are resolved by the shim inside the Docker container. `./states/...` maps to Pulse's shipped engine states under `/pulse/bin/states/`; `./state/...` maps to baked runtime states under `/workspace/state/`. Scenarios requiring preset conditions (e.g. sepsis) reference baked state files produced by `pulse/shim/bake_states.py`.
+`provider: "pulse"` marks provider-runner scenarios. For legacy compatibility, scenario files with a `state_file` and no `provider` are inferred as Pulse by the Pulse scenario loader. Scripted and Pulse scenario loaders share strict validation helpers for object/string/number/timeline/checkpoint structure; invalid timeline entries fail instead of being silently dropped. `state_file` paths are resolved by the shim inside the Docker container. `./states/...` maps to Pulse's shipped engine states under `/pulse/bin/states/`; `./state/...` maps to baked runtime states under `/workspace/state/`. Scenarios requiring preset conditions (e.g. sepsis) reference baked state files produced by `pulse/shim/bake_states.py`.
 
 Supported Pulse action types: `hemorrhage`, `hemorrhage_stop`, `fluid_bolus`, `norepinephrine`, `norepinephrine_stop`. Scripted provider-runtime scenarios may also schedule `{ "type": "assessment_request", "params": { "requestId": "...", "assessmentType": "...", "bodySystem": "..." } }` to request matching provider-owned assessment fixtures. See `pulse/README.md#action-types` for Pulse params.
 

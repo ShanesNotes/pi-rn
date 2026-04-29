@@ -53,7 +53,8 @@ export type PublicTelemetryEventKind =
   | "assessment_unavailable";
 
 export interface PublicTelemetryEvent {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
+  readonly eventIndex: number;
   readonly sequence: number;
   readonly simTime_s: number;
   readonly wallTime: string;

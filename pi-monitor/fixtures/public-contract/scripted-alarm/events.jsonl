@@ -1,0 +1,10 @@
+{"schemaVersion":2,"eventIndex":0,"sequence":0,"simTime_s":0,"wallTime":"2026-04-28T19:59:31.229Z","source":"pi-sim-scripted","runState":"running","kind":"run_started","payload":{"provider":"deterministic scripted scalar provider"}}
+{"schemaVersion":2,"eventIndex":1,"sequence":1,"simTime_s":10,"wallTime":"2026-04-28T19:59:31.231Z","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"MAP_LOW"}}
+{"schemaVersion":2,"eventIndex":2,"sequence":1,"simTime_s":10,"wallTime":"2026-04-28T19:59:31.231Z","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"BP_SYS_LOW"}}
+{"schemaVersion":2,"eventIndex":3,"sequence":1,"simTime_s":10,"wallTime":"2026-04-28T19:59:31.231Z","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"RR_HIGH"}}
+{"schemaVersion":2,"eventIndex":4,"sequence":1,"simTime_s":10,"wallTime":"2026-04-28T19:59:31.231Z","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"SPO2_LOW"}}
+{"schemaVersion":2,"eventIndex":5,"sequence":2,"simTime_s":20,"wallTime":"2026-04-28T19:59:31.232Z","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"MAP_LOW"}}
+{"schemaVersion":2,"eventIndex":6,"sequence":2,"simTime_s":20,"wallTime":"2026-04-28T19:59:31.232Z","source":"pi-sim-scripted","runState":"running","kind":"alarm_observed","payload":{"alarm":"SPO2_LOW"}}
+{"schemaVersion":2,"eventIndex":7,"sequence":3,"simTime_s":20,"wallTime":"2026-04-28T19:59:31.233Z","source":"pi-sim-scripted","runState":"ended","kind":"alarm_observed","payload":{"alarm":"MAP_LOW"}}
+{"schemaVersion":2,"eventIndex":8,"sequence":3,"simTime_s":20,"wallTime":"2026-04-28T19:59:31.233Z","source":"pi-sim-scripted","runState":"ended","kind":"alarm_observed","payload":{"alarm":"SPO2_LOW"}}
+{"schemaVersion":2,"eventIndex":9,"sequence":3,"simTime_s":20,"wallTime":"2026-04-28T19:59:31.233Z","source":"pi-sim-scripted","runState":"ended","kind":"run_ended","payload":{"frames":4,"terminal":true,"terminalReason":"normal_end"}}

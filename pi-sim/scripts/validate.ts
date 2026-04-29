@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { shim, waitForShim, type RawVitals } from "./client.js";
+import { loadPulseScenario } from "./runtime/pulseScenario.js";
 import type { NumericField, Scenario } from "./types.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -74,7 +75,7 @@ function withinTolerance(observed: number, expected: number, tol: Tolerance): { 
 }
 
 async function runScenario(path: string, mode: Mode, refPathOverride: string | undefined, observe: boolean): Promise<Report> {
-  const scenario: Scenario = JSON.parse(readFileSync(path, "utf8"));
+  const scenario: Scenario = loadPulseScenario(path);
   const scenarioName = basename(path, ".json");
 
   let referenceCurve: ReferenceCurve | undefined;

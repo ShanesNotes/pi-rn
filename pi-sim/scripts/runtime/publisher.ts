@@ -34,12 +34,14 @@ export class PublicTelemetryPublisher {
     this.assessmentsDir = join(outDir, "assessments");
     mkdirSync(outDir, { recursive: true });
     rmSync(join(outDir, "events.jsonl"), { force: true });
+    rmSync(join(outDir, "timeline.jsonl"), { force: true });
   }
 
   publish(frame: VitalFrame): void {
     this.history.push(frame);
     atomicWrite(join(this.outDir, "current.json"), `${JSON.stringify(frame, null, 2)}\n`);
     atomicWrite(join(this.outDir, "timeline.json"), `${JSON.stringify(this.history, null, 2)}\n`);
+    appendFileSync(join(this.outDir, "timeline.jsonl"), `${JSON.stringify(frame)}\n`);
     const status: PublisherStatus = {
       schemaVersion: 1,
       source: frame.monitor?.source ?? "unknown",

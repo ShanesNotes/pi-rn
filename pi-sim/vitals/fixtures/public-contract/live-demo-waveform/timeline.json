@@ -1,0 +1,140 @@
+[
+  {
+    "t": 0,
+    "simTime_s": 0,
+    "wallTime": "2026-04-29T00:37:33.780Z",
+    "hr": 78,
+    "map": 86,
+    "bp_sys": 118,
+    "bp_dia": 70,
+    "rr": 16,
+    "spo2": 97.4,
+    "temp_c": 37,
+    "etco2_mmHg": 38,
+    "scenarioPhase": "live-demo-baseline",
+    "alarms": [],
+    "monitor": {
+      "schemaVersion": 1,
+      "source": "pi-sim-demo-waveform",
+      "sequence": 0,
+      "runState": "running",
+      "events": [],
+      "heartRhythm": "unavailable"
+    }
+  },
+  {
+    "t": 0.5,
+    "simTime_s": 0.5,
+    "wallTime": "2026-04-29T00:37:33.784Z",
+    "hr": 78.6,
+    "map": 86.7,
+    "bp_sys": 119,
+    "bp_dia": 70.5,
+    "rr": 16.5,
+    "spo2": 97.3,
+    "temp_c": 37,
+    "etco2_mmHg": 38.5,
+    "scenarioPhase": "live-demo-baseline",
+    "alarms": [],
+    "monitor": {
+      "schemaVersion": 1,
+      "source": "pi-sim-demo-waveform",
+      "sequence": 1,
+      "runState": "running",
+      "events": [],
+      "heartRhythm": "unavailable"
+    }
+  },
+  {
+    "t": 1,
+    "simTime_s": 1,
+    "wallTime": "2026-04-29T00:37:33.786Z",
+    "hr": 79.3,
+    "map": 87.2,
+    "bp_sys": 119.8,
+    "bp_dia": 71,
+    "rr": 16.9,
+    "spo2": 97.3,
+    "temp_c": 37.01,
+    "etco2_mmHg": 38.9,
+    "scenarioPhase": "live-demo-baseline",
+    "alarms": [],
+    "monitor": {
+      "schemaVersion": 1,
+      "source": "pi-sim-demo-waveform",
+      "sequence": 2,
+      "runState": "running",
+      "events": [],
+      "heartRhythm": "unavailable"
+    }
+  },
+  {
+    "t": 1.5,
+    "simTime_s": 1.5,
+    "wallTime": "2026-04-29T00:37:33.788Z",
+    "hr": 79.8,
+    "map": 87.7,
+    "bp_sys": 120.4,
+    "bp_dia": 71.3,
+    "rr": 17.2,
+    "spo2": 97.3,
+    "temp_c": 37.01,
+    "etco2_mmHg": 39.1,
+    "scenarioPhase": "live-demo-baseline",
+    "alarms": [],
+    "monitor": {
+      "schemaVersion": 1,
+      "source": "pi-sim-demo-waveform",
+      "sequence": 3,
+      "runState": "running",
+      "events": [],
+      "heartRhythm": "unavailable"
+    }
+  },
+  {
+    "t": 2,
+    "simTime_s": 2,
+    "wallTime": "2026-04-29T00:37:33.789Z",
+    "hr": 80.3,
+    "map": 87.8,
+    "bp_sys": 120.7,
+    "bp_dia": 71.4,
+    "rr": 17.3,
+    "spo2": 97.3,
+    "temp_c": 37.01,
+    "etco2_mmHg": 39.2,
+    "scenarioPhase": "live-demo-baseline",
+    "alarms": [],
+    "monitor": {
+      "schemaVersion": 1,
+      "source": "pi-sim-demo-waveform",
+      "sequence": 4,
+      "runState": "running",
+      "events": [],
+      "heartRhythm": "unavailable"
+    }
+  },
+  {
+    "t": 2,
+    "simTime_s": 2,
+    "wallTime": "2026-04-29T00:37:33.791Z",
+    "hr": 80.3,
+    "map": 87.8,
+    "bp_sys": 120.7,
+    "bp_dia": 71.4,
+    "rr": 17.3,
+    "spo2": 97.3,
+    "temp_c": 37.01,
+    "etco2_mmHg": 39.2,
+    "scenarioPhase": "live-demo-baseline",
+    "alarms": [],
+    "monitor": {
+      "schemaVersion": 1,
+      "source": "pi-sim-demo-waveform",
+      "sequence": 5,
+      "runState": "ended",
+      "events": [],
+      "heartRhythm": "unavailable"
+    }
+  }
+]

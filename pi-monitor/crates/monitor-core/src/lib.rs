@@ -1,4 +1,4 @@
-use pulse_public_frame::{PublicFrame, Quantity, VitalKey, Waveform};
+use pulse_public_frame::{PublicFrame, Quantity, VitalKey, Waveform, WaveformSourceDetails};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -41,6 +41,9 @@ pub struct WaveformStripModel {
     pub sample_rate_hz: f64,
     pub t0_s: f64,
     pub values: Vec<f64>,
+    pub sample_times_s: Vec<f64>,
+    pub visible_window_s: f64,
+    pub sweep_now_s: f64,
     pub min: f64,
     pub max: f64,
     pub available: bool,
@@ -59,6 +62,7 @@ pub struct DisplayModel {
     pub alarms: Vec<AlarmChip>,
     pub heart_rhythm: Option<String>,
     pub hr_tick_enabled: bool,
+    pub waveform_source_label: Option<String>,
     pub waveform_message: String,
     pub waveform_strips: Vec<WaveformStripModel>,
     pub footer: String,
@@ -68,6 +72,9 @@ pub struct DisplayModel {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MonitorCore {
     last_valid: Option<AcceptedFrame>,
+    waveform_buffers: BTreeMap<String, BufferedWaveform>,
+    waveform_signature: Option<WaveformSignature>,
+    last_waveform_sequence: Option<u64>,
     forced_state: Option<SourceState>,
     invalid_message: Option<String>,
 }
@@ -77,6 +84,30 @@ pub struct AcceptedFrame {
     pub frame: PublicFrame,
     pub received_millis: u64,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+struct BufferedWaveform {
+    unit: String,
+    sample_rate_hz: f64,
+    samples: Vec<WaveformSample>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct WaveformSample {
+    t_s: f64,
+    value: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WaveformSignature {
+    source: String,
+    run_state: Option<String>,
+    source_kind: Option<String>,
+    fidelity: Option<String>,
+    synthetic: Option<bool>,
+}
+
+const WAVEFORM_SWEEP_SECONDS: f64 = 12.0;
 
 impl Default for MonitorCore {
     fn default() -> Self {
@@ -88,6 +119,9 @@ impl MonitorCore {
     pub fn new() -> Self {
         Self {
             last_valid: None,
+            waveform_buffers: BTreeMap::new(),
+            waveform_signature: None,
+            last_waveform_sequence: None,
             forced_state: None,
             invalid_message: None,
         }
@@ -96,6 +130,7 @@ impl MonitorCore {
     pub fn accept_frame(&mut self, frame: PublicFrame, received_millis: u64) {
         self.invalid_message = None;
         self.forced_state = None;
+        self.accept_waveforms(&frame);
         self.last_valid = Some(AcceptedFrame {
             frame,
             received_millis,
@@ -103,11 +138,13 @@ impl MonitorCore {
     }
 
     pub fn mark_invalid(&mut self, message: impl Into<String>) {
+        self.reset_waveforms();
         self.invalid_message = Some(message.into());
         self.forced_state = Some(SourceState::Invalid);
     }
 
     pub fn mark_offline(&mut self, message: impl Into<String>) {
+        self.reset_waveforms();
         self.invalid_message = Some(message.into());
         self.forced_state = Some(SourceState::Offline);
     }
@@ -119,6 +156,8 @@ impl MonitorCore {
         let age = Duration::from_millis(now_millis.saturating_sub(accepted.received_millis));
         let mut state = if let Some(forced) = self.forced_state {
             forced
+        } else if accepted.frame.run_state.as_deref() == Some("unavailable") {
+            SourceState::Offline
         } else if accepted.frame.run_state.as_deref() == Some("paused") {
             SourceState::Paused
         } else if age < Duration::from_secs(2) {
@@ -143,7 +182,9 @@ impl MonitorCore {
             })
             .collect();
         let hr_tick_enabled = hr_tick_enabled(&accepted.frame, state);
-        let waveform_strips = build_waveform_strips(&accepted.frame.waveforms, state);
+        let buffered_waveforms = self.buffered_waveforms();
+        let sweep_now_s = display_sweep_now_s(accepted, now_millis, state);
+        let waveform_strips = build_waveform_strips(&buffered_waveforms, state, sweep_now_s);
         let waveform_message = waveform_summary(&waveform_strips, state);
         DisplayModel {
             title: "LIVE SIM MONITOR".to_string(),
@@ -156,13 +197,76 @@ impl MonitorCore {
             alarms,
             heart_rhythm: accepted.frame.heart_rhythm.clone(),
             hr_tick_enabled,
+            waveform_source_label: waveform_source_label(&accepted.frame.waveform_source),
             waveform_message,
             waveform_strips,
-            footer: "Live simulation display · not charted · not part of the medical record"
-                .to_string(),
+            footer: footer_with_notes(&accepted.frame.compatibility_notes),
             compatibility_notes: accepted.frame.compatibility_notes.clone(),
         }
     }
+
+    fn accept_waveforms(&mut self, frame: &PublicFrame) {
+        if frame.waveforms.is_empty() || matches!(frame.run_state.as_deref(), Some("unavailable")) {
+            self.reset_waveforms();
+            return;
+        }
+
+        let signature = WaveformSignature {
+            source: frame.source.clone(),
+            run_state: frame.run_state.clone(),
+            source_kind: frame
+                .waveform_source
+                .as_ref()
+                .map(|source| source.source_kind.clone()),
+            fidelity: frame
+                .waveform_source
+                .as_ref()
+                .map(|source| source.fidelity.clone()),
+            synthetic: frame
+                .waveform_source
+                .as_ref()
+                .map(|source| source.synthetic),
+        };
+        if self
+            .waveform_signature
+            .as_ref()
+            .map(|existing| existing != &signature)
+            .unwrap_or(false)
+        {
+            self.reset_waveforms();
+        }
+        if let (Some(previous), Some(next)) = (self.last_waveform_sequence, frame.sequence) {
+            if next < previous {
+                self.reset_waveforms();
+            } else if next == previous {
+                return;
+            }
+        }
+
+        let active_signals = frame.waveforms.keys().cloned().collect::<Vec<_>>();
+        self.waveform_buffers
+            .retain(|signal, _| active_signals.iter().any(|active| active == signal));
+        for (signal, waveform) in &frame.waveforms {
+            append_waveform(&mut self.waveform_buffers, signal, waveform);
+        }
+        self.waveform_signature = Some(signature);
+        self.last_waveform_sequence = frame.sequence;
+    }
+
+    fn reset_waveforms(&mut self) {
+        self.waveform_buffers.clear();
+        self.waveform_signature = None;
+        self.last_waveform_sequence = None;
+    }
+
+    fn buffered_waveforms(&self) -> BTreeMap<String, BufferedWaveform> {
+        self.waveform_buffers.clone()
+    }
+}
+
+fn footer_with_notes(notes: &[String]) -> String {
+    let _ = notes;
+    "Live simulation display · not charted · not part of the medical record".to_string()
 }
 
 fn empty_model(state: SourceState, message: &str, alarm_feed_available: bool) -> DisplayModel {
@@ -177,12 +281,80 @@ fn empty_model(state: SourceState, message: &str, alarm_feed_available: bool) ->
         alarms: Vec::new(),
         heart_rhythm: None,
         hr_tick_enabled: false,
+        waveform_source_label: None,
         waveform_message: "waveform feed unavailable — no source frame".to_string(),
         waveform_strips: unavailable_strips("waveform feed unavailable — no source frame"),
         footer: "Live simulation display · not charted · not part of the medical record"
             .to_string(),
         compatibility_notes: Vec::new(),
     }
+}
+
+fn append_waveform(
+    buffers: &mut BTreeMap<String, BufferedWaveform>,
+    signal: &str,
+    waveform: &Waveform,
+) {
+    let sample_interval_s = 1.0 / waveform.sample_rate_hz;
+    let incoming_end_s =
+        waveform.t0_s + (waveform.values.len().saturating_sub(1) as f64 * sample_interval_s);
+    let reset = buffers
+        .get(signal)
+        .map(|existing| {
+            existing.unit != waveform.unit
+                || (existing.sample_rate_hz - waveform.sample_rate_hz).abs() > f64::EPSILON
+                || incoming_end_s
+                    < existing
+                        .samples
+                        .first()
+                        .map(|sample| sample.t_s)
+                        .unwrap_or(f64::INFINITY)
+        })
+        .unwrap_or(false);
+    if reset {
+        buffers.remove(signal);
+    }
+    let buffer = buffers
+        .entry(signal.to_string())
+        .or_insert_with(|| BufferedWaveform {
+            unit: waveform.unit.clone(),
+            sample_rate_hz: waveform.sample_rate_hz,
+            samples: Vec::new(),
+        });
+
+    let last_time_s = buffer.samples.last().map(|sample| sample.t_s);
+    let duplicate_epsilon_s = sample_interval_s * 0.5;
+    for (idx, value) in waveform.values.iter().copied().enumerate() {
+        let t_s = waveform.t0_s + idx as f64 * sample_interval_s;
+        if last_time_s
+            .map(|last| t_s <= last + duplicate_epsilon_s)
+            .unwrap_or(false)
+        {
+            continue;
+        }
+        buffer.samples.push(WaveformSample { t_s, value });
+    }
+
+    if let Some(newest) = buffer.samples.last().map(|sample| sample.t_s) {
+        let cutoff = newest - WAVEFORM_SWEEP_SECONDS;
+        let first_keep = buffer
+            .samples
+            .iter()
+            .position(|sample| sample.t_s >= cutoff)
+            .unwrap_or(buffer.samples.len());
+        if first_keep > 0 {
+            buffer.samples.drain(0..first_keep);
+        }
+    }
+}
+
+fn waveform_source_label(source: &Option<WaveformSourceDetails>) -> Option<String> {
+    source.as_ref().map(|source| {
+        format!(
+            "waveform sourceKind={} fidelity={} synthetic={}",
+            source.source_kind, source.fidelity, source.synthetic
+        )
+    })
 }
 
 fn build_tiles(vitals: &BTreeMap<VitalKey, Quantity>, state: SourceState) -> Vec<NumericTile> {
@@ -271,9 +443,19 @@ fn tile(
     }
 }
 
+fn display_sweep_now_s(accepted: &AcceptedFrame, now_millis: u64, state: SourceState) -> f64 {
+    if accepted.frame.run_state.as_deref() == Some("running") && matches!(state, SourceState::Fresh)
+    {
+        let age_s = now_millis.saturating_sub(accepted.received_millis) as f64 / 1_000.0;
+        return accepted.frame.sim_time_s + age_s.min(1.0);
+    }
+    accepted.frame.sim_time_s
+}
+
 fn build_waveform_strips(
-    waveforms: &BTreeMap<String, Waveform>,
+    waveforms: &BTreeMap<String, BufferedWaveform>,
     state: SourceState,
+    sweep_now_s: f64,
 ) -> Vec<WaveformStripModel> {
     if waveforms.is_empty() {
         return unavailable_strips("waveform feed unavailable — no synthetic ECG/pleth/capnogram");
@@ -281,20 +463,34 @@ fn build_waveform_strips(
     let mut strips = Vec::new();
     for preferred in ["ECG_LeadII", "Pleth", "ArterialPressure", "CO2"] {
         if let Some(waveform) = waveforms.get(preferred) {
-            strips.push(waveform_strip(preferred, waveform, state));
+            strips.push(waveform_strip(preferred, waveform, state, sweep_now_s));
         }
     }
     for (name, waveform) in waveforms {
         if !strips.iter().any(|strip| strip.signal == *name) {
-            strips.push(waveform_strip(name, waveform, state));
+            strips.push(waveform_strip(name, waveform, state, sweep_now_s));
         }
     }
     strips
 }
 
-fn waveform_strip(name: &str, waveform: &Waveform, state: SourceState) -> WaveformStripModel {
-    let (mut min, mut max) = waveform
-        .values
+fn waveform_strip(
+    name: &str,
+    waveform: &BufferedWaveform,
+    state: SourceState,
+    sweep_now_s: f64,
+) -> WaveformStripModel {
+    let values = waveform
+        .samples
+        .iter()
+        .map(|sample| sample.value)
+        .collect::<Vec<_>>();
+    let sample_times_s = waveform
+        .samples
+        .iter()
+        .map(|sample| sample.t_s)
+        .collect::<Vec<_>>();
+    let (mut min, mut max) = values
         .iter()
         .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), value| {
             (min.min(*value), max.max(*value))
@@ -304,22 +500,26 @@ fn waveform_strip(name: &str, waveform: &Waveform, state: SourceState) -> Wavefo
         max = 1.0;
     }
     let available = !matches!(state, SourceState::Offline | SourceState::Invalid)
-        && !waveform.values.is_empty();
+        && !waveform.samples.is_empty();
     WaveformStripModel {
         signal: name.to_string(),
         unit: waveform.unit.clone(),
         sample_rate_hz: waveform.sample_rate_hz,
-        t0_s: waveform.t0_s,
-        values: waveform.values.clone(),
+        t0_s: sample_times_s.first().copied().unwrap_or(0.0),
+        values,
+        sample_times_s,
+        visible_window_s: WAVEFORM_SWEEP_SECONDS,
+        sweep_now_s,
         min,
         max,
         available,
         message: if available {
             format!(
-                "{} waveform feed available · {} samples @ {:.0} Hz",
+                "{} waveform feed available · {} samples @ {:.0} Hz · time sweep {:.0}s",
                 display_signal_name(name),
-                waveform.values.len(),
-                waveform.sample_rate_hz
+                waveform.samples.len(),
+                waveform.sample_rate_hz,
+                WAVEFORM_SWEEP_SECONDS
             )
         } else {
             format!("{} waveform feed unavailable", display_signal_name(name))
@@ -336,6 +536,9 @@ fn unavailable_strips(message: &str) -> Vec<WaveformStripModel> {
             sample_rate_hz: 0.0,
             t0_s: 0.0,
             values: Vec::new(),
+            sample_times_s: Vec::new(),
+            visible_window_s: WAVEFORM_SWEEP_SECONDS,
+            sweep_now_s: 0.0,
             min: -1.0,
             max: 1.0,
             available: false,
@@ -515,6 +718,17 @@ mod tests {
     }
 
     #[test]
+    fn unavailable_run_state_is_offline_like() {
+        let frame = parse_public_frame(
+            r#"{"t":0,"monitor":{"schemaVersion":1,"source":"pi-sim-pulse","sequence":0,"runState":"unavailable","events":["PROVIDER_UNAVAILABLE"],"heartRhythm":"unavailable"}}"#,
+        )
+        .unwrap();
+        let mut core = MonitorCore::new();
+        core.accept_frame(frame, 0);
+        assert_eq!(core.display_model(100).state, SourceState::Offline);
+    }
+
+    #[test]
     fn exposes_waveform_strip_models_when_samples_arrive() {
         let frame = parse_public_frame(r#"{"t":44,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-pulse","sequence":1,"runState":"running","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":125,"t0_s":43,"values":[-0.1,0.8,0.1]}}}}"#).unwrap();
         let mut core = MonitorCore::new();
@@ -541,12 +755,72 @@ mod tests {
         let first_values = core.display_model(100).waveform_strips[0].values.clone();
         core.accept_frame(second, 1_000);
         let model = core.display_model(1_100);
-        assert_ne!(first_values, model.waveform_strips[0].values);
+        assert_eq!(first_values, vec![0.0, 1.0, 0.0]);
+        assert_eq!(
+            model.waveform_strips[0].values,
+            vec![0.0, 1.0, 0.0, 0.0, -1.0, 0.0]
+        );
         assert!(
             model
                 .numeric_tiles
                 .iter()
                 .any(|tile| tile.label == "HR" && tile.value == "73")
+        );
+    }
+
+    #[test]
+    fn waveform_overlap_windows_are_deduped_by_sample_time() {
+        let first = parse_public_frame(r#"{"t":0,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-demo-waveform","sequence":1,"runState":"running","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":2,"t0_s":0,"values":[0,1]}}}}"#).unwrap();
+        let overlapping = parse_public_frame(r#"{"t":0.5,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-demo-waveform","sequence":2,"runState":"running","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":2,"t0_s":0,"values":[0,1,2]}}}}"#).unwrap();
+        let mut core = MonitorCore::new();
+        core.accept_frame(first, 0);
+        core.accept_frame(overlapping, 500);
+        let strip = core.display_model(600).waveform_strips[0].clone();
+        assert_eq!(strip.values, vec![0.0, 1.0, 2.0]);
+        assert_eq!(strip.sample_times_s, vec![0.0, 0.5, 1.0]);
+        assert_eq!(strip.visible_window_s, WAVEFORM_SWEEP_SECONDS);
+        assert!(strip.sweep_now_s >= 0.5);
+    }
+
+    #[test]
+    fn waveform_buffers_trim_reset_and_show_source_label() {
+        let mut first = parse_public_frame(r#"{"t":1,"hr":72,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-demo-waveform","sequence":1,"runState":"running","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":1,"t0_s":0,"values":[1,2,3,4,5,6,7,8]}}}}"#).unwrap();
+        first.waveform_source = Some(WaveformSourceDetails {
+            source_kind: "demo".to_string(),
+            fidelity: "demo".to_string(),
+            synthetic: true,
+        });
+        let mut second = parse_public_frame(r#"{"t":13,"hr":73,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-demo-waveform","sequence":2,"runState":"running","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":1,"t0_s":8,"values":[9,10,11,12,13,14,15,16]}}}}"#).unwrap();
+        second.waveform_source = first.waveform_source.clone();
+        let unavailable = parse_public_frame(r#"{"t":8,"hr":73,"alarms":[],"monitor":{"schemaVersion":1,"source":"pi-sim-demo-waveform","sequence":3,"runState":"unavailable","waveforms":{"ECG_LeadII":{"unit":"mV","sampleRate_Hz":1,"t0_s":8,"values":[9]}}}}"#).unwrap();
+
+        let mut core = MonitorCore::new();
+        core.accept_frame(first, 0);
+        core.accept_frame(second, 1_000);
+        let model = core.display_model(1_100);
+        let ecg = model
+            .waveform_strips
+            .iter()
+            .find(|strip| strip.signal == "ECG_LeadII")
+            .unwrap();
+        assert_eq!(
+            ecg.values,
+            vec![
+                4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0
+            ]
+        );
+        assert_eq!(
+            model.waveform_source_label.as_deref(),
+            Some("waveform sourceKind=demo fidelity=demo synthetic=true")
+        );
+
+        core.accept_frame(unavailable, 2_000);
+        let offline_model = core.display_model(2_100);
+        assert!(
+            offline_model
+                .waveform_strips
+                .iter()
+                .all(|strip| !strip.available)
         );
     }
 }

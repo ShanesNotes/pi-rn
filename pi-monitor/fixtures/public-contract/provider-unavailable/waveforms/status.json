@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "sequence": 0,
+  "simTime_s": 0,
+  "wallTime": "2026-04-28T19:59:31.709Z",
+  "source": "pi-sim-pulse",
+  "runState": "unavailable",
+  "available": false,
+  "reason": "provider_unavailable"
+}

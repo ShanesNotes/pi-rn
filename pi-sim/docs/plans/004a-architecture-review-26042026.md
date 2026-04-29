@@ -1,5 +1,6 @@
-> **Status note — retained context, not global architecture authority.**
-> Current `pi-sim` architecture authority is `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` plus `.omx/plans/plan-pi-sim-architecture-rebase-patient-runtime.md`. Treat this file as scoped historical/seam context unless a newer plan explicitly revives it.
+> **TOMBSTONE — historical seam context only.**
+> This pre-M-series planning lineage is superseded for current `pi-sim` runtime work by `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` plus `.omx/plans/plan-pi-sim-m1-runtime-skeleton-scripted-provider.md`, `.omx/plans/plan-pi-sim-m2-pulse-provider-runtime.md`, `.omx/plans/plan-pi-sim-m3-public-event-waveform-lanes.md`, `.omx/plans/plan-pi-sim-m4-encounter-assessment-public-schema.md`, and `.omx/plans/plan-pi-sim-m4-abi-hardening-remediation.md`.
+> Retain this file for design lineage only; do not treat it as an executable PRD unless a newer plan explicitly revives a slice.
 
 ---
 
