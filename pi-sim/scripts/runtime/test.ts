@@ -662,15 +662,15 @@ async function testDemoWaveformProviderPublishesReferenceWaveformsAndLabels(): P
     assert.equal(current.sourceKind, "demo");
     assert.equal(current.fidelity, "demo");
     assert.equal(current.synthetic, true);
-    assert.deepEqual(Object.keys(current.windows).sort(), ["ArterialPressure", "CO2", "ECG_LeadII", "Pleth"]);
+    assert.deepEqual(Object.keys(current.windows).sort(), ["ArterialPressure", "ECG_LeadII", "Pleth", "Respiration"]);
     assert.equal(current.windows.ECG_LeadII.sampleRate_Hz, 125);
     assert.equal(current.windows.Pleth.sampleRate_Hz, 50);
     assert.equal(current.windows.ArterialPressure.sampleRate_Hz, 50);
-    assert.equal(current.windows.CO2.sampleRate_Hz, 50);
+    assert.equal(current.windows.Respiration.sampleRate_Hz, 25);
     assert.ok(current.windows.ECG_LeadII.values.some((value) => value !== current.windows.ECG_LeadII.values[0]));
     assert.ok(current.windows.Pleth.values.some((value) => value !== current.windows.Pleth.values[0]));
     assert.ok(current.windows.ArterialPressure.values.some((value) => value !== current.windows.ArterialPressure.values[0]));
-    assert.ok(current.windows.CO2.values.some((value) => value !== current.windows.CO2.values[0]));
+    assert.ok(current.windows.Respiration.values.some((value) => value !== current.windows.Respiration.values[0]));
     assert.ok(result.frames.length >= 3);
     assert.notDeepEqual(result.frames[0].hr, result.frames.at(-1)?.hr);
     assert.notDeepEqual(result.frames[0].spo2, result.frames.at(-1)?.spo2);

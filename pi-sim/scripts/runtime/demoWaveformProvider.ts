@@ -12,7 +12,7 @@ import type {
 const ECG_RATE_HZ = 125;
 const PLETH_RATE_HZ = 50;
 const ABP_RATE_HZ = 50;
-const CO2_RATE_HZ = 50;
+const RESP_RATE_HZ = 25;
 const WINDOW_SECONDS = 0.5;
 
 export interface DemoWaveformProviderOptions {
@@ -83,9 +83,9 @@ export class DemoWaveformProvider implements PhysiologyProvider {
           const sampleVitals = demoVitalsAt(sampleTime);
           return pleth(sampleTime, sampleVitals.hr ?? vitals.hr ?? 78, sampleVitals.spo2 ?? vitals.spo2 ?? 97);
         }),
-        CO2: buildWindow(this.t, CO2_RATE_HZ, "mmHg", (sampleTime) => {
+        Respiration: buildWindow(this.t, RESP_RATE_HZ, "unitless", (sampleTime) => {
           const sampleVitals = demoVitalsAt(sampleTime);
-          return capnogram(sampleTime, sampleVitals.rr ?? vitals.rr ?? 16, sampleVitals.etco2_mmHg ?? vitals.etco2_mmHg ?? 38);
+          return respirationWaveform(sampleTime, sampleVitals.rr ?? vitals.rr ?? 16);
         }),
       },
     };
@@ -175,24 +175,13 @@ function pleth(t: number, hr: number, spo2Percent: number): number {
   return clamp(0.10 + respiratoryEnvelope * saturationScale * (0.78 * upstroke + notch + reflected) + noise, 0.02, 1.05);
 }
 
-function capnogram(t: number, rr: number, etco2MmHg: number): number {
-  const period = 60 / Math.max(6, rr);
-  const phase = positiveModulo(t - 0.10, period) / period;
-  const baseline = 0.6 + 0.15 * Math.sin(2 * Math.PI * t / 11);
-  if (phase < 0.11) {
-    return baseline;
-  }
-  if (phase < 0.23) {
-    return baseline + (etco2MmHg - baseline - 1.8) * smoothstep((phase - 0.11) / 0.12);
-  }
-  if (phase < 0.64) {
-    const plateau = (phase - 0.23) / 0.41;
-    return etco2MmHg - 1.8 + 2.4 * plateau + 0.18 * Math.sin(2 * Math.PI * t * 1.3);
-  }
-  if (phase < 0.75) {
-    return baseline + etco2MmHg * (1 - smoothstep((phase - 0.64) / 0.11));
-  }
-  return baseline;
+function respirationWaveform(t: number, rr: number): number {
+  const period = 60 / Math.max(4, rr);
+  const phase = positiveModulo(t, period) / period;
+  const inspiration = phase < 0.42 ? smoothstep(phase / 0.42) : 1 - smoothstep((phase - 0.42) / 0.58);
+  const baselineWander = 0.08 * Math.sin((2 * Math.PI * t) / 18);
+  const impedanceNoise = 0.015 * deterministicNoise(t * 12.7) + 0.01 * Math.sin(2 * Math.PI * t * 2.2);
+  return clamp(-0.85 + 1.7 * inspiration + baselineWander + impedanceNoise, -1.05, 1.05);
 }
 
 function cardiacPeriod(t: number, hr: number): number {

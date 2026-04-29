@@ -132,7 +132,7 @@ function assertManifestCoverage(): void {
   for (const lane of lanes) {
     const presentIn = Object.values(CASES).filter((fixture) => existsSync(join(fixture.dir, lane.path))).map((fixture) => fixture.name);
     if (lane.name === "waveforms-current") {
-      assert.deepEqual(presentIn, ["live-demo-waveform"], "waveforms/current.json has positive ECG/ABP/pleth/CO2 fixture coverage");
+      assert.deepEqual(presentIn, ["live-demo-waveform"], "waveforms/current.json has positive ECG/ABP/pleth/respiration fixture coverage");
       continue;
     }
     assert.ok(presentIn.length > 0, `${lane.name} has positive fixture coverage`);

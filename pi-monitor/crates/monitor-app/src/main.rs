@@ -342,7 +342,7 @@ fn draw_reference_waveforms(painter: &egui::Painter, rect: Rect, model: &Display
         WaveSpec::ecg(),
         WaveSpec::abp(),
         WaveSpec::pleth(),
-        WaveSpec::co2(),
+        WaveSpec::resp(),
     ];
     let row_h = rect.height() / 4.0;
     for (idx, spec) in specs.iter().enumerate() {
@@ -691,40 +691,20 @@ fn draw_tile_card(
             draw_indicator(painter, rect, teal(), scale);
         }
         3 => {
-            draw_label_unit(painter, rect, "etCO₂", "mmHg", amber(), scale);
+            draw_label_unit(painter, rect, "RR", "br/min", amber(), scale);
             draw_big(
                 painter,
                 rect,
-                tile_value(model, "EtCO2").unwrap_or_else(unavailable_value),
+                tile_value(model, "RR").unwrap_or_else(unavailable_value),
                 amber(),
                 76.0,
                 Vec2::new(138.0, 74.0),
                 scale,
             );
-            draw_limits(painter, rect, ["50", "15"], 129.0, 74.0, amber(), scale);
-            painter.text(
-                rect.right_top() + Vec2::new(-40.0 * scale, 91.0 * scale),
-                Align2::CENTER_CENTER,
-                "FI\n--",
-                FontId::proportional(18.0 * scale),
-                amber(),
-            );
+            draw_limits(painter, rect, ["30", "8"], 129.0, 74.0, amber(), scale);
+            draw_indicator(painter, rect, amber(), scale);
         }
         4 => {
-            draw_label_unit(painter, rect, "RR", "br/min", dark(), scale);
-            draw_big(
-                painter,
-                rect,
-                tile_value(model, "RR").unwrap_or_else(unavailable_value),
-                dark(),
-                76.0,
-                Vec2::new(138.0, 65.0),
-                scale,
-            );
-            draw_limits(painter, rect, ["30", "8"], 129.0, 65.0, text_color(), scale);
-            draw_indicator(painter, rect, dark(), scale);
-        }
-        _ => {
             draw_label_unit(painter, rect, "TEMP", "°C", green(), scale);
             draw_big(
                 painter,
@@ -737,6 +717,7 @@ fn draw_tile_card(
             );
             draw_limits(painter, rect, ["38.0", "36.0"], 107.0, 52.0, green(), scale);
         }
+        _ => {}
     }
 }
 
@@ -1000,15 +981,15 @@ impl WaveSpec {
             time_axis: false,
         }
     }
-    fn co2() -> Self {
+    fn resp() -> Self {
         Self {
-            signal: "CO2",
-            label: "CO₂",
-            unit: "mmHg",
-            right_label: "etCO₂",
-            ticks: &["50", "25", "0"],
-            axis_min: 0.0,
-            axis_max: 50.0,
+            signal: "Respiration",
+            label: "RESP",
+            unit: "imp",
+            right_label: "RR",
+            ticks: &["1", "0", "-1"],
+            axis_min: -1.05,
+            axis_max: 1.05,
             color: amber(),
             time_axis: true,
         }

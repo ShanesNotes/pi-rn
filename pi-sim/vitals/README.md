@@ -61,7 +61,7 @@ npm run sim:run:live-demo -- --out-dir .omx/evidence/live-waveform-monitor-mvp/v
 npm run sim:run:live-demo -- --tcp-port 8791  # optional private localhost NDJSON stream for pi-monitor
 ```
 
-The demo provider emits coherent but synthetic ECG Lead II, arterial pressure, pleth, and CO2 windows through `waveforms/current.json`, with matching `waveforms/status.json` labels: `sourceKind: "demo"`, `fidelity: "demo"`, `synthetic: true`. Numeric HR, SpO2, BP/MAP, RR, temperature, and EtCO2 fluctuate deterministically. This is the current MVP waveform source because the local Pulse provider is scalar-only. The optional `--tcp-port` stream is private localhost, non-durable, and mirrors frame envelopes for smoother monitor display; public JSON lanes remain the authoritative durable contract.
+The demo provider emits coherent but synthetic ECG Lead II, arterial pressure, pleth, and respiration impedance windows through `waveforms/current.json`, with matching `waveforms/status.json` labels: `sourceKind: "demo"`, `fidelity: "demo"`, `synthetic: true`. Numeric HR, SpO2, BP/MAP, RR, and temperature fluctuate deterministically. This is the current MVP waveform source because the local Pulse provider is scalar-only. The optional `--tcp-port` stream is private localhost, non-durable, and mirrors frame envelopes for smoother monitor display; public JSON lanes remain the authoritative durable contract.
 
 To open the popup monitor against this lane:
 
