@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "sequence": 4,
+  "simTime_s": 30,
+  "wallTime": "2026-04-28T19:59:30.796Z",
+  "source": "pi-sim-scripted",
+  "runState": "ended",
+  "available": true,
+  "lastRequestId": "assess_demo_0001",
+  "lastRevealSequence": 2
+}

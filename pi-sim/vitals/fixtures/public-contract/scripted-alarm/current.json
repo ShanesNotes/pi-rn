@@ -1,0 +1,28 @@
+{
+  "t": 20,
+  "simTime_s": 20,
+  "wallTime": "2026-04-28T19:59:31.233Z",
+  "hr": 100,
+  "map": 62,
+  "bp_sys": 90,
+  "bp_dia": 52,
+  "rr": 24,
+  "spo2": 89,
+  "temp_c": 37.1,
+  "scenarioPhase": "alarm_persistent",
+  "alarms": [
+    "MAP_LOW",
+    "SPO2_LOW"
+  ],
+  "monitor": {
+    "schemaVersion": 1,
+    "source": "pi-sim-scripted",
+    "sequence": 3,
+    "runState": "ended",
+    "events": [
+      "MAP_LOW",
+      "SPO2_LOW"
+    ],
+    "heartRhythm": "unavailable"
+  }
+}

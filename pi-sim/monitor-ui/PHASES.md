@@ -1,3 +1,8 @@
+> **Status: SUPERSEDED — legacy/historical monitor implementation.**
+> **Do not execute as current display direction.** The current monitor direction lives in sibling `../pi-monitor` and `.omx/plans/plan-pulse-live-vitals-monitor.md`. `pi-sim` now owns patient-runtime/provider telemetry per `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md`.
+
+---
+
 # Monitor-UI Phased Build
 
 Bedside monitor recreation for pi-sim. Reference style: Philips IntelliVue (see `refs/patterns.md`). Do not copy assets.
@@ -78,8 +83,9 @@ Bedside monitor recreation for pi-sim. Reference style: Philips IntelliVue (see 
 - Waveform context menu (right-click on row): Freeze, Secondary Lead, Size Up/Down.
 - Yellow focus-row highlight, X-close behavior, ▲▼ pagination.
 
-### Phase 6 — Pulse stream wiring
-- Bind tiles + waveforms to pi-sim Pulse engine output (`shim` HTTP).
+### Phase 6 — Superseded Pulse stream wiring (historical)
+- **Historical only; do not execute.** Direct shim HTTP wiring is superseded by the public telemetry/provider boundary in ADR 003 and sibling `../pi-monitor`.
+- Original obsolete idea: bind tiles + waveforms to pi-sim Pulse engine output (`shim` HTTP).
 - Per-channel ring buffer at 25 mm/s sweep rate.
 - Reconnect handling when shim is down → grayed numerics + signal-loss icon.
 

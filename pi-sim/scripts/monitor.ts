@@ -3,7 +3,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { shim, waitForShim, type RawVitals } from "./client.js";
 import { renderFrame, renderEnded, CLEAR, HIDE_CURSOR, SHOW_CURSOR } from "./render.js";
-import type { AlarmThresholds, Scenario, VitalFrame } from "./types.js";
+import type { AlarmThresholds, MonitorExtension, Scenario, VitalFrame } from "./types.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const VITALS_DIR = join(ROOT, "vitals");
@@ -42,10 +42,23 @@ function computeAlarms(frame: Record<string, unknown>, thresholds: AlarmThreshol
   return alarms;
 }
 
-function frameFromRaw(raw: RawVitals, thresholds: AlarmThresholds): VitalFrame {
+function frameFromRaw(
+  raw: RawVitals,
+  thresholds: AlarmThresholds,
+  sequence: number,
+  runState: MonitorExtension["runState"] = "running",
+): VitalFrame {
   const partial: Record<string, unknown> = { ...raw, wallTime: new Date().toISOString() };
   const alarms = computeAlarms(partial, thresholds);
-  return { ...(partial as object), alarms } as VitalFrame;
+  const monitor: MonitorExtension = {
+    schemaVersion: 1,
+    source: "pi-sim-pulse",
+    sequence,
+    runState,
+    events: alarms,
+    heartRhythm: "unavailable",
+  };
+  return { ...(partial as object), alarms, monitor } as VitalFrame;
 }
 
 async function main(): Promise<void> {
@@ -83,7 +96,8 @@ async function main(): Promise<void> {
   // Initial frame at t=0
   let tSim = first.t ?? 0;
   const wallStart = Date.now();
-  const initialFrame = frameFromRaw(first, thresholds);
+  let sequence = 0;
+  const initialFrame = frameFromRaw(first, thresholds, sequence);
   atomicWrite(currentPath, JSON.stringify(initialFrame, null, 2) + "\n");
   history.push(initialFrame);
   atomicWrite(timelinePath, JSON.stringify(history, null, 2) + "\n");
@@ -101,7 +115,8 @@ async function main(): Promise<void> {
     const raw = await shim.advance(dt);
     tSim = raw.t;
 
-    const frame = frameFromRaw(raw, thresholds);
+    sequence += 1;
+    const frame = frameFromRaw(raw, thresholds, sequence);
     atomicWrite(currentPath, JSON.stringify(frame, null, 2) + "\n");
     history.push(frame);
     atomicWrite(timelinePath, JSON.stringify(history, null, 2) + "\n");

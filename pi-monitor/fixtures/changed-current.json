@@ -1,0 +1,13 @@
+{
+  "t": 46,
+  "hr": 88.0,
+  "map": 82.0,
+  "bp_sys": 106.0,
+  "bp_dia": 64.0,
+  "rr": 18.0,
+  "temp_c": 37.4,
+  "etco2_mmHg": 33.0,
+  "spo2": 94.0,
+  "wallTime": "2026-04-21T02:53:45.970Z",
+  "alarms": ["Tachycardia"]
+}

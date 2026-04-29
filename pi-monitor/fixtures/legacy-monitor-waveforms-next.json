@@ -1,0 +1,27 @@
+{
+  "t": 46,
+  "wallTime": "2026-04-19T20:32:02.000Z",
+  "hr": 88,
+  "map": 82,
+  "bp_sys": 106,
+  "bp_dia": 64,
+  "rr": 18,
+  "spo2": 94,
+  "temp_c": 37.4,
+  "etco2_mmHg": 34,
+  "alarms": ["Tachycardia"],
+  "monitor": {
+    "schemaVersion": 1,
+    "source": "fixture-synthetic-waveforms",
+    "sequence": 43,
+    "runState": "running",
+    "events": ["Tachycardia"],
+    "heartRhythm": "fixture-sinus-tachycardia",
+    "waveforms": {
+      "ECG_LeadII": { "unit": "mV", "sampleRate_Hz": 125, "t0_s": 44.0, "values": [0.0, 0.10, 1.05, -0.24, 0.06, 0.01, 0.0, 0.08] },
+      "Pleth": { "unit": "unitless", "sampleRate_Hz": 50, "t0_s": 44.0, "values": [0.12, 0.25, 0.68, 0.9, 0.55, 0.36, 0.2, 0.12] },
+      "ArterialPressure": { "unit": "mmHg", "sampleRate_Hz": 125, "t0_s": 44.0, "values": [64, 70, 98, 106, 84, 74, 68, 64] },
+      "CO2": { "unit": "mmHg", "sampleRate_Hz": 50, "t0_s": 44.0, "values": [2, 6, 20, 31, 34, 29, 12, 2] }
+    }
+  }
+}

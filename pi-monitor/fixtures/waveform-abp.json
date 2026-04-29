@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "source": "pi-sim/pulse",
+  "sequence": 77,
+  "runState": "running",
+  "simTime_s": 130,
+  "vitals": {
+    "HeartRate": { "value": 72, "unit": "1/min" },
+    "ArterialPressure": { "value": 100, "unit": "mmHg" }
+  },
+  "events": [],
+  "heartRhythm": "NormalSinus",
+  "waveforms": {
+    "ArterialPressure": { "unit": "mmHg", "sampleRate_Hz": 50, "t0_s": 129.8, "values": [95, 100, 110, 105] }
+  }
+}

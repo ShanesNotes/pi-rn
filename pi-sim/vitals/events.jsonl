@@ -1,0 +1,1 @@
+{"schemaVersion":2,"eventIndex":0,"sequence":0,"simTime_s":0,"wallTime":"2026-04-29T02:03:25.250Z","source":"pi-sim-demo-waveform","runState":"running","kind":"run_started","payload":{"provider":"deterministic demo ECG + pleth waveform provider"}}

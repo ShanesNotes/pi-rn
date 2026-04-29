@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "producer": "pi-sim provider runtime",
+  "resetSemantics": "PublicTelemetryPublisher resets per-run append lanes on construction; latest-state lanes are overwritten atomically and optional current lanes clear stale files when unavailable.",
+  "lanes": [
+    {
+      "name": "current",
+      "path": "current.json",
+      "artifactKind": "latest-frame",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest"],
+      "resetSemantics": "overwritten on each published frame",
+      "producer": "PublicTelemetryPublisher.publish",
+      "preferredConsumerMode": "read-latest"
+    },
+    {
+      "name": "timeline-compat-array",
+      "path": "timeline.json",
+      "artifactKind": "frame-history-compat-array",
+      "schemaVersion": 1,
+      "recordSchemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "whole-file-rewrite", "compat-array"],
+      "resetSemantics": "publisher instance starts a new in-memory history and rewrites this file",
+      "producer": "PublicTelemetryPublisher.publish",
+      "preferredConsumerMode": "compat-array"
+    },
+    {
+      "name": "timeline-append-jsonl",
+      "path": "timeline.jsonl",
+      "artifactKind": "frame-history-jsonl",
+      "schemaVersion": 1,
+      "recordSchemaVersion": 1,
+      "writeSemantics": ["append-jsonl", "reset-on-construction"],
+      "resetSemantics": "removed by PublicTelemetryPublisher constructor before appending run-local frames",
+      "producer": "PublicTelemetryPublisher.publish",
+      "preferredConsumerMode": "tail-jsonl"
+    },
+    {
+      "name": "status",
+      "path": "status.json",
+      "artifactKind": "latest-run-status",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest"],
+      "resetSemantics": "overwritten on each published frame",
+      "producer": "PublicTelemetryPublisher.publish",
+      "preferredConsumerMode": "read-latest"
+    },
+    {
+      "name": "events",
+      "path": "events.jsonl",
+      "artifactKind": "event-history-jsonl",
+      "schemaVersion": 2,
+      "recordSchemaVersion": 2,
+      "writeSemantics": ["append-jsonl", "reset-on-construction"],
+      "resetSemantics": "removed by PublicTelemetryPublisher constructor before appending run-local events; eventIndex is per-run and starts at 0",
+      "producer": "Runtime runner event lane",
+      "preferredConsumerMode": "tail-jsonl"
+    },
+    {
+      "name": "encounter-current",
+      "path": "encounter/current.json",
+      "artifactKind": "latest-encounter-context",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest", "clears-when-unavailable"],
+      "resetSemantics": "removed when a provider supplies no public encounter context",
+      "producer": "PublicTelemetryPublisher.publishEncounter",
+      "preferredConsumerMode": "read-latest"
+    },
+    {
+      "name": "assessments-status",
+      "path": "assessments/status.json",
+      "artifactKind": "latest-assessment-status",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest"],
+      "resetSemantics": "overwritten on each frame with current assessment capability/request status",
+      "producer": "PublicTelemetryPublisher.publishAssessment",
+      "preferredConsumerMode": "read-latest"
+    },
+    {
+      "name": "assessments-current",
+      "path": "assessments/current.json",
+      "artifactKind": "latest-revealed-assessment",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest", "clears-when-unavailable"],
+      "resetSemantics": "absent until assessment reveal; removed before request, when unavailable, or when a request has no reveal",
+      "producer": "PublicTelemetryPublisher.publishAssessment",
+      "preferredConsumerMode": "read-latest"
+    },
+    {
+      "name": "waveforms-status",
+      "path": "waveforms/status.json",
+      "artifactKind": "latest-waveform-status",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest"],
+      "resetSemantics": "overwritten on every provider-runtime frame with availability truth",
+      "producer": "PublicTelemetryPublisher.publishWaveform",
+      "preferredConsumerMode": "read-latest"
+    },
+    {
+      "name": "waveforms-current",
+      "path": "waveforms/current.json",
+      "artifactKind": "latest-waveform-window",
+      "schemaVersion": 1,
+      "writeSemantics": ["atomic-rename", "overwrite-latest", "clears-when-unavailable"],
+      "resetSemantics": "absent unless provider supplies waveform samples; removed on unavailable/no-window frames",
+      "producer": "PublicTelemetryPublisher.publishWaveform",
+      "preferredConsumerMode": "read-latest"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "scripted_alarm_smoke",
+  "description": "Short Docker-free scripted smoke that trips real MAP and SpO2 alarm events through the public runtime publisher.",
+  "provider": "scripted",
+  "duration_s": 20,
+  "initial": {
+    "hr": 78,
+    "map": 82,
+    "bp_sys": 118,
+    "bp_dia": 70,
+    "rr": 16,
+    "spo2": 98,
+    "temp_c": 37.0
+  },
+  "waypoints": [
+    {
+      "t": 10,
+      "phase": "alarm_window",
+      "vitals": {
+        "hr": 104,
+        "map": 60,
+        "bp_sys": 88,
+        "bp_dia": 50,
+        "rr": 28,
+        "spo2": 88,
+        "temp_c": 37.2
+      },
+      "events": ["SCRIPTED_ALARM_WINDOW"]
+    },
+    {
+      "t": 20,
+      "phase": "alarm_persistent",
+      "vitals": {
+        "hr": 100,
+        "map": 62,
+        "bp_sys": 90,
+        "bp_dia": 52,
+        "rr": 24,
+        "spo2": 89,
+        "temp_c": 37.1
+      }
+    }
+  ]
+}

@@ -1,3 +1,8 @@
+> **Status: SUPERSEDED — legacy/historical monitor implementation.**
+> **Do not execute as current display direction.** The current monitor direction lives in sibling `../pi-monitor` and `.omx/plans/plan-pulse-live-vitals-monitor.md`. `pi-sim` now owns patient-runtime/provider telemetry per `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md`.
+
+---
+
 # monitor-ui
 
 Standalone PySide6 bedside monitor for `pi-rn`.

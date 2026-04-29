@@ -1,0 +1,1031 @@
+{
+  "name": "patient_002_septic_shock_recovery",
+  "description": "Scripted hidden physiology/vitals-driver fixture derived from patient_002_chart_v4.zip. Owned by pi-sim; do not expose as pi-chart chart truth.",
+  "provider": "scripted",
+  "duration_s": 230400,
+  "initial": {
+    "hr": 108,
+    "map": 64,
+    "bp_sys": 88,
+    "bp_dia": 52,
+    "rr": 24,
+    "spo2": 94,
+    "temp_c": 38.4
+  },
+  "waypoints": [
+    {
+      "t": 1200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 104,
+        "map": 68,
+        "bp_sys": 94,
+        "bp_dia": 56,
+        "rr": 24,
+        "spo2": 94,
+        "temp_c": 38.3
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 1800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 102,
+        "map": 73,
+        "bp_sys": 102,
+        "bp_dia": 58,
+        "rr": 24,
+        "spo2": 94,
+        "temp_c": 38.3
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 3600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 104,
+        "map": 75,
+        "bp_sys": 104,
+        "bp_dia": 60,
+        "rr": 26,
+        "spo2": 93,
+        "temp_c": 38.2
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 4500,
+      "phase": "transient_spo2_dip_paradoxical_breathing",
+      "vitals": {
+        "hr": 108,
+        "map": 72,
+        "bp_sys": 100,
+        "bp_dia": 58,
+        "rr": 32,
+        "spo2": 88,
+        "temp_c": 38.2
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 4800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 110,
+        "map": 70,
+        "bp_sys": 98,
+        "bp_dia": 56,
+        "rr": 32,
+        "spo2": 92,
+        "temp_c": 38.2
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 6300,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 112,
+        "map": 68,
+        "bp_sys": 96,
+        "bp_dia": 54,
+        "rr": 34,
+        "spo2": 89,
+        "temp_c": 38.2
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 8100,
+      "phase": "pre_intubation_pre_oxygenation",
+      "vitals": {
+        "hr": 108,
+        "map": 80,
+        "bp_sys": 110,
+        "bp_dia": 64,
+        "rr": 18,
+        "spo2": 94,
+        "temp_c": 38.1
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 9000,
+      "phase": "post_intubation",
+      "vitals": {
+        "hr": 94,
+        "map": 89,
+        "bp_sys": 124,
+        "bp_dia": 72,
+        "rr": 22,
+        "spo2": 98,
+        "temp_c": 38
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 10800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 98,
+        "map": 85,
+        "bp_sys": 118,
+        "bp_dia": 68,
+        "rr": 22,
+        "spo2": 98,
+        "temp_c": 38
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 12600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 100,
+        "map": 82,
+        "bp_sys": 114,
+        "bp_dia": 66,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 38
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 14400,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 102,
+        "map": 80,
+        "bp_sys": 112,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.9
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 18000,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 102,
+        "map": 78,
+        "bp_sys": 108,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 38
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 21600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 98,
+        "map": 80,
+        "bp_sys": 110,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.8
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 25200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 96,
+        "map": 80,
+        "bp_sys": 112,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 98,
+        "temp_c": 37.7
+      },
+      "events": [
+        "NOREPI_0.05_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 28800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 94,
+        "map": 78,
+        "bp_sys": 110,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.6
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 32400,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 94,
+        "map": 76,
+        "bp_sys": 108,
+        "bp_dia": 60,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.5
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 36000,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 92,
+        "map": 78,
+        "bp_sys": 110,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.5
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 39600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 92,
+        "map": 76,
+        "bp_sys": 108,
+        "bp_dia": 60,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.4
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 43200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 90,
+        "map": 78,
+        "bp_sys": 110,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.4
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 46800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 92,
+        "map": 76,
+        "bp_sys": 108,
+        "bp_dia": 60,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.5
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 50400,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 90,
+        "map": 78,
+        "bp_sys": 110,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.5
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 54000,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 92,
+        "map": 78,
+        "bp_sys": 112,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.6
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 57600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 90,
+        "map": 78,
+        "bp_sys": 110,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.5
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 61200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 90,
+        "map": 78,
+        "bp_sys": 110,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.5
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 64800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 88,
+        "map": 78,
+        "bp_sys": 112,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.4
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 68400,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 88,
+        "map": 76,
+        "bp_sys": 110,
+        "bp_dia": 60,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 72000,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 86,
+        "map": 78,
+        "bp_sys": 112,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 75600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 86,
+        "map": 80,
+        "bp_sys": 114,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 79200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 84,
+        "map": 79,
+        "bp_sys": 114,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 82800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 84,
+        "map": 81,
+        "bp_sys": 116,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 86400,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 86,
+        "map": 79,
+        "bp_sys": 114,
+        "bp_dia": 62,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 90000,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 86,
+        "map": 83,
+        "bp_sys": 118,
+        "bp_dia": 66,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.04_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 93600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 84,
+        "map": 81,
+        "bp_sys": 116,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 97200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 82,
+        "map": 83,
+        "bp_sys": 118,
+        "bp_dia": 66,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 100800,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 84,
+        "map": 84,
+        "bp_sys": 120,
+        "bp_dia": 66,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.4
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 104400,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 86,
+        "map": 83,
+        "bp_sys": 118,
+        "bp_dia": 66,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.4
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 108000,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 84,
+        "map": 81,
+        "bp_sys": 116,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 111600,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 82,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 115200,
+      "phase": "pressor_support",
+      "vitals": {
+        "hr": 84,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      },
+      "events": [
+        "NOREPI_0.03_MCG_KG_MIN"
+      ]
+    },
+    {
+      "t": 118800,
+      "phase": "norepi_off",
+      "vitals": {
+        "hr": 84,
+        "map": 81,
+        "bp_sys": 116,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 122400,
+      "vitals": {
+        "hr": 86,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 126000,
+      "vitals": {
+        "hr": 84,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 129600,
+      "vitals": {
+        "hr": 84,
+        "map": 81,
+        "bp_sys": 116,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 133200,
+      "vitals": {
+        "hr": 82,
+        "map": 83,
+        "bp_sys": 118,
+        "bp_dia": 66,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.3
+      }
+    },
+    {
+      "t": 140400,
+      "vitals": {
+        "hr": 80,
+        "map": 81,
+        "bp_sys": 116,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 144000,
+      "vitals": {
+        "hr": 80,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 147600,
+      "vitals": {
+        "hr": 80,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 151200,
+      "vitals": {
+        "hr": 78,
+        "map": 84,
+        "bp_sys": 120,
+        "bp_dia": 66,
+        "rr": 20,
+        "spo2": 97,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 154800,
+      "vitals": {
+        "hr": 78,
+        "map": 82,
+        "bp_sys": 118,
+        "bp_dia": 64,
+        "rr": 20,
+        "spo2": 97,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 158400,
+      "vitals": {
+        "hr": 76,
+        "map": 84,
+        "bp_sys": 120,
+        "bp_dia": 66,
+        "rr": 20,
+        "spo2": 97,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 162000,
+      "phase": "sedation_off_sat",
+      "vitals": {
+        "hr": 78,
+        "map": 87,
+        "bp_sys": 124,
+        "bp_dia": 68,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37
+      }
+    },
+    {
+      "t": 165600,
+      "vitals": {
+        "hr": 82,
+        "map": 91,
+        "bp_sys": 128,
+        "bp_dia": 72,
+        "rr": 24,
+        "spo2": 97,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 167400,
+      "phase": "awake_following_commands",
+      "vitals": {
+        "hr": 84,
+        "map": 91,
+        "bp_sys": 130,
+        "bp_dia": 72,
+        "rr": 22,
+        "spo2": 97,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 171000,
+      "phase": "sbt_start",
+      "vitals": {
+        "hr": 86,
+        "map": 89,
+        "bp_sys": 128,
+        "bp_dia": 70,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 172800,
+      "phase": "sbt_30_min_passed",
+      "vitals": {
+        "hr": 86,
+        "map": 89,
+        "bp_sys": 126,
+        "bp_dia": 70,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 176400,
+      "vitals": {
+        "hr": 88,
+        "map": 87,
+        "bp_sys": 124,
+        "bp_dia": 68,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 178200,
+      "phase": "extubation",
+      "vitals": {
+        "hr": 92,
+        "map": 91,
+        "bp_sys": 128,
+        "bp_dia": 72,
+        "rr": 20,
+        "spo2": 98,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 180000,
+      "vitals": {
+        "hr": 88,
+        "map": 88,
+        "bp_sys": 124,
+        "bp_dia": 70,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 183600,
+      "vitals": {
+        "hr": 86,
+        "map": 88,
+        "bp_sys": 124,
+        "bp_dia": 70,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 187200,
+      "vitals": {
+        "hr": 84,
+        "map": 89,
+        "bp_sys": 126,
+        "bp_dia": 70,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.2
+      }
+    },
+    {
+      "t": 190800,
+      "vitals": {
+        "hr": 82,
+        "map": 87,
+        "bp_sys": 124,
+        "bp_dia": 68,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 194400,
+      "vitals": {
+        "hr": 82,
+        "map": 89,
+        "bp_sys": 126,
+        "bp_dia": 70,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 198000,
+      "vitals": {
+        "hr": 80,
+        "map": 91,
+        "bp_sys": 128,
+        "bp_dia": 72,
+        "rr": 18,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 201600,
+      "vitals": {
+        "hr": 80,
+        "map": 91,
+        "bp_sys": 130,
+        "bp_dia": 72,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 205200,
+      "vitals": {
+        "hr": 78,
+        "map": 91,
+        "bp_sys": 128,
+        "bp_dia": 72,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37.1
+      }
+    },
+    {
+      "t": 208800,
+      "vitals": {
+        "hr": 78,
+        "map": 89,
+        "bp_sys": 126,
+        "bp_dia": 70,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37
+      }
+    },
+    {
+      "t": 212400,
+      "vitals": {
+        "hr": 76,
+        "map": 91,
+        "bp_sys": 128,
+        "bp_dia": 72,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37
+      }
+    },
+    {
+      "t": 216000,
+      "vitals": {
+        "hr": 76,
+        "map": 89,
+        "bp_sys": 126,
+        "bp_dia": 70,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37
+      }
+    },
+    {
+      "t": 219600,
+      "vitals": {
+        "hr": 76,
+        "map": 91,
+        "bp_sys": 128,
+        "bp_dia": 72,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37
+      }
+    },
+    {
+      "t": 226800,
+      "vitals": {
+        "hr": 74,
+        "map": 89,
+        "bp_sys": 126,
+        "bp_dia": 70,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 37
+      }
+    },
+    {
+      "t": 230400,
+      "vitals": {
+        "hr": 72,
+        "map": 87,
+        "bp_sys": 124,
+        "bp_dia": 68,
+        "rr": 16,
+        "spo2": 98,
+        "temp_c": 36.9
+      }
+    }
+  ]
+}

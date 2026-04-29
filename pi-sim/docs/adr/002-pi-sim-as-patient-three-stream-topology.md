@@ -4,6 +4,7 @@ Date: 2026-04-23
 Status: accepted
 Decision maker: user (project lead).
 Supersedes: none (clarifies the architectural frame assumed by ADR 001).
+Extended by: `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` for the provider-based patient runtime architecture.
 
 ## Context
 
@@ -40,10 +41,12 @@ organizing frame. Specifically:
 
 pi-sim's job is to *be* a synthetic ICU patient — the substrate that
 emits History, Physical, and Vital signs consistent with a single
-coherent clinical narrative. The PySide6 bedside monitor is a
-**consumer** of pi-sim, not its purpose. Pulse is an **optional
-injector** that can drive portions of the vitals stream when acute
-physiology is required; it is not the source of truth for the patient.
+coherent clinical narrative. The bedside monitor is a **consumer** of
+pi-sim, not its purpose. The current display authority is the sibling
+`pi-monitor` project; the old in-repo PySide monitor is historical. Pulse
+is an **optional injector/provider** that can drive portions of the vitals
+stream when acute physiology is required; it is not the source of truth for
+the patient.
 
 ### 2. Three data-classes, three workflows
 
@@ -151,10 +154,10 @@ injection input.
   pi-sim via pi-chart) are now design-stable enough to implement
   against. The intervention write-back seam (§The missing arrow) stays
   frozen.
-- **Monitor-UI PRD requires revision.** Its scope now includes
-  first-class alarm routing to pi-agent, not just local alarm display.
-  Existing monitor-ui execution-ready PRD needs an update pass before
-  Phase 4 opens.
+- **Legacy Monitor-UI PRD is superseded.** The former in-repo
+  `monitor-ui` execution-ready PRD is historical. Live display direction now
+  belongs to sibling `pi-monitor`; alarm-routing work should start from the
+  public telemetry/provider boundary and a fresh plan.
 - **Scenario authoring is the next foundational work.** A
   patient-encounter definition that rolls out History + Physical +
   Vitals coherently, over simulated time, is the scaffolding the whole

@@ -2,7 +2,7 @@
   "name": "pi-sim",
   "version": "0.2.0",
   "private": true,
-  "description": "Bedside-monitor backed by the Kitware Pulse Physiology Engine (via Docker sidecar). Exposes file-based monitor outputs for an external clinician workspace.",
+  "description": "Hidden patient simulation runtime with provider-based physiology and public telemetry outputs.",
   "type": "module",
   "scripts": {
     "monitor": "tsx scripts/monitor.ts",
@@ -10,11 +10,23 @@
     "monitor:sepsis": "tsx scripts/monitor.ts --scenario vitals/scenarios/sepsis_norepi.json",
     "monitor:ui": "monitor-ui/.venv/bin/python monitor-ui/app.py",
     "validate": "tsx scripts/validate.ts",
+    "validate:pulse": "tsx scripts/validate.ts",
+    "test": "npm run typecheck && npm run test:runtime && npm run test:validate:scripted && npm run test:public-contract",
+    "test:validate:scripted": "tsx scripts/validate-scripted.ts",
     "pulse:up": "docker compose -f pulse/docker-compose.yml up -d",
     "pulse:down": "docker compose -f pulse/docker-compose.yml down",
     "pulse:logs": "docker compose -f pulse/docker-compose.yml logs -f pulse",
     "pulse:health": "curl -fsS http://localhost:8765/health",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "monitor:pulse": "tsx scripts/monitor.ts",
+    "sim:run": "tsx scripts/sim-run.ts",
+    "sim:run:demo": "tsx scripts/sim-run.ts --scenario vitals/scenarios/scripted_m1_demo.json --duration 30 --dt 10 --no-pacing",
+    "test:runtime": "tsx scripts/runtime/test.ts",
+    "sim:run:pulse": "tsx scripts/sim-run-pulse.ts",
+    "sim:run:pulse:stable": "tsx scripts/sim-run-pulse.ts --scenario vitals/scenarios/pulse_stable_observation.json --duration 60 --dt 10 --no-pacing",
+    "test:public-contract": "tsx scripts/public-contract-reader-test.ts",
+    "sim:run:live-demo": "tsx scripts/sim-run-live-demo.ts --duration 300 --dt 0.1 --time-scale 1",
+    "monitor:live-demo": "tsx scripts/monitor-live-demo.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

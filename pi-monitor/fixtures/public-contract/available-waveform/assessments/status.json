@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sequence": 5,
+  "simTime_s": 2,
+  "wallTime": "2026-04-28T23:35:50.014Z",
+  "source": "pi-sim-demo-waveform",
+  "runState": "ended",
+  "available": false,
+  "lastRequestId": null,
+  "lastRevealSequence": null,
+  "reason": "provider_does_not_supply_assessments"
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "requestId": "assess_demo_0001",
+  "assessmentType": "focused_respiratory",
+  "visibility": "revealed",
+  "sequence": 2,
+  "simTime_s": 20,
+  "wallTime": "2026-04-28T19:59:30.780Z",
+  "source": "pi-sim-scripted",
+  "runState": "running",
+  "findings": [
+    {
+      "id": "finding_demo_work_of_breathing",
+      "label": "work of breathing",
+      "value": "mildly increased",
+      "severity": "mild",
+      "evidence": [
+        {
+          "kind": "event",
+          "ref": "events.jsonl#requestId=assess_demo_0001",
+          "role": "primary"
+        },
+        {
+          "kind": "vitals_window",
+          "ref": "vitals://current?simTime_s=20",
+          "role": "context"
+        }
+      ]
+    }
+  ],
+  "bodySystem": "respiratory",
+  "summary": "Mildly increased work of breathing with stable oxygenation.",
+  "evidence": [
+    {
+      "kind": "encounter",
+      "ref": "enc_demo_001",
+      "role": "context"
+    }
+  ],
+  "envelopeDigest": "3ba95c2b94d67fb7207d46fb788272cc953b1a3cde9f166049c81c7499092c1b"
+}

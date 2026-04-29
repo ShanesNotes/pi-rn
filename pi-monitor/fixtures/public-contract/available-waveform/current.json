@@ -1,0 +1,23 @@
+{
+  "t": 2,
+  "simTime_s": 2,
+  "wallTime": "2026-04-28T23:35:50.014Z",
+  "hr": 80.3,
+  "map": 87.8,
+  "bp_sys": 120.7,
+  "bp_dia": 71.4,
+  "rr": 17.3,
+  "spo2": 97.3,
+  "temp_c": 37.01,
+  "etco2_mmHg": 39.2,
+  "scenarioPhase": "live-demo-baseline",
+  "alarms": [],
+  "monitor": {
+    "schemaVersion": 1,
+    "source": "pi-sim-demo-waveform",
+    "sequence": 5,
+    "runState": "ended",
+    "events": [],
+    "heartRhythm": "unavailable"
+  }
+}

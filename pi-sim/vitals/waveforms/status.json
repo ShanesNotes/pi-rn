@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sequence": 534,
+  "simTime_s": 53.4,
+  "wallTime": "2026-04-29T02:04:18.549Z",
+  "source": "pi-sim-demo-waveform",
+  "runState": "running",
+  "available": true,
+  "sourceKind": "demo",
+  "fidelity": "demo",
+  "synthetic": true
+}

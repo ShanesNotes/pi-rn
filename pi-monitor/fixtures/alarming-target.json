@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "source": "pi-sim/pulse",
+  "sequence": 12345,
+  "runState": "running",
+  "simTime_s": 842.04,
+  "vitals": {
+    "HeartRate": { "value": 132.2, "unit": "1/min" },
+    "SystolicArterialPressure": { "value": 88, "unit": "mmHg" },
+    "DiastolicArterialPressure": { "value": 52, "unit": "mmHg" },
+    "MeanArterialPressure": { "value": 64, "unit": "mmHg" },
+    "PulseOximetry": { "value": 0.89, "unit": "unitless" },
+    "RespirationRate": { "value": 28, "unit": "1/min" },
+    "CoreTemperature": { "value": 38.7, "unit": "degC" },
+    "EndTidalCarbonDioxidePressure": { "value": 29, "unit": "mmHg" }
+  },
+  "events": ["Tachycardia", "Hypoxia"],
+  "heartRhythm": "NormalSinus",
+  "waveforms": {}
+}

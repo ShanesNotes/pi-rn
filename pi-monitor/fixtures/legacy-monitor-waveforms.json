@@ -1,0 +1,27 @@
+{
+  "t": 44,
+  "wallTime": "2026-04-19T20:32:00.000Z",
+  "hr": 72,
+  "map": 95,
+  "bp_sys": 114,
+  "bp_dia": 73,
+  "rr": 12,
+  "spo2": 97,
+  "temp_c": 37.1,
+  "etco2_mmHg": 36,
+  "alarms": [],
+  "monitor": {
+    "schemaVersion": 1,
+    "source": "fixture-synthetic-waveforms",
+    "sequence": 42,
+    "runState": "running",
+    "events": [],
+    "heartRhythm": "fixture-sinus",
+    "waveforms": {
+      "ECG_LeadII": { "unit": "mV", "sampleRate_Hz": 125, "t0_s": 42.0, "values": [0.0, 0.08, 0.16, 0.95, -0.22, 0.05, 0.02, 0.0] },
+      "Pleth": { "unit": "unitless", "sampleRate_Hz": 50, "t0_s": 42.0, "values": [0.15, 0.28, 0.7, 1.0, 0.62, 0.42, 0.25, 0.16] },
+      "ArterialPressure": { "unit": "mmHg", "sampleRate_Hz": 125, "t0_s": 42.0, "values": [73, 78, 105, 114, 94, 86, 78, 73] },
+      "CO2": { "unit": "mmHg", "sampleRate_Hz": 50, "t0_s": 42.0, "values": [2, 4, 18, 33, 36, 31, 10, 2] }
+    }
+  }
+}

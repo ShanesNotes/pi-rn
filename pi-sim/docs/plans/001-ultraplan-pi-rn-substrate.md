@@ -6,7 +6,7 @@ This document is an archival planning draft from an earlier phase when the simul
 
 It is kept for research history only. It does **not** define the current repository architecture.
 
-**Superseded by** `002-pulse-pivot.md`, which replaces the original DIY TypeScript physiology engine with the Kitware Pulse Physiology Engine in a Docker sidecar.
+**Superseded by** ADR 002 and ADR 003. The intermediate `002-pulse-pivot.md` is itself now a tombstoned historical artifact; current direction is the provider-based patient runtime in `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md`.
 
 ## Current architectural direction
 

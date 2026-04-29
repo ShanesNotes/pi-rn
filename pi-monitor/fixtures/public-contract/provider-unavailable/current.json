@@ -1,0 +1,16 @@
+{
+  "t": 0,
+  "simTime_s": 0,
+  "wallTime": "2026-04-28T19:59:31.709Z",
+  "alarms": [],
+  "monitor": {
+    "schemaVersion": 1,
+    "source": "pi-sim-pulse",
+    "sequence": 0,
+    "runState": "unavailable",
+    "events": [
+      "PROVIDER_UNAVAILABLE"
+    ],
+    "heartRhythm": "unavailable"
+  }
+}

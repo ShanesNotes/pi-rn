@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "source": "pi-sim/pulse",
+  "sequence": 12346,
+  "runState": "running",
+  "simTime_s": 900,
+  "vitals": {
+    "HeartRate": { "value": 0, "unit": "1/min" },
+    "PulseOximetry": { "value": 0.62, "unit": "unitless" }
+  },
+  "events": ["CardiacArrest"],
+  "heartRhythm": "Asystole",
+  "waveforms": {}
+}

@@ -1,6 +1,10 @@
 # Pulse sidecar
 
-Docker-based integration of the Kitware Pulse Physiology Engine (v4.3.1) into pi-sim. This directory is the only place that links against Pulse. The rest of pi-sim treats it as an opaque HTTP service.
+Current/legacy provider integration for the Kitware Pulse Physiology Engine (v4.3.1). This directory is the only place that links against Pulse. The rest of `pi-sim` treats it as an opaque provider service behind the public patient-runtime boundary.
+
+## Architecture status
+
+Per `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md`, Pulse is a physiology provider/backend, not the center of the `pi-sim` architecture. The stdlib HTTP shim and Docker sidecar are the current implementation and a useful reference for mappings, action payloads, baked states, and validation evidence. The M2 TypeScript runtime wraps this shim in `scripts/runtime/pulseProvider.ts` and runs it through the shared provider runner/publisher without changing public consumers.
 
 ## Boundary
 
@@ -35,6 +39,8 @@ Scenarios (action timelines + state file references + regression checkpoints) li
 cd pulse
 docker compose up -d
 curl -fsS http://localhost:8765/health
+cd ..
+npm run sim:run:pulse:stable
 ```
 
 First run pulls ~1.3 GB for the `kitware/pulse:4.3.1` image.
@@ -44,6 +50,8 @@ publishing works, but `docker-compose.yml` binds the published host port to
 `127.0.0.1`. Set `PULSE_SHIM_TOKEN` before `docker compose up` to require a
 bearer token or `X-Pulse-Shim-Token` header for every endpoint except
 `/health`.
+
+If the shim is not running, `npm run sim:run:pulse:stable` exits non-zero and writes `runState: "unavailable"` evidence to its output directory. This is intentional: local no-Docker verification should continue to use `npm run sim:run:demo` and fake-transport runtime tests.
 
 ## Endpoints
 

@@ -1,0 +1,89 @@
+{
+  "name": "scripted_m1_demo",
+  "description": "Deterministic no-Pulse scalar telemetry demo for the M1 patient-runtime skeleton. Demo-grade only; not clinical physiology truth.",
+  "provider": "scripted",
+  "duration_s": 120,
+  "initial": {
+    "hr": 78,
+    "map": 82,
+    "bp_sys": 118,
+    "bp_dia": 70,
+    "rr": 16,
+    "spo2": 98,
+    "temp_c": 37.0,
+    "lactate_mmol_l": 1.1
+  },
+  "waypoints": [
+    {
+      "t": 45,
+      "phase": "early_deterioration",
+      "vitals": {
+        "hr": 94,
+        "map": 68,
+        "bp_sys": 102,
+        "bp_dia": 58,
+        "rr": 22,
+        "spo2": 93,
+        "temp_c": 37.2,
+        "lactate_mmol_l": 1.8
+      },
+      "events": [
+        "SCRIPTED_DETERIORATION"
+      ]
+    },
+    {
+      "t": 90,
+      "phase": "support_response",
+      "vitals": {
+        "hr": 88,
+        "map": 74,
+        "bp_sys": 110,
+        "bp_dia": 64,
+        "rr": 19,
+        "spo2": 96,
+        "temp_c": 37.1,
+        "lactate_mmol_l": 1.4
+      },
+      "events": [
+        "SCRIPTED_SUPPORT_RESPONSE"
+      ]
+    },
+    {
+      "t": 120,
+      "phase": "stable_end",
+      "vitals": {
+        "hr": 84,
+        "map": 78,
+        "bp_sys": 114,
+        "bp_dia": 68,
+        "rr": 18,
+        "spo2": 97,
+        "temp_c": 37.0,
+        "lactate_mmol_l": 1.2
+      }
+    }
+  ],
+  "encounter": {
+    "patientId": "demo_patient_001",
+    "encounterId": "enc_demo_001",
+    "visibleChartAsOf": "2026-04-19T06:45:00-05:00",
+    "phase": "baseline",
+    "display": {
+      "bed": "ICU 7",
+      "oxygenDevice": "nasal cannula"
+    }
+  },
+  "timeline": [
+    {
+      "t": 20,
+      "action": {
+        "type": "assessment_request",
+        "params": {
+          "requestId": "assess_demo_0001",
+          "assessmentType": "focused_respiratory",
+          "bodySystem": "respiratory"
+        }
+      }
+    }
+  ]
+}

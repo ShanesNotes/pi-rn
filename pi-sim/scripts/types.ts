@@ -1,5 +1,23 @@
+export interface MonitorWaveform {
+  unit: string;
+  sampleRate_Hz: number;
+  t0_s: number;
+  values: number[];
+}
+
+export interface MonitorExtension {
+  schemaVersion: number;
+  source: string;
+  sequence: number;
+  runState: "running" | "paused" | "ended" | "unavailable";
+  events: string[];
+  heartRhythm: string;
+  waveforms?: Record<string, MonitorWaveform>;
+}
+
 export interface VitalFrame {
   t: number;
+  simTime_s?: number;
   wallTime: string;
   hr?: number;
   map?: number;
@@ -18,6 +36,7 @@ export interface VitalFrame {
   lactate_mmol_l?: number;
   hgb_g_dl?: number;
   alarms: string[];
+  monitor?: MonitorExtension;
 }
 
 export type NumericField =
