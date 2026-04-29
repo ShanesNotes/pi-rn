@@ -1,4 +1,5 @@
 ---
+
 id: art-002-img-005
 type: artifact_ref
 subtype: imaging
@@ -16,7 +17,8 @@ status: final
 links:
   supports:
     - evt-002-h004-002
-    - evt-002-h004-003
+- evt-002-h004-003
+
 ---
 
 # Transthoracic echocardiogram — 2025-08-05
@@ -26,6 +28,7 @@ links:
 **Comparison:** 2022-08-04 [art-002-img-006].
 
 ## Measurements
+
 - LV ejection fraction (Simpson biplane): **58%**
 - LV end-diastolic diameter: 4.6 cm (normal)
 - LV end-systolic diameter: 3.0 cm (normal)
@@ -41,6 +44,7 @@ links:
 - IVC: 1.8 cm, >50% inspiratory collapse (normal RA pressure)
 
 ## Findings
+
 - **Left ventricle:** normal size; mild concentric hypertrophy. Normal global systolic function with EF 58%. No regional wall motion abnormalities. Grade 1 diastolic dysfunction.
 - **Left atrium:** mildly enlarged.
 - **Right ventricle:** normal size and function.
@@ -53,6 +57,7 @@ links:
 - **Pericardium:** no effusion.
 
 ## Impression
+
 1. **Preserved left ventricular ejection fraction at 58%.**
 2. **Mild concentric LV hypertrophy and grade 1 left ventricular diastolic dysfunction**, consistent with HFpEF in the setting of longstanding hypertension. Diastolic parameters are improved compared with the 2022 study (previously grade 2).
 3. **Mild left atrial enlargement.**

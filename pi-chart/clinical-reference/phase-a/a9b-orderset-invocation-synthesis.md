@@ -1,4 +1,5 @@
 # A9b — Orderset / Standing-Protocol / Template Invocation
+
 ## Council Synthesis
 
 **Status:** Council-synthesis draft (reconciles competing-artifact council recommendation with prior research draft).
@@ -53,25 +54,27 @@ The legacy EHR collapses three different things into the noun "order set": (a) a
 - **Children** = N atomic `intent.order` events (per A9a), each individually fulfilled, cancelled, queryable.
 - **Closure** = ordinary A9a/A4/A1/A2/A5 semantics. The invocation does not own closure.
 
-| Legacy artifact | pi-chart primitive | Supporting views |
-|---|---|---|
-| Order set *template* (P&T-approved, versioned, evidence-graded) | Definition artifact / registry entry, outside `patients/<id>/`; referenced by id+version from the invocation event | resolved at invocation time only; not in views |
-| Order set *invocation on a patient* | `action.intervention` with `data.action: "orderset_invocation"` and `data.definition_ref` + `data.definition_version` | `timeline()`, `currentState(axis:"intents")` over children, `evidenceChain()`, `openLoops()` |
-| Protocol activation (sepsis Hour-1 bundle) | Same shape, `data.invocation_kind: "protocol"`; protocol decision-branch state machine lives in pi-agent (out-of-chart) | derived `axis:"intents"` filtered by `transform.run_id == invocation.id` |
-| Standing-order trigger (nurse-initiated under approved policy) | Same shape, `data.invocation_kind: "standing_order"`, `source.kind: "nurse"`, with delayed-authentication openLoop until practitioner authenticates per [42 CFR 482.24(c)(3)(iv)](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24) | `openLoops()` kind: `pending-practitioner-authentication-of-standing-invocation` |
-| Sepsis Hour-1 bundle activation | Invocation with five children: lactate, blood cultures, broad-spectrum abx, 30 mL/kg crystalloid (conditional), vasopressor (conditional) per [SCCM/SSC 2018](https://saude.ufpr.br/labsim/wp-content/uploads/sites/23/2019/01/Surviving-Sepsis-Campaign-Hour-1-Bundle-2018.pdf) | bundle-completion is **derived** from per-child fulfillment status |
-| VTE prophylaxis smart order set | Invocation with risk-stratified children (mechanical vs pharmacologic) per [Streiff 2016](https://pubmed.ncbi.nlm.nih.gov/27925423/); mutual-exclusion enforced in *definition*, not in invocation event | `currentState(axis:"intents")`, `openLoops()` |
-| Anticoagulation protocol | Invocation; weight- and indication-conditioned child doses; protocol-state-machine in pi-agent | per-child supersession on rate change |
-| Insulin sliding scale / basal-bolus-correction | Invocation, `invocation_kind: "protocol"`, with a `data.protocol_state_ref` URI to pi-agent state | child orders per administration occurrence |
-| Admission orderset | Invocation; large child set; personalization (preselect/required/forbidden) recorded as authoring-time selection, not as runtime constraint | derived membership |
-| Post-procedure orderset | Invocation tied to procedure event via `links.addresses` | derived |
-| Order panel (CBC + BMP + lactate "draw together") | Same primitive, `invocation_kind: "panel"` — smaller scope, no governed definition required | derived |
-| Modified-during-invocation orderset | Per-child supersession events; **invocation event itself never mutated and never re-authored**; the `action.intervention` is point-shaped | derived membership reflects supersession |
-| Cancelled orderset | Per-child cancellations; **no set-level cancel event**; derived view recognizes "all members cancelled" | derived |
-| Partially-fulfilled orderset | Derived: per-child fulfillment counts; threshold judgment is a profile rule on a derived view, not a stored event | derived |
-| Expired orderset (definition sunset) | Invocation immutably records definition version; sunsetted-version detection at replay produces an openLoop only on still-active children | derived |
-| Cross-orderset interaction (sepsis + insulin) | Two invocations active simultaneously; deduplication of overlapping children is a **profile-driven derived view** | derived |
-| Version-mismatch invocation | Replay validates referenced definition version still resolvable; failure → live-mode openLoop, not replay error | derived |
+
+| Legacy artifact                                                 | pi-chart primitive                                                                                                                                                                                                                                                                 | Supporting views                                                                             |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Order set *template* (P&T-approved, versioned, evidence-graded) | Definition artifact / registry entry, outside `patients/<id>/`; referenced by id+version from the invocation event                                                                                                                                                                 | resolved at invocation time only; not in views                                               |
+| Order set *invocation on a patient*                             | `action.intervention` with `data.action: "orderset_invocation"` and `data.definition_ref` + `data.definition_version`                                                                                                                                                              | `timeline()`, `currentState(axis:"intents")` over children, `evidenceChain()`, `openLoops()` |
+| Protocol activation (sepsis Hour-1 bundle)                      | Same shape, `data.invocation_kind: "protocol"`; protocol decision-branch state machine lives in pi-agent (out-of-chart)                                                                                                                                                            | derived `axis:"intents"` filtered by `transform.run_id == invocation.id`                     |
+| Standing-order trigger (nurse-initiated under approved policy)  | Same shape, `data.invocation_kind: "standing_order"`, `source.kind: "nurse"`, with delayed-authentication openLoop until practitioner authenticates per [42 CFR 482.24(c)(3)(iv)](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24) | `openLoops()` kind: `pending-practitioner-authentication-of-standing-invocation`             |
+| Sepsis Hour-1 bundle activation                                 | Invocation with five children: lactate, blood cultures, broad-spectrum abx, 30 mL/kg crystalloid (conditional), vasopressor (conditional) per [SCCM/SSC 2018](https://saude.ufpr.br/labsim/wp-content/uploads/sites/23/2019/01/Surviving-Sepsis-Campaign-Hour-1-Bundle-2018.pdf)   | bundle-completion is **derived** from per-child fulfillment status                           |
+| VTE prophylaxis smart order set                                 | Invocation with risk-stratified children (mechanical vs pharmacologic) per [Streiff 2016](https://pubmed.ncbi.nlm.nih.gov/27925423/); mutual-exclusion enforced in *definition*, not in invocation event                                                                           | `currentState(axis:"intents")`, `openLoops()`                                                |
+| Anticoagulation protocol                                        | Invocation; weight- and indication-conditioned child doses; protocol-state-machine in pi-agent                                                                                                                                                                                     | per-child supersession on rate change                                                        |
+| Insulin sliding scale / basal-bolus-correction                  | Invocation, `invocation_kind: "protocol"`, with a `data.protocol_state_ref` URI to pi-agent state                                                                                                                                                                                  | child orders per administration occurrence                                                   |
+| Admission orderset                                              | Invocation; large child set; personalization (preselect/required/forbidden) recorded as authoring-time selection, not as runtime constraint                                                                                                                                        | derived membership                                                                           |
+| Post-procedure orderset                                         | Invocation tied to procedure event via `links.addresses`                                                                                                                                                                                                                           | derived                                                                                      |
+| Order panel (CBC + BMP + lactate "draw together")               | Same primitive, `invocation_kind: "panel"` — smaller scope, no governed definition required                                                                                                                                                                                        | derived                                                                                      |
+| Modified-during-invocation orderset                             | Per-child supersession events; **invocation event itself never mutated and never re-authored**; the `action.intervention` is point-shaped                                                                                                                                          | derived membership reflects supersession                                                     |
+| Cancelled orderset                                              | Per-child cancellations; **no set-level cancel event**; derived view recognizes "all members cancelled"                                                                                                                                                                            | derived                                                                                      |
+| Partially-fulfilled orderset                                    | Derived: per-child fulfillment counts; threshold judgment is a profile rule on a derived view, not a stored event                                                                                                                                                                  | derived                                                                                      |
+| Expired orderset (definition sunset)                            | Invocation immutably records definition version; sunsetted-version detection at replay produces an openLoop only on still-active children                                                                                                                                          | derived                                                                                      |
+| Cross-orderset interaction (sepsis + insulin)                   | Two invocations active simultaneously; deduplication of overlapping children is a **profile-driven derived view**                                                                                                                                                                  | derived                                                                                      |
+| Version-mismatch invocation                                     | Replay validates referenced definition version still resolvable; failure → live-mode openLoop, not replay error                                                                                                                                                                    | derived                                                                                      |
+
 
 The transposition is mostly a *renaming* and *placement* exercise: the underlying primitives (action, intent, links, transform, derived views) already exist; A9b adds (a) a payload convention on `action.intervention` and (b) a `transform` convention on each child intent.
 
@@ -119,39 +122,43 @@ Invocation is **episodic** (one event per authoring decision; sepsis bundle once
 
 For an **invocation** event (the `action.intervention` carrying `data.action: "orderset_invocation"`).
 
-| Element | Class | Notes |
-|---|---|---|
-| `event.id` | provenance | UUID |
-| `event.type` = `action` | canonical | reuse, no new type |
-| `event.subtype` = `intervention` | canonical | reuse, no new subtype (council position; promotion deferred) |
-| `data.action` = `"orderset_invocation"` | canonical-payload | discriminator within `action.intervention` |
-| `data.invocation_kind` | clinical | enum lean: `orderset` \| `protocol` \| `standing_order` \| `panel` \| `bundle` — open-schema |
-| `data.definition_ref` | provenance | URI/id to governed definition (e.g., `orderset://sepsis/adult-ed-inpatient`); shape is open-schema |
-| `data.definition_version` | provenance | resolved semantic version at invocation time (immutable) |
-| `data.indication` | clinical | invocation-level indication |
-| `data.indication_exception` | clinical | declination rationale when prescriber overrides default opt-in (e.g., VTE pharm-prophylaxis declined); open shape |
-| `data.override_rationale` | clinical/regulatory | per ISMP / Hopkins VTE pattern, deviation from default path requires rationale where definition mandates it |
-| `data.selection_mode` | clinical | one of `default_only`, `default_plus_clinician_adjustments`, `clinician_constructed`, etc. — captures what the prescriber actually committed |
-| `data.authoring_channel` | regulatory | inherited A9a payload pattern: `cpoe_orderset`, `verbal`, `secure_text`, `nurse_standing_trigger` |
-| `data.protocol_state_ref` | rendered | opaque URI to pi-agent state machine; **pi-chart does not validate state-machine consistency** |
-| `data.trigger_ref` / `data.trigger_text` | clinical | for standing-order invocations (inherited from A9a) |
-| `data.standing_authority_ref` | regulatory | URI to standing-order policy (medical-staff-approved); required to satisfy 482.24(c)(3) audit |
-| `source.kind` | provenance | reuse closed taxonomy (ADR 006) — `clinician_chart_action` \| `nurse_standing_trigger` \| `agent_action` |
-| `source.actor_id` | provenance | who invoked |
-| `links.addresses` | provenance | problem-subtype assessment(s) the invocation addresses (per ADR 009) |
-| `links.supports` | provenance | supporting evidence (assessments, vitals windows, prior labs) per ADR 010 EvidenceRef |
-| `effective_at` | clinical | per ADR 005; invocation is point-shaped, not interval-shaped |
+
+| Element                                  | Class               | Notes                                                                                                                                        |
+| ---------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `event.id`                               | provenance          | UUID                                                                                                                                         |
+| `event.type` = `action`                  | canonical           | reuse, no new type                                                                                                                           |
+| `event.subtype` = `intervention`         | canonical           | reuse, no new subtype (council position; promotion deferred)                                                                                 |
+| `data.action` = `"orderset_invocation"`  | canonical-payload   | discriminator within `action.intervention`                                                                                                   |
+| `data.invocation_kind`                   | clinical            | enum lean: `orderset` | `protocol` | `standing_order` | `panel` | `bundle` — open-schema                                                     |
+| `data.definition_ref`                    | provenance          | URI/id to governed definition (e.g., `orderset://sepsis/adult-ed-inpatient`); shape is open-schema                                           |
+| `data.definition_version`                | provenance          | resolved semantic version at invocation time (immutable)                                                                                     |
+| `data.indication`                        | clinical            | invocation-level indication                                                                                                                  |
+| `data.indication_exception`              | clinical            | declination rationale when prescriber overrides default opt-in (e.g., VTE pharm-prophylaxis declined); open shape                            |
+| `data.override_rationale`                | clinical/regulatory | per ISMP / Hopkins VTE pattern, deviation from default path requires rationale where definition mandates it                                  |
+| `data.selection_mode`                    | clinical            | one of `default_only`, `default_plus_clinician_adjustments`, `clinician_constructed`, etc. — captures what the prescriber actually committed |
+| `data.authoring_channel`                 | regulatory          | inherited A9a payload pattern: `cpoe_orderset`, `verbal`, `secure_text`, `nurse_standing_trigger`                                            |
+| `data.protocol_state_ref`                | rendered            | opaque URI to pi-agent state machine; **pi-chart does not validate state-machine consistency**                                               |
+| `data.trigger_ref` / `data.trigger_text` | clinical            | for standing-order invocations (inherited from A9a)                                                                                          |
+| `data.standing_authority_ref`            | regulatory          | URI to standing-order policy (medical-staff-approved); required to satisfy 482.24(c)(3) audit                                                |
+| `source.kind`                            | provenance          | reuse closed taxonomy (ADR 006) — `clinician_chart_action` | `nurse_standing_trigger` | `agent_action`                                       |
+| `source.actor_id`                        | provenance          | who invoked                                                                                                                                  |
+| `links.addresses`                        | provenance          | problem-subtype assessment(s) the invocation addresses (per ADR 009)                                                                         |
+| `links.supports`                         | provenance          | supporting evidence (assessments, vitals windows, prior labs) per ADR 010 EvidenceRef                                                        |
+| `effective_at`                           | clinical            | per ADR 005; invocation is point-shaped, not interval-shaped                                                                                 |
+
 
 For each child `intent.order`:
 
-| Element | Class | Notes |
-|---|---|---|
-| All A9a child fields (per-child) | per A9a | `data.order_kind`, `data.orderable`, dose/route/freq, etc. |
-| `data.authoring_channel` | provenance | `"orderset_generated"` to distinguish from manual orders |
-| `transform.activity` = `"orderset_apply"` | provenance | per ADR 011 |
-| `transform.tool` | provenance | e.g., `"cpoe"`, `"protocol_engine"` |
-| `transform.run_id` | provenance | the invocation event id (the load-bearing parent/child link) |
-| `transform.input_refs[]` | provenance | structured refs back to the invocation, with `role: "source"` |
+
+| Element                                   | Class      | Notes                                                         |
+| ----------------------------------------- | ---------- | ------------------------------------------------------------- |
+| All A9a child fields (per-child)          | per A9a    | `data.order_kind`, `data.orderable`, dose/route/freq, etc.    |
+| `data.authoring_channel`                  | provenance | `"orderset_generated"` to distinguish from manual orders      |
+| `transform.activity` = `"orderset_apply"` | provenance | per ADR 011                                                   |
+| `transform.tool`                          | provenance | e.g., `"cpoe"`, `"protocol_engine"`                           |
+| `transform.run_id`                        | provenance | the invocation event id (the load-bearing parent/child link)  |
+| `transform.input_refs[]`                  | provenance | structured refs back to the invocation, with `role: "source"` |
+
 
 **This is the full parent/child story** — no `data.invoked_by`, no `links.member_of`, no new link kind. Existing `transform` surface carries it.
 
@@ -161,20 +168,22 @@ For each child `intent.order`:
 
 ## 8. Excluded cruft (≤10, with rationale)
 
-| Excluded | Why it exists in EHRs | Why pi-chart excludes |
-|---|---|---|
-| Order-set authoring UI state (collapsed sections, default tabs) | EHR vendor UX | not a patient claim |
-| Alert-fired-during-invocation events | CDS audit / Leapfrog scoring | A9a council: CDS alerts not canonical |
-| P&T meeting minutes for the *definition* | governance evidence per [42 CFR 482.24(c)(3)](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24) | governance system, not patient chart |
-| Evidence-grade ratings of order-set elements | order-set library metadata | external registry |
-| "Order sets used today" utilization dashboards | hospital QA | aggregate; derive externally |
-| Order-set personalization defaults *per prescriber* | EHR favorites | provider-preference store, not patient chart |
-| Vendor "order session" / "order pad" identifiers | Epic/Cerner internals | replaced by `transform.run_id` |
-| Pre-checkbox state of each item before user click | UI capture | only the final committed children matter |
-| Smart-text snippets / order comments boilerplate | EHR template prose | rendered, not canonical |
-| Billing/charge codes attached to set elements | revenue cycle | Charter §2 hard-out |
-| **Set-level "complete" / "in progress" / "cancelled" status field** | EHR worklist UX | invocation event is point-shaped action; child lifecycle is per-child; bundle status is **derived** |
-| **Mutable bundle-membership object on the invocation** | EHR convenience | children carry the link via `transform.run_id`; no parent mutation |
+
+| Excluded                                                            | Why it exists in EHRs                                                                                                                          | Why pi-chart excludes                                                                               |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Order-set authoring UI state (collapsed sections, default tabs)     | EHR vendor UX                                                                                                                                  | not a patient claim                                                                                 |
+| Alert-fired-during-invocation events                                | CDS audit / Leapfrog scoring                                                                                                                   | A9a council: CDS alerts not canonical                                                               |
+| P&T meeting minutes for the *definition*                            | governance evidence per [42 CFR 482.24(c)(3)](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24) | governance system, not patient chart                                                                |
+| Evidence-grade ratings of order-set elements                        | order-set library metadata                                                                                                                     | external registry                                                                                   |
+| "Order sets used today" utilization dashboards                      | hospital QA                                                                                                                                    | aggregate; derive externally                                                                        |
+| Order-set personalization defaults *per prescriber*                 | EHR favorites                                                                                                                                  | provider-preference store, not patient chart                                                        |
+| Vendor "order session" / "order pad" identifiers                    | Epic/Cerner internals                                                                                                                          | replaced by `transform.run_id`                                                                      |
+| Pre-checkbox state of each item before user click                   | UI capture                                                                                                                                     | only the final committed children matter                                                            |
+| Smart-text snippets / order comments boilerplate                    | EHR template prose                                                                                                                             | rendered, not canonical                                                                             |
+| Billing/charge codes attached to set elements                       | revenue cycle                                                                                                                                  | Charter §2 hard-out                                                                                 |
+| **Set-level "complete" / "in progress" / "cancelled" status field** | EHR worklist UX                                                                                                                                | invocation event is point-shaped action; child lifecycle is per-child; bundle status is **derived** |
+| **Mutable bundle-membership object on the invocation**              | EHR convenience                                                                                                                                | children carry the link via `transform.run_id`; no parent mutation                                  |
+
 
 `[cruft]`
 
@@ -183,12 +192,14 @@ For each child `intent.order`:
 ## 9. Canonical / derived / rendered
 
 **Canonical (per-patient chart):**
+
 - The `action.intervention` invocation event with `data.action: "orderset_invocation"` and full payload.
 - N child `intent.order` events (per A9a), each carrying `transform.run_id` pointing to the invocation.
 - Per-child action events fulfilling each child (per ADR 003) — unchanged.
 - For standing-order invocations: a subsequent practitioner-authentication event (shape open-schema; lean is `intent.order_authentication` reuse OR an attestation note pattern; council position kept open).
 
 **Derived (views over canonical):**
+
 - "Active orderset invocations" = `currentState(axis:"intents")` filtered by `transform.run_id` matching an `action.intervention.orderset_invocation`. **Direct parallel to A9a's "active orders are derived" decision.**
 - "Bundle completion" = per-invocation count of children with action-mediated fulfillment vs total; threshold judgment is a profile rule (e.g., Hour-1 bundle complete iff ≥4 of 5 children acted on within 60 min).
 - "Standing-order pending authentication" openLoop, with deadline driven by hospital policy / state law (CMS removed federal 48-hour ceiling per [CMS final rule 2007](https://www.federalregister.gov/documents/2006/11/27/E6-19957/medicare-and-medicaid-programs-hospital-conditions-of-participation-requirements-for-history-and)).
@@ -196,6 +207,7 @@ For each child `intent.order`:
 - "Orderset cancelled" = derived predicate when all member children are cancelled — **no set-level cancel event**.
 
 **Rendered (presentation only):**
+
 - Order-set "title" displayed in sidebar, "evidence basis" link, definition version label.
 - Protocol decision-branch *progress indicator* (current step, next-step preview) — read from pi-agent state, never canonical in pi-chart.
 - Personalization summary ("3 preselected items declined").
@@ -231,15 +243,11 @@ For each child `intent.order`:
 
 OpenLoops attach to **children** (per A9a) or to **derived projections over children**, not to a stored set-level lifecycle. The set-level openLoops the prior draft proposed mostly collapse into derived views over children:
 
-- **`pending-practitioner-authentication-of-standing-invocation`** — derived from "this `action.intervention` invocation has `source.kind: nurse_standing_trigger` and no subsequent authentication event closes the loop". Deadline = max(state law, hospital policy); replay error vs live openLoop is replay-mode dependent. **Required by [42 CFR 482.24(c)(3)(iv)](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24).** This is the only set-level openLoop that survives — and it survives because federal regulation requires it.
-
-- **`partial-bundle-fulfillment`** — derived from per-child fulfillment counts within profile-driven window (e.g., Hour-1 bundle children expected within 60 min). Profile rule on a derived view, not a stored event.
-
-- **`agent-protocol-pending-input`** — pi-agent reports the protocol is awaiting input; this surfaces in pi-agent's own openLoop projection. pi-chart does not store the protocol state.
-
-- **`sunsetted-definition-still-active`** — definition version no longer in active registry while at least one child still has `effective_period` that includes now.
-
-- **`cross-invocation-conflict`** / **`duplicate-child-across-invocations`** — profile-driven derived view; not a stored openLoop kind on canonical events.
+- `**pending-practitioner-authentication-of-standing-invocation`** — derived from "this `action.intervention` invocation has `source.kind: nurse_standing_trigger` and no subsequent authentication event closes the loop". Deadline = max(state law, hospital policy); replay error vs live openLoop is replay-mode dependent. **Required by [42 CFR 482.24(c)(3)(iv)](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24).** This is the only set-level openLoop that survives — and it survives because federal regulation requires it.
+- `**partial-bundle-fulfillment`** — derived from per-child fulfillment counts within profile-driven window (e.g., Hour-1 bundle children expected within 60 min). Profile rule on a derived view, not a stored event.
+- `**agent-protocol-pending-input**` — pi-agent reports the protocol is awaiting input; this surfaces in pi-agent's own openLoop projection. pi-chart does not store the protocol state.
+- `**sunsetted-definition-still-active**` — definition version no longer in active registry while at least one child still has `effective_period` that includes now.
+- `**cross-invocation-conflict**` / `**duplicate-child-across-invocations**` — profile-driven derived view; not a stored openLoop kind on canonical events.
 
 Child-level openLoops (overdue fulfillment, missing acknowledgment, missing pharmacy verification, etc.) are **A9a's territory** and unchanged.
 
@@ -280,7 +288,7 @@ The agent should **not** read protocol decision-branch state from pi-chart; that
 
 **(a) Definition layer** — *outside* `patients/<id>/`. Storage placement is open-schema. Researcher lean: `pi-chart/definitions/ordersets/<slug>@<version>.json` as in-repo registry, with full-external-registry as a Phase-B option. Definitions are **not events**; they are reference documents carrying id, version, title, evidence basis URIs, governance approvals, sunset date, member templates, required/preselected/forbidden lists, mutual-exclusion groups, conditional logic refs, indications, contraindications. Definitions are **referenced by URI from invocation events**, never embedded.
 
-**(b) Invocation layer** — inside `patients/<id>/`. Council position: **`action.intervention` with `data.action: "orderset_invocation"` and constrained payload**. No new event subtype. Children carry `transform.run_id` pointing at the invocation event.
+**(b) Invocation layer** — inside `patients/<id>/`. Council position: `**action.intervention` with `data.action: "orderset_invocation"` and constrained payload**. No new event subtype. Children carry `transform.run_id` pointing at the invocation event.
 
 `schema_confidence`: medium (council position is more conservative than prior draft; substrate-faithful).
 `schema_impact`: 3 (new payload convention on existing subtype + new transform-activity convention; no new event types, no new subtypes, no new link kinds).
@@ -517,6 +525,7 @@ Six rows is the floor; seven (above) demonstrates the full set of intended behav
 Status legend: **O** Open · **OC** Open — cross-artifact ADR candidate · **AS** Accepted direction from prior synthesis · **OD** Open, dependent on X.
 
 **Resolved by council direction (collapsed from prior draft):**
+
 - ~~`a9b-invocation-as-event-vs-derived`~~ — **resolved**: stored `action.intervention` event, council position.
 - ~~`a9b-parent-child-link-convention`~~ — **resolved**: `transform.run_id` + `transform.input_refs`, no new link kind.
 - ~~`a9b-orderset-modification-mid-invocation`~~ — **resolved**: per-child supersession only; invocation never re-authored.
@@ -549,40 +558,45 @@ Status legend: **O** Open · **OC** Open — cross-artifact ADR candidate · **A
 ## 17. Sources
 
 Regulatory:
-- 42 CFR §482.24 — eCFR. https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24
-- 42 CFR Part 482 Subpart C — eCFR. https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C
-- CMS S&C-13-20 — standing orders, order sets, protocols implementation. https://www.cms.gov/Medicare/Provider-Enrollment-and-Certification/SurveyCertificationGenInfo/Downloads/Survey-and-Cert-Letter-13-20.pdf
-- CMS Final Rule, 71 FR 68672 / 2007 S&C letter on verbal-order authentication. https://www.federalregister.gov/documents/2006/11/27/E6-19957/medicare-and-medicaid-programs-hospital-conditions-of-participation-requirements-for-history-and ; https://www.cms.gov/Medicare/Provider-Enrollment-and-Certification/SurveyCertificationGenInfo/downloads/SCLetter07-13.pdf
-- CMS QSO-25-24 / Appendix A 2025 update. https://www.cms.gov/medicare/health-safety-standards/quality-safety-oversight-general-information/policy-memos/policy-memos-states-and-cms-locations/revisions-hospital-appendix-state-operations-manual
-- TJC FAQ secure texting (post-Feb 2024). https://www.jointcommission.org/en-us/knowledge-library/support-center/standards-interpretation/standards-faqs/000002483
+
+- 42 CFR §482.24 — eCFR. [https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C/section-482.24)
+- 42 CFR Part 482 Subpart C — eCFR. [https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C](https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-G/part-482/subpart-C)
+- CMS S&C-13-20 — standing orders, order sets, protocols implementation. [https://www.cms.gov/Medicare/Provider-Enrollment-and-Certification/SurveyCertificationGenInfo/Downloads/Survey-and-Cert-Letter-13-20.pdf](https://www.cms.gov/Medicare/Provider-Enrollment-and-Certification/SurveyCertificationGenInfo/Downloads/Survey-and-Cert-Letter-13-20.pdf)
+- CMS Final Rule, 71 FR 68672 / 2007 S&C letter on verbal-order authentication. [https://www.federalregister.gov/documents/2006/11/27/E6-19957/medicare-and-medicaid-programs-hospital-conditions-of-participation-requirements-for-history-and](https://www.federalregister.gov/documents/2006/11/27/E6-19957/medicare-and-medicaid-programs-hospital-conditions-of-participation-requirements-for-history-and) ; [https://www.cms.gov/Medicare/Provider-Enrollment-and-Certification/SurveyCertificationGenInfo/downloads/SCLetter07-13.pdf](https://www.cms.gov/Medicare/Provider-Enrollment-and-Certification/SurveyCertificationGenInfo/downloads/SCLetter07-13.pdf)
+- CMS QSO-25-24 / Appendix A 2025 update. [https://www.cms.gov/medicare/health-safety-standards/quality-safety-oversight-general-information/policy-memos/policy-memos-states-and-cms-locations/revisions-hospital-appendix-state-operations-manual](https://www.cms.gov/medicare/health-safety-standards/quality-safety-oversight-general-information/policy-memos/policy-memos-states-and-cms-locations/revisions-hospital-appendix-state-operations-manual)
+- TJC FAQ secure texting (post-Feb 2024). [https://www.jointcommission.org/en-us/knowledge-library/support-center/standards-interpretation/standards-faqs/000002483](https://www.jointcommission.org/en-us/knowledge-library/support-center/standards-interpretation/standards-faqs/000002483)
 
 Professional / safety:
-- ISMP Guidelines for Standard Order Sets. https://www.ismp.org/sites/default/files/attachments/2018-01/StandardOrderSets.pdf
-- Grissinger, P&T 2014. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3956384/
-- ISMP 2024–2025 Targeted Medication Safety Best Practices. https://online.ecri.org/hubfs/ISMP/Resources/ISMP_TargetedMedicationSafetyBestPractices_Hospitals_FAQ.pdf
-- TJC NPG #14 Effectively Managing Medications (2026). https://www.jointcommission.org/en-us/standards/national-performance-goals/effectively-managing-medications
-- TJC Accreditation 360 — MM/IM transition (2026). https://digitalassets.jointcommission.org/api/public/content/03b59f35a60f4558a4948e48ccb2d415?v=65ce516b
-- ONC SAFER Guides — CPOE with Decision Support (2025 revision). https://www.healthit.gov/wp-content/uploads/2025/06/SAFER-Guide-3.-CPOE-Final.pdf
-- Leapfrog CPOE Evaluation Tool 2024. https://www.leapfroggroup.org/sites/default/files/Files/CPOE%20Tool%20Guidance%202024.pdf
+
+- ISMP Guidelines for Standard Order Sets. [https://www.ismp.org/sites/default/files/attachments/2018-01/StandardOrderSets.pdf](https://www.ismp.org/sites/default/files/attachments/2018-01/StandardOrderSets.pdf)
+- Grissinger, P&T 2014. [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3956384/](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3956384/)
+- ISMP 2024–2025 Targeted Medication Safety Best Practices. [https://online.ecri.org/hubfs/ISMP/Resources/ISMP_TargetedMedicationSafetyBestPractices_Hospitals_FAQ.pdf](https://online.ecri.org/hubfs/ISMP/Resources/ISMP_TargetedMedicationSafetyBestPractices_Hospitals_FAQ.pdf)
+- TJC NPG #14 Effectively Managing Medications (2026). [https://www.jointcommission.org/en-us/standards/national-performance-goals/effectively-managing-medications](https://www.jointcommission.org/en-us/standards/national-performance-goals/effectively-managing-medications)
+- TJC Accreditation 360 — MM/IM transition (2026). [https://digitalassets.jointcommission.org/api/public/content/03b59f35a60f4558a4948e48ccb2d415?v=65ce516b](https://digitalassets.jointcommission.org/api/public/content/03b59f35a60f4558a4948e48ccb2d415?v=65ce516b)
+- ONC SAFER Guides — CPOE with Decision Support (2025 revision). [https://www.healthit.gov/wp-content/uploads/2025/06/SAFER-Guide-3.-CPOE-Final.pdf](https://www.healthit.gov/wp-content/uploads/2025/06/SAFER-Guide-3.-CPOE-Final.pdf)
+- Leapfrog CPOE Evaluation Tool 2024. [https://www.leapfroggroup.org/sites/default/files/Files/CPOE%20Tool%20Guidance%202024.pdf](https://www.leapfroggroup.org/sites/default/files/Files/CPOE%20Tool%20Guidance%202024.pdf)
 
 Clinical / institutional:
-- Surviving Sepsis Campaign Hour-1 Bundle (Levy 2018). https://saude.ufpr.br/labsim/wp-content/uploads/sites/23/2019/01/Surviving-Sepsis-Campaign-Hour-1-Bundle-2018.pdf
-- SCCM Adult Sepsis Guidelines (2021/2024 updates). https://sccm.org/survivingsepsiscampaign/guidelines-and-resources/surviving-sepsis-campaign-adult-guidelines
-- Streiff et al., Johns Hopkins VTE Collaborative, J Hosp Med 2016. https://pubmed.ncbi.nlm.nih.gov/27925423/
-- Streiff et al., BMJ 2012. https://pmc.ncbi.nlm.nih.gov/articles/PMC4688421/
-- Haut et al., Mandatory CDS for VTE in trauma, Arch Surg 2012. https://pure.johnshopkins.edu/en/publications/improved-prophylaxis-and-decreased-rates-of-preventable-harm-with-4/
-- AAFP 2010 — Glycemic Control Beyond Sliding-Scale Insulin. https://www.aafp.org/pubs/afp/issues/2010/0501/p1130.html
-- Adelman et al., Wrong-patient electronic orders, JAMIA 2013. https://pmc.ncbi.nlm.nih.gov/articles/PMC3638184/
-- StatPearls, CPOE. https://www.ncbi.nlm.nih.gov/books/NBK470273/
+
+- Surviving Sepsis Campaign Hour-1 Bundle (Levy 2018). [https://saude.ufpr.br/labsim/wp-content/uploads/sites/23/2019/01/Surviving-Sepsis-Campaign-Hour-1-Bundle-2018.pdf](https://saude.ufpr.br/labsim/wp-content/uploads/sites/23/2019/01/Surviving-Sepsis-Campaign-Hour-1-Bundle-2018.pdf)
+- SCCM Adult Sepsis Guidelines (2021/2024 updates). [https://sccm.org/survivingsepsiscampaign/guidelines-and-resources/surviving-sepsis-campaign-adult-guidelines](https://sccm.org/survivingsepsiscampaign/guidelines-and-resources/surviving-sepsis-campaign-adult-guidelines)
+- Streiff et al., Johns Hopkins VTE Collaborative, J Hosp Med 2016. [https://pubmed.ncbi.nlm.nih.gov/27925423/](https://pubmed.ncbi.nlm.nih.gov/27925423/)
+- Streiff et al., BMJ 2012. [https://pmc.ncbi.nlm.nih.gov/articles/PMC4688421/](https://pmc.ncbi.nlm.nih.gov/articles/PMC4688421/)
+- Haut et al., Mandatory CDS for VTE in trauma, Arch Surg 2012. [https://pure.johnshopkins.edu/en/publications/improved-prophylaxis-and-decreased-rates-of-preventable-harm-with-4/](https://pure.johnshopkins.edu/en/publications/improved-prophylaxis-and-decreased-rates-of-preventable-harm-with-4/)
+- AAFP 2010 — Glycemic Control Beyond Sliding-Scale Insulin. [https://www.aafp.org/pubs/afp/issues/2010/0501/p1130.html](https://www.aafp.org/pubs/afp/issues/2010/0501/p1130.html)
+- Adelman et al., Wrong-patient electronic orders, JAMIA 2013. [https://pmc.ncbi.nlm.nih.gov/articles/PMC3638184/](https://pmc.ncbi.nlm.nih.gov/articles/PMC3638184/)
+- StatPearls, CPOE. [https://www.ncbi.nlm.nih.gov/books/NBK470273/](https://www.ncbi.nlm.nih.gov/books/NBK470273/)
 
 State boards / nursing law:
-- Washington NCQAC Advisory Opinion 6.0, Standing and Verbal Orders. https://nursing.wa.gov/sites/default/files/2022-07/StandingAndVerbalOrders.pdf
-- Arkansas State Board of Nursing — Role of Nurse in Nurse-Driven Standing Orders. https://healthy.arkansas.gov/wp-content/uploads/20-1RoleofNurseinNurseDrivenStandingOrders.pdf
+
+- Washington NCQAC Advisory Opinion 6.0, Standing and Verbal Orders. [https://nursing.wa.gov/sites/default/files/2022-07/StandingAndVerbalOrders.pdf](https://nursing.wa.gov/sites/default/files/2022-07/StandingAndVerbalOrders.pdf)
+- Arkansas State Board of Nursing — Role of Nurse in Nurse-Driven Standing Orders. [https://healthy.arkansas.gov/wp-content/uploads/20-1RoleofNurseinNurseDrivenStandingOrders.pdf](https://healthy.arkansas.gov/wp-content/uploads/20-1RoleofNurseinNurseDrivenStandingOrders.pdf)
 
 FHIR semantic witnesses (NOT for adoption — boundary clarification only):
-- HL7 FHIR R5 PlanDefinition. http://hl7.org/fhir/plandefinition.html
-- HL7 FHIR R5 RequestOrchestration (formerly R4 RequestGroup). https://hl7.org/fhir/requestorchestration.html
-- FHIR PlanDefinition `$apply` operation (R6 ballot). https://build.fhir.org/plandefinition-operation-apply.html
+
+- HL7 FHIR R5 PlanDefinition. [http://hl7.org/fhir/plandefinition.html](http://hl7.org/fhir/plandefinition.html)
+- HL7 FHIR R5 RequestOrchestration (formerly R4 RequestGroup). [https://hl7.org/fhir/requestorchestration.html](https://hl7.org/fhir/requestorchestration.html)
+- FHIR PlanDefinition `$apply` operation (R6 ballot). [https://build.fhir.org/plandefinition-operation-apply.html](https://build.fhir.org/plandefinition-operation-apply.html)
 
 ---
 
@@ -637,6 +651,7 @@ These are the **last set of Phase A gates**. Council corrections collapsed sever
 ## Phase A → Phase B transition assessment
 
 **What Shane has substrate-evidence-wise to commit to schema (high confidence):**
+
 - Closed event-type set; closed `source.kind` set (ADR 006); ADR 003 fulfillment discipline; ADR 005 effective_period; ADR 009 link semantics; ADR 010 EvidenceRef; ADR 011 transform; ADR 015 schema_version.
 - Atomic-order shape (`intent.order` + `data.order_kind`) — A9a-accepted.
 - Orderset invocation as `action.intervention` with payload convention — A9b-council-accepted.
@@ -646,6 +661,7 @@ These are the **last set of Phase A gates**. Council corrections collapsed sever
 - pi-chart records authoring + action-mediated fulfillment; protocol decision branches are pi-agent's.
 
 **What still needs ADR resolution before Phase B schema commit:**
+
 - Session-identity unification (the critical one).
 - Definition-vs-instantiation pattern (storage placement, addressability).
 - Standing-authority delayed-authentication shape.

@@ -1,0 +1,28 @@
+{
+  "art-003-lab-001": {
+    "type": "lab_report",
+    "study": "Admission sepsis labs and UA",
+    "effective_at": "2026-04-22T07:48:00-05:00",
+    "path": "artifacts/labs/20260422_admission_labs.json",
+    "source_event_ids": [
+      "evt-003-0013",
+      "evt-003-0014",
+      "evt-003-0015",
+      "evt-003-0016"
+    ]
+  },
+  "art-003-lab-002": {
+    "type": "microbiology_report",
+    "study": "Blood culture preliminary",
+    "effective_at": "2026-04-22T16:20:00-05:00",
+    "path": "artifacts/labs/20260422_blood_culture_prelim.json",
+    "source_event_id": "evt-003-0034"
+  },
+  "art-003-img-001": {
+    "type": "imaging_report",
+    "study": "CT abdomen/pelvis without contrast",
+    "effective_at": "2026-04-22T08:35:00-05:00",
+    "path": "artifacts/imaging/20260422_ct_ap_report.md",
+    "source_event_id": "evt-003-0019"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "art-004-lab-001": {
+    "type": "lab_report",
+    "study": "Admission BMP and cardiac markers",
+    "effective_at": "2026-04-23T08:12:00-05:00",
+    "path": "artifacts/labs/20260423_admission_labs.json",
+    "source_event_ids": [
+      "evt-004-0013",
+      "evt-004-0014"
+    ]
+  },
+  "art-004-lab-002": {
+    "type": "lab_report",
+    "study": "Repeat BMP trend after diuresis (day 1)",
+    "effective_at": "2026-04-23T12:10:00-05:00",
+    "path": "artifacts/labs/20260423_repeat_bmp_trend.json",
+    "source_event_ids": [
+      "evt-004-0023",
+      "evt-004-0030"
+    ]
+  },
+  "art-004-lab-003": {
+    "type": "lab_report",
+    "study": "Day 2 BMP trend after sustained diuresis",
+    "effective_at": "2026-04-24T04:30:00-05:00",
+    "path": "artifacts/labs/20260424_bmp_post_diuresis.json",
+    "source_event_ids": [
+      "evt-004-0035",
+      "evt-004-0052"
+    ]
+  },
+  "art-004-lab-004": {
+    "type": "lab_report",
+    "study": "Predischarge BMP confirming renal recovery and discharge readiness",
+    "effective_at": "2026-04-25T06:00:00-05:00",
+    "path": "artifacts/labs/20260425_predischarge_bmp.json",
+    "source_event_ids": [
+      "evt-004-0063"
+    ]
+  },
+  "art-004-img-001": {
+    "type": "imaging_report",
+    "study": "Portable chest radiograph",
+    "effective_at": "2026-04-23T08:38:00-05:00",
+    "path": "artifacts/imaging/20260423_cxr_report.md",
+    "source_event_id": "evt-004-0016"
+  }
+}

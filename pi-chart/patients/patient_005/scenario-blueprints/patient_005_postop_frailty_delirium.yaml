@@ -1,0 +1,28 @@
+id: patient_005_postop_frailty_delirium
+patient_id: patient_005
+title: CORP-019 post-op frailty / delirium / fall-risk continuity row
+status: revised_for_operator_review
+source_mix:
+  posture: fully_hand_authored
+  synthea_seed_used: false
+scenario_axis:
+  - post_operative_hip_fracture_repair
+  - frailty
+  - delirium_risk
+  - fall_risk
+  - pain_sedation_balance
+  - therapy_nursing_handoff_continuity
+proof_fact:
+  id: evt-005-0018
+  label: functional-safety delirium/fall-risk finding
+  required_reuse:
+    - assessment_review
+    - evidence_provenance
+    - open_loop
+    - next_shift_handoff
+    - narrative_note
+operator_review:
+  status: pending
+  checklist: docs/plans/patient-005-operator-review-checklist.md
+  latest_revisions:
+    - evening/night reassessment links proof fact evt-005-0018 to family reorientation, opioid-sparing pain plan, toileting prompts, and overnight fall-prevention loop

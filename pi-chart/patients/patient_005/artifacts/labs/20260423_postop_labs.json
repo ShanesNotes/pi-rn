@@ -1,0 +1,20 @@
+{
+  "collected_at": "2026-04-23T21:05:00-05:00",
+  "resulted_at": "2026-04-23T21:28:00-05:00",
+  "cbc": {
+    "hemoglobin": 10.2,
+    "wbc": 11.8,
+    "platelets": 214
+  },
+  "bmp": {
+    "sodium": 137,
+    "potassium": 4.4,
+    "bun": 26,
+    "creatinine": 1.2,
+    "glucose": 162
+  },
+  "baseline_creatinine_mg_dl": 1.1,
+  "source_event_ids": [
+    "evt-005-0009"
+  ]
+}

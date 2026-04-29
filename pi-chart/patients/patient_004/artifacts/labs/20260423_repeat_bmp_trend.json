@@ -1,0 +1,17 @@
+{
+  "first_repeat": {
+    "resulted_at": "2026-04-23T12:10:00-05:00",
+    "potassium": 5.2,
+    "creatinine": 2.1
+  },
+  "evening_repeat": {
+    "resulted_at": "2026-04-23T18:05:00-05:00",
+    "potassium": 4.9,
+    "creatinine": 2.0
+  },
+  "restart_thresholds": "hold losartan/spironolactone until potassium <5.0, creatinine trends toward baseline 1.4, and volume status is stable",
+  "source_event_ids": [
+    "evt-004-0023",
+    "evt-004-0030"
+  ]
+}

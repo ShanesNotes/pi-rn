@@ -14,14 +14,67 @@ const broadScope: PatientScope = { chartRoot: REPO_ROOT, patientId: "patient_002
 const WOB = "evt-002-0032";
 const ICU_ENCOUNTER = "enc-002-001";
 const LATE_AS_OF = "2026-04-19T06:45:00-05:00";
+const CORPUS_CASES = [
+  {
+    patientId: "patient_001",
+    encounterId: "enc_001",
+    asOf: "2026-04-18T08:45:00-05:00",
+    proofFactId: "evt_20260418T0842_02",
+    proofFactLabel: "focused respiratory reassessment",
+  },
+  {
+    patientId: "patient_002",
+    encounterId: ICU_ENCOUNTER,
+    asOf: LATE_AS_OF,
+    proofFactId: WOB,
+    proofFactLabel: "work-of-breathing observation",
+  },
+  {
+    patientId: "patient_003",
+    encounterId: "enc-003-001",
+    asOf: "2026-04-22T18:55:00-05:00",
+    proofFactId: "evt-003-0018",
+    proofFactLabel: "hypoperfusion/lactate/MAP observation",
+  },
+  {
+    patientId: "patient_004",
+    encounterId: "enc-004-001",
+    asOf: "2026-04-23T18:55:00-05:00",
+    proofFactId: "evt-004-0017",
+    proofFactLabel: "medication-safety renal/K observation",
+  },
+  {
+    patientId: "patient_005",
+    encounterId: "enc-005-001",
+    asOf: "2026-04-24T18:55:00-05:00",
+    proofFactId: "evt-005-0018",
+    proofFactLabel: "functional-safety delirium/fall-risk finding",
+  },
+] as const;
 const HIDDEN_SIM_KEYS = [
   "hidden_lung_fluid_ml",
   "ground_truth_pneumonia_burden",
   "scheduled_event_queue",
 ] as const;
+const REQUIRED_MEMORY_PROOF_SECTIONS = [
+  "what_happened",
+  "why_it_mattered",
+  "evidence",
+  "uncertainty",
+  "open_loops",
+  "next_shift_handoff",
+] as const;
+const ORDER_SUBTYPES = new Set(["order", "medication_order"]);
+const CARE_PLAN_SUBTYPES = new Set(["order", "icu_transfer", "care_plan", "monitoring_plan"]);
+const HANDOFF_SUBTYPES = new Set(["handoff", "sbar"]);
+const REVIEW_NOTE_SUBTYPES = new Set(["ed_triage_note", "sbar", "nursing_note", "handoff"]);
 
 function stringifyProof(value: unknown): string {
   return JSON.stringify(value, null, 2);
+}
+
+function corpusScope(patientId: string): PatientScope {
+  return { chartRoot: REPO_ROOT, patientId };
 }
 
 function stringField(value: unknown, key: string): string | undefined {
@@ -44,31 +97,56 @@ function isCanonicalWorkOfBreathing(event: EventEnvelope): boolean {
 }
 
 test("memoryProof returns six required sections and is JSON-serializable", async () => {
-  const proof = await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
-  assert.equal(proof.patient_id, "patient_002");
-  assert.deepEqual(Object.keys(proof.sections), [
-    "what_happened",
-    "why_it_mattered",
-    "evidence",
-    "uncertainty",
-    "open_loops",
-    "next_shift_handoff",
-  ]);
-  const reparsed = JSON.parse(JSON.stringify(proof));
-  assert.deepEqual(reparsed, proof);
+  for (const { patientId, asOf, encounterId } of CORPUS_CASES) {
+    const proof = await memoryProof({
+      scope: corpusScope(patientId),
+      asOf,
+      encounterId,
+    });
+    assert.equal(proof.patient_id, patientId);
+    assert.deepEqual(Object.keys(proof.sections), REQUIRED_MEMORY_PROOF_SECTIONS);
+    const reparsed = JSON.parse(JSON.stringify(proof));
+    assert.deepEqual(reparsed, proof);
+  }
 });
 
-test("patient_002 fixture covers all six broad EHR surfaces", async () => {
-  const events = await loadAllEvents(broadScope);
-  const notes = await narrative({ scope: broadScope });
-  assert(events.some((event) => event.type === "observation" && event.subtype === "exam_finding"), "nursing assessment missing");
-  assert(events.some((event) => event.type === "intent" && event.subtype === "order"), "order missing");
-  assert(events.some((event) => event.type === "action"), "intervention/action missing");
-  assert(events.some((event) => event.type === "observation" && event.subtype === "lab_result"), "lab/diagnostic missing");
-  assert(events.some((event) => event.type === "intent" && ["order", "icu_transfer", "care_plan"].includes(event.subtype ?? "")), "care plan/order intent missing");
-  assert(events.some((event) => event.type === "communication" && ["handoff", "sbar"].includes(event.subtype ?? "")), "handoff/SBAR communication missing");
-  assert(notes.some((note) => ["ed_triage_note", "sbar", "nursing_note"].includes(note.subtype)), "narrative note missing");
-  assert(events.some((event) => event.type === "observation" && event.subtype === "vital_sign"), "event vitals surface missing");
+test("machine-verified/generated corpus fixtures cover all six broad EHR surfaces", async () => {
+  for (const { patientId } of CORPUS_CASES) {
+    const scope = corpusScope(patientId);
+    const events = await loadAllEvents(scope);
+    const notes = await narrative({ scope });
+    assert(
+      events.some((event) => event.type === "observation" && event.subtype === "exam_finding"),
+      `${patientId}: nursing assessment missing`,
+    );
+    assert(
+      events.some((event) => event.type === "intent" && ORDER_SUBTYPES.has(event.subtype ?? "")),
+      `${patientId}: order missing`,
+    );
+    assert(events.some((event) => event.type === "action"), `${patientId}: intervention/action missing`);
+    assert(
+      events.some((event) => event.type === "observation" && event.subtype === "lab_result"),
+      `${patientId}: lab/diagnostic missing`,
+    );
+    assert(
+      events.some((event) =>
+        event.type === "intent" && CARE_PLAN_SUBTYPES.has(event.subtype ?? "")
+      ),
+      `${patientId}: care plan/order intent missing`,
+    );
+    assert(
+      events.some((event) => event.type === "communication" && HANDOFF_SUBTYPES.has(event.subtype ?? "")),
+      `${patientId}: handoff/SBAR communication missing`,
+    );
+    assert(
+      notes.some((note) => REVIEW_NOTE_SUBTYPES.has(note.subtype)),
+      `${patientId}: narrative note missing`,
+    );
+    assert(
+      events.some((event) => event.type === "observation" && event.subtype === "vital_sign"),
+      `${patientId}: event vitals surface missing`,
+    );
+  }
 });
 
 test("memoryProof preserves asOf replay across evidence, notes, loops, and handoff", async () => {
@@ -149,54 +227,80 @@ function observation(
 }
 
 test("memoryProof reuses one bedside observation across projection contexts", async () => {
-  const events = await loadAllEvents(broadScope);
-  const wobEvents = events.filter(isCanonicalWorkOfBreathing);
-  assert(wobEvents.some((event) => event.id === WOB), "focused work-of-breathing observation missing");
+  for (const { patientId, asOf, encounterId, proofFactId, proofFactLabel } of CORPUS_CASES) {
+    const scope = corpusScope(patientId);
+    const events = await loadAllEvents(scope);
+    if (patientId === "patient_002") {
+      const wobEvents = events.filter(isCanonicalWorkOfBreathing);
+      assert(wobEvents.some((event) => event.id === proofFactId), "focused work-of-breathing observation missing");
+    } else {
+      assert(
+        events.some((event) => event.id === proofFactId && event.type === "observation"),
+        `${patientId}: ${proofFactLabel} missing`,
+      );
+    }
 
-  const proof = await memoryProof({ scope: broadScope, asOf: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
-  assert(proof.sections.why_it_mattered.some((item) => item.event_ids.includes(WOB)), "review/assessment missing WOB support");
-  assert(proof.sections.evidence.some((item) => item.ref === WOB && item.event_ids?.includes("evt-002-0033")), "evidence/provenance missing WOB reuse");
-  assert(proof.sections.open_loops.some((loop) => loop.evidence_ids.includes(WOB)), "open loop missing WOB support");
-  assert(proof.sections.next_shift_handoff.some((item) => item.event_ids.includes(WOB)), "handoff missing WOB support");
+    const proof = await memoryProof({ scope, asOf, encounterId });
+    assert(
+      proof.sections.why_it_mattered.some((item) => item.event_ids.includes(proofFactId)),
+      `${patientId}: review/assessment missing ${proofFactLabel} support`,
+    );
+    assert(
+      proof.sections.evidence.some((item) => item.ref === proofFactId),
+      `${patientId}: evidence/provenance missing ${proofFactLabel} reuse`,
+    );
+    assert(
+      proof.sections.open_loops.some((loop) => loop.evidence_ids.includes(proofFactId)),
+      `${patientId}: open loop missing ${proofFactLabel} support`,
+    );
+    assert(
+      proof.sections.next_shift_handoff.some((item) => item.event_ids.includes(proofFactId)),
+      `${patientId}: handoff missing ${proofFactLabel} support`,
+    );
 
-  const notes = await narrative({ scope: broadScope, to: LATE_AS_OF, encounterId: ICU_ENCOUNTER });
-  assert(notes.some((note) => note.references.includes(WOB)), "narrative note path missing WOB support");
+    const notes = await narrative({ scope, to: asOf, encounterId });
+    assert(
+      notes.some((note) => note.references.includes(proofFactId)),
+      `${patientId}: narrative note path missing ${proofFactLabel} support`,
+    );
+  }
 });
 
 test("memoryProof ignores hidden simulator state files", async () => {
-  const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-hidden-state-"));
-  try {
-    const tmpPatientRoot = path.join(tmpRoot, "patients", "patient_002");
-    await fs.mkdir(path.dirname(tmpPatientRoot), { recursive: true });
-    await fs.cp(path.join(REPO_ROOT, "patients", "patient_002"), tmpPatientRoot, {
-      recursive: true,
-    });
+  for (const { patientId, asOf, encounterId } of CORPUS_CASES) {
+    const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "pi-chart-hidden-state-"));
+    try {
+      const tmpPatientRoot = path.join(tmpRoot, "patients", patientId);
+      await fs.mkdir(path.dirname(tmpPatientRoot), { recursive: true });
+      await fs.cp(path.join(REPO_ROOT, "patients", patientId), tmpPatientRoot, {
+        recursive: true,
+      });
 
-    const scope: PatientScope = { chartRoot: tmpRoot, patientId: "patient_002" };
-    const asOf = LATE_AS_OF;
-    const before = stringifyProof(await memoryProof({ scope, asOf }));
+      const scope: PatientScope = { chartRoot: tmpRoot, patientId };
+      const before = stringifyProof(await memoryProof({ scope, asOf, encounterId }));
 
-    await fs.writeFile(
-      path.join(tmpPatientRoot, "_sim_state.json"),
-      `${JSON.stringify({
-        hidden_lung_fluid_ml: 875,
-        ground_truth_pneumonia_burden: "high",
-        scheduled_event_queue: ["future_private_event"],
-      }, null, 2)}\n`,
-    );
-    await fs.mkdir(path.join(tmpPatientRoot, "simulation", "hidden_truth"), { recursive: true });
-    await fs.writeFile(
-      path.join(tmpPatientRoot, "simulation", "hidden_truth", "pi_sim_state_plan.yaml"),
-      "hidden_lung_fluid_ml: 875\nground_truth_pneumonia_burden: high\nscheduled_event_queue:\n  - future_private_event\n",
-    );
+      await fs.writeFile(
+        path.join(tmpPatientRoot, "_sim_state.json"),
+        `${JSON.stringify({
+          hidden_lung_fluid_ml: 875,
+          ground_truth_pneumonia_burden: "high",
+          scheduled_event_queue: ["future_private_event"],
+        }, null, 2)}\n`,
+      );
+      await fs.mkdir(path.join(tmpPatientRoot, "simulation", "hidden_truth"), { recursive: true });
+      await fs.writeFile(
+        path.join(tmpPatientRoot, "simulation", "hidden_truth", "pi_sim_state_plan.yaml"),
+        "hidden_lung_fluid_ml: 875\nground_truth_pneumonia_burden: high\nscheduled_event_queue:\n  - future_private_event\n",
+      );
 
-    const after = stringifyProof(await memoryProof({ scope, asOf }));
-    assert.equal(after, before);
-    for (const key of HIDDEN_SIM_KEYS) {
-      assert(!after.includes(key), `${key} leaked into memoryProof output`);
+      const after = stringifyProof(await memoryProof({ scope, asOf, encounterId }));
+      assert.equal(after, before, `${patientId}: hidden state changed memoryProof output`);
+      for (const key of HIDDEN_SIM_KEYS) {
+        assert(!after.includes(key), `${patientId}: ${key} leaked into memoryProof output`);
+      }
+    } finally {
+      await fs.rm(tmpRoot, { recursive: true, force: true });
     }
-  } finally {
-    await fs.rm(tmpRoot, { recursive: true, force: true });
   }
 });
 

@@ -1,0 +1,22 @@
+{
+  "am_repeat": {
+    "collected_at": "2026-04-24T04:00:00-05:00",
+    "resulted_at": "2026-04-24T04:30:00-05:00",
+    "potassium": 4.6,
+    "creatinine": 1.8,
+    "egfr": 38
+  },
+  "afternoon_repeat": {
+    "collected_at": "2026-04-24T14:00:00-05:00",
+    "resulted_at": "2026-04-24T14:45:00-05:00",
+    "potassium": 4.4,
+    "creatinine": 1.6,
+    "egfr": 44
+  },
+  "baseline_creatinine_mg_dl": 1.4,
+  "restart_thresholds": "outpatient cardiology to consider losartan/spironolactone restart with K below 5.0 and creatinine 1.5 or lower; outpatient nephrology to consider metformin restart with creatinine 1.5 or lower",
+  "source_event_ids": [
+    "evt-004-0035",
+    "evt-004-0052"
+  ]
+}

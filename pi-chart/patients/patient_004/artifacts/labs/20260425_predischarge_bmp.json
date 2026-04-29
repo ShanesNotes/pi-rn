@@ -1,0 +1,19 @@
+{
+  "predischarge": {
+    "collected_at": "2026-04-25T05:30:00-05:00",
+    "resulted_at": "2026-04-25T06:00:00-05:00",
+    "sodium": 139,
+    "potassium": 4.2,
+    "chloride": 104,
+    "co2": 24,
+    "bun": 30,
+    "creatinine": 1.5,
+    "glucose": 118,
+    "egfr": 47
+  },
+  "baseline_creatinine_mg_dl": 1.4,
+  "discharge_decision": "K 4.2 below restart threshold; creatinine 1.5 within 0.1 of baseline; transitioned IV furosemide to torsemide 20 mg PO daily; held losartan/spironolactone/metformin/NSAIDs continued into outpatient plan with documented restart criteria",
+  "source_event_ids": [
+    "evt-004-0063"
+  ]
+}
