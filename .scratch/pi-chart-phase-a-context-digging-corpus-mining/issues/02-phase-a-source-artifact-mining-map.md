@@ -33,4 +33,12 @@ Mine the Phase A source artifacts into a structured source-intent map that captu
 - Later reconciliation preserved: source-only rows use `revise`, `defer`, or `open-question` where code/corpus/HITL/ADR evidence is still required; unresolved schema pressure is carried into mismatch-register input.
 - Boundary verification: docs-only. No source code, patient fixtures/corpus, `_derived` outputs, schemas, tests, accepted ADRs, design assets, lockfiles, `pi-ledger`, or `pi-sim` internals were edited.
 - Issues 05-14 status unchanged (`needs-triage`/not promoted).
-- Git status at closeout: to be recorded after validation.
+- Git status at closeout: clean before validation closeout update; final closeout commit contains only this issue closeout evidence update.
+
+### Verification
+
+- PASS docs validation: required source citations, template row fields, issue checklist, changed-path scope, and issues 05-14 not promoted.
+- PASS typecheck: `cd pi-chart && npm run typecheck`.
+- PASS tests: `cd pi-chart && npm test` → 389 passed, 0 failed.
+- PASS chart validation: `cd pi-chart && npm run validate` → 0 errors, 20 pre-existing warnings across 5 patients.
+- PASS whitespace/static diff check: `git diff --check HEAD~1 HEAD -- .scratch/pi-chart-phase-a-context-digging-corpus-mining/`.
