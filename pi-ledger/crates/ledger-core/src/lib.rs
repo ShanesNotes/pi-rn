@@ -6,6 +6,7 @@
 
 pub mod canonical;
 pub mod claim;
+pub mod fixture;
 pub mod ledger;
 pub mod predicates;
 pub mod query;
