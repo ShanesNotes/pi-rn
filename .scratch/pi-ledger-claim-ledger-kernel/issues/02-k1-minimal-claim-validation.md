@@ -1,6 +1,6 @@
 # K1 minimal Claim validation
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
@@ -14,6 +14,7 @@ Define and validate the smallest V0.5 `Claim` shape in `ledger-core`, independen
 ## Acceptance criteria
 
 - [ ] Starts with failing Rust tests mapped to T-K1-01 through T-K1-04 in `test-spec.md`.
+- [ ] Implementation lives in `pi-ledger/crates/ledger-core/src/claim.rs` with Rust test coverage; update `lib.rs` only to expose the minimal K1 interface.
 - [ ] Only four claim shapes are accepted: `context`, `observation`, `interpretation`, and `act`.
 - [ ] Validation requires `id`, `shape`, `predicate`, `subject`, `object`, `time`, `actor`, and `integrity`.
 - [ ] K1 validates only `time.valid` and `time.recorded_at`; `time.accepted_at`, `time.seq`, and `time.batch_id` are owned by K3 and MUST be absent from K1 input or ignored by K1 validation.
@@ -25,7 +26,7 @@ Define and validate the smallest V0.5 `Claim` shape in `ledger-core`, independen
 
 ## Blocked by
 
-- `.scratch/pi-ledger-claim-ledger-kernel/issues/01-k0-k2-canonical-hash.md`
+None — K0+K2 canonicalization/hash was approved green on 2026-05-03.
 
 ## Closeout commands
 

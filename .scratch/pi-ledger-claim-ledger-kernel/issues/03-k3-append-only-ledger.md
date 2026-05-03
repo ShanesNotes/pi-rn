@@ -1,6 +1,6 @@
 # K3 append-only ledger
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
@@ -14,6 +14,7 @@ Create the minimal append-only ledger behavior for accepted synthetic claims: st
 ## Acceptance criteria
 
 - [ ] Starts with failing Rust tests mapped to T-K3-01 through T-K3-05 plus T-REBUILD-01 and T-REBUILD-02 in `test-spec.md`.
+- [ ] Implementation lives in `pi-ledger/crates/ledger-core/src/ledger.rs` with Rust test coverage; update `lib.rs` only to expose the minimal K3 interface.
 - [ ] Append accepts only claims that pass the K1 validator.
 - [ ] Append sets or overwrites store-owned `accepted_at`, monotonic `seq`, and `batch_id`; caller-supplied values are rejected, either by silent overwrite/ignore or deterministic warning behavior covered in tests.
 - [ ] Phase 1 `batch_id` is deterministic and store-assigned per append: one append equals one batch; caller-supplied `batch_id` and multi-append batches are forbidden. Future batch APIs remain deferred per `pkg-018`.
@@ -28,7 +29,7 @@ Create the minimal append-only ledger behavior for accepted synthetic claims: st
 
 ## Blocked by
 
-- `.scratch/pi-ledger-claim-ledger-kernel/issues/02-k1-minimal-claim-validation.md`
+None — K1 minimal Claim validation was committed green on 2026-05-03.
 
 ## Closeout commands
 
