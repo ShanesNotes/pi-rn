@@ -1,0 +1,10 @@
+[workspace]
+members = ["crates/ledger-core"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.95"
+
+[workspace.dependencies]

@@ -16,6 +16,12 @@
 - **Patient scope**: explicit `{ chartRoot, patientId }` confinement for public read/write calls.
 - **View primitive**: pure read model such as timeline, current state, trend, evidence chain, open loops, or narrative.
 - **Write boundary**: sanctioned APIs in `src/`, not raw file edits.
+- **Clinical truth guardrail**: a domain-level rule preserved because it protects chart truth, not because prototype code happened to behave that way.
+- **Observable charting seam**: the boundary where observable clinical signals, such as monitor vitals, become chart truth only after explicit adapter or clinician validation, preserving real-time clinician context and preventing hidden simulator foresight.
+
+## Relationships
+
+- A **Clinical truth guardrail** may be promoted from prior work only when it is source-cited, domain-level, and re-justified for V0.5.
 
 ## Invariants
 
@@ -26,9 +32,14 @@
 - Narrative note authoring should preserve paired note/event provenance when applicable.
 - Whole-chart validation owns link resolution, contradiction/resolution checks, note-reference integrity, and transform provenance coherence.
 
+
+## Boundary with pi-ledger
+
+`pi-ledger` owns the reusable cryptographic claim-ledger kernel after ADR 020. `pi-chart` owns chart/EHR workflows, clinical views, adapters, and brownfield compatibility. `pi-chart` should consume `pi-ledger` through explicit adapters after the kernel interface is proven; it should not treat `pi-chart/src/claim-ledger/` as the canonical kernel home.
+
 ## Boundary with pi-sim
 
-`pi-chart` may consume `pi-sim` public telemetry through explicit adapters, but must not depend on hidden simulator internals. `pi-sim/vitals/README.md` and `.lanes.json` define producer-side telemetry contracts.
+`pi-chart` may consume `pi-sim` public telemetry through explicit adapters, but must not depend on hidden simulator internals. The boundary is hidden-state versus observable-and-charted data: observable monitor vitals may become chart truth through the **Observable charting seam**, while hidden simulator/oracle state must never enter pi-chart or pi-agent context. `pi-sim/vitals/README.md` and `.lanes.json` define producer-side telemetry contracts.
 
 ## ADR authority
 
@@ -40,3 +51,7 @@ Read `pi-chart/docs/adr/` before changing chart primitives, lifecycle/status sem
 - `pi-chart/DESIGN.md` — current spec and invariants.
 - `pi-chart/ARCHITECTURE.md` — code map over the design.
 - `pi-chart/ROADMAP.md` — shipped/deferred seams and growth path.
+
+## Flagged ambiguities
+
+- "Invariant" is too broad for V0.5 salvage planning; use **Clinical truth guardrail** when the rule is safe to preserve because it protects chart truth.

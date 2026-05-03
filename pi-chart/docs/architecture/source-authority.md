@@ -10,7 +10,7 @@ When artifacts conflict, use this order:
 
 1. Direct user/system/developer instructions for the active session.
 2. `AGENTS.md` instructions in scope.
-3. Accepted ADRs in `decisions/`.
+3. Accepted ADRs in `docs/adr/`.
 4. Canonical architecture docs listed below.
 5. Active planning docs listed below.
 6. Prototype/directional evidence.
@@ -21,7 +21,7 @@ When a lower-authority artifact has useful details, promote the specific decisio
 
 ## Canonical architecture
 
-These files define the current architecture unless superseded by a later accepted ADR:
+These files define the current brownfield architecture unless superseded by a later accepted ADR. For V0.5 K0-K6 claim-ledger kernel implementation, ADR 019 plus `.scratch/pi-chart-v0-5-claim-ledger-kernel/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patients/`, `patient_001`, and legacy `decisions/` wording in these canonical docs.
 
 | Surface | Authority | Notes |
 |---|---|---|
@@ -36,23 +36,30 @@ These files define the current architecture unless superseded by a later accepte
 
 | Surface | Authority | Notes |
 |---|---|---|
-| `decisions/001-mimic-to-synthea.md` through `decisions/017-actor-attestation-review-taxonomy.md` | Accepted historical decisions | Valid unless superseded by later ADR. |
-| `decisions/018-architecture-rebase-clinical-truth-substrate.md` | Current architecture rebase decision | Establishes clinical truth substrate over prototype cockpit, hybrid immediate path, clean-slate spike gate, and context-hygiene requirement. |
-| Future `decisions/019-*` | Pending | Should decide clean-slate vs hybrid after spike evidence. |
+| `docs/adr/001-mimic-to-synthea.md` through `docs/adr/017-actor-attestation-review-taxonomy.md` | Accepted historical decisions | Valid unless superseded by later ADR. |
+| `docs/adr/018-architecture-rebase-clinical-truth-substrate.md` | Current architecture rebase decision | Establishes clinical truth substrate over prototype cockpit, hybrid immediate path, clean-slate spike gate, and context-hygiene requirement. |
+| `docs/adr/019-v0-5-clean-canvas-claim-ledger-kernel.md` | Superseded implementation home; still valid clean-canvas guardrails | ADR 020 supersedes the `src/claim-ledger/` implementation-home detail. ADR 019 remains useful for clean-canvas posture and guardrails. |
+| `docs/adr/020-claim-ledger-kernel-owned-by-pi-ledger.md` | Current kernel ownership decision | Moves the reusable cryptographic claim-ledger kernel to sibling subproject `pi-ledger/`; `pi-chart` becomes consumer/adapter. |
 
 ## Active planning
 
-These files may guide execution when their lane is approved. They are not architecture authority unless converted into ADRs or canonical docs.
+Active work uses the Matt-compatible local issue tracker under root `.scratch/`. Planning files outside `.scratch` may guide execution only when the active PRD or issue cites them. They are not architecture authority unless converted into ADRs or canonical docs.
 
 | Surface | Status | Notes |
 |---|---|---|
-| `docs/plans/kanban-prd-board.md` | Canonical planning index | First stop for active PRD/test-spec lanes and backlog status. |
-| `docs/plans/prd-architecture-rebase-clinical-truth-substrate.md` | Active PRD | Owns ADR/source-authority/quarantine/spike planning lane. |
-| `docs/plans/test-spec-architecture-rebase-clinical-truth-substrate.md` | Active test spec | Structural verification for this lane. |
-| Other `docs/plans/prd-*.md` / `docs/plans/test-spec-*.md` | Active only when board/HITL says so | Do not infer approval from file existence alone. |
-| `.omx/plans/plan-architecture-rebase-clinical-truth-substrate.md` | Execution-history seed | Useful source for this lane; promoted durable outputs live in `decisions/` and `docs/`. |
+| `.scratch/<feature>/PRD.md` | Active PRD surface | Default place for current requirements synthesized from chat/context. |
+| `.scratch/<feature>/issues/<NN>-<slug>.md` | Active issue surface | Default place for tracer-bullet slices, triage status, owned files, and verification. |
+| `.scratch/pi-chart-v0-5/` | Current V0.5 work surface | Active bridge for the V0.5 rebase workflow and issue slicing. |
+| `docs/planning/v0.5/README.md` | Durable V0.5 index | Points to active `.scratch` work and relevant evidence surfaces. |
+| `docs/plans/` | Legacy/promoted planning evidence | Pre-Matt planning board and PRD/test-spec history. Do not add active scratch work here by default. |
+| `.omx/plans/` | Execution-history seed | Useful source when named by a current `.scratch` issue; mirror durable outcomes into `.scratch` or ADRs. |
 
 ## Prototype/directional evidence
+
+### Archived research packages
+
+Use **archived research package** for preserved V0.5 package-bundle inputs. Cite them with namespaced labels such as `pkg-018:<path>`. They are research evidence only until a current `.scratch` issue, accepted `docs/adr/` record, or canonical pi-chart doc promotes a specific claim. Avoid bare "package" for these artifacts in active docs.
+
 
 These artifacts can inform product intuition, vocabulary, and visual direction, but they must not define core architecture without promotion into ADR/PRD.
 
@@ -62,7 +69,7 @@ These artifacts can inform product intuition, vocabulary, and visual direction, 
 | `docs/prototypes/` | Generated/static prototype output | Useful for visual/product review. Not source of chart truth or architecture. |
 | `scripts/agent-canvas.ts` output | Prototype generator evidence | The generated cockpit is hardcoded/product-exploratory. It is not core architecture. |
 | `tests/fixtures/agent-canvas-context.json` | Prototype fixture evidence | Valid for tests, not a canonical context API by itself. |
-| `patients/patient_002/` | Golden fixture and product-story evidence | Useful broad EHR skeleton proof. Do not overfit architecture to this single respiratory scenario. |
+| `patients/patient_002/` | Historical prototype fixture and product-story evidence | Useful broad EHR skeleton proof for later salvage/testing only. Not Phase 1 kernel fixture authority; do not overfit architecture to this single respiratory scenario. |
 
 ## Historical/proposal-only
 
@@ -70,10 +77,10 @@ These artifacts may contain useful research, rejected ideas, or partial plans. T
 
 | Surface | Status | Notes |
 |---|---|---|
-| `memos/` | Historical/proposal-only by default | Promote specific durable decisions into ADRs or `docs/plans` before implementation. |
+| `memos/` | Historical/proposal-only by default | Promote specific durable decisions into ADRs or `.scratch` PRDs/issues before implementation. |
 | `clinical-reference/` | Domain research/reference | Helps shape fixtures and claims; not automatically accepted schema or architecture. |
 | `wiki/` | Project wiki/reference | Useful navigation/history; not higher authority than ADRs/docs. |
-| `.omx/plans/` except explicitly referenced active plan | Execution history | Treat as historical unless promoted into `docs/plans` or named by current task. |
+| `.omx/plans/` except explicitly referenced active plan | Execution history | Treat as historical unless promoted into `.scratch`, an ADR, or named by current task. |
 | `.omx/context/` | Session context snapshots | Useful evidence for the specific lane; not durable architecture by default. |
 | `.omx/interviews/`, `.omx/specs/`, `.omx/reports/` | Workflow artifacts | Historical unless a current plan names them as source inputs. |
 
@@ -88,7 +95,7 @@ These cues should not drive new implementation unless superseded by a new accept
 | Reading hidden `pi-sim` internals from pi-chart or pi-agent | Violates ADR 016 and ADR 018 boundary rules. |
 | Assuming every memo is accepted policy | Memos are proposal/historical by default. |
 | Assuming broad EHR skeleton means full EHR product | ADR 016 says breadth is for observable clinical-memory proof, not full EHR scope. |
-| Starting clean-slate rewrite before spike and ADR 019 | ADR 018 requires evidence before rewrite. |
+| Starting a broad clean-slate rewrite beyond the V0.5 claim-ledger kernel | ADR 019 authorizes a clean-canvas kernel only; broader rewrite still requires later evidence and ADR/issue approval. |
 
 ## Runtime/transient artifacts
 
@@ -122,4 +129,4 @@ To promote an idea from lower-authority material:
 
 ## Current next gate
 
-The next architecture gate is ADR 019 after a clean-slate service/event-store spike compares against current patient_002 projections. Until then, execute hybrid/docs/source-authority work only unless a new approved plan says otherwise.
+The current workflow gate is retargeting from `.scratch/pi-chart-v0-5-claim-ledger-kernel/` to `pi-ledger/` ownership. ADR 020 and `pi-ledger` ADR 001 supersede ADR 019's `pi-chart/src/claim-ledger/` implementation home. Before further AFK source work, re-triage issue paths, package/tooling, and closeout commands for `pi-ledger`.

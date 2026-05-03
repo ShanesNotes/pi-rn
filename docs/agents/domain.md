@@ -15,8 +15,11 @@ This is a **multi-context umbrella repo**. The root workflow config is shared, b
 │   ├── AGENTS.md                      # Pi-specific runtime/scaffold rules
 │   └── CONTEXT.md                     # bounded clinician-agent workspace
 ├── pi-chart/
-│   ├── CONTEXT.md                     # chart/EHR truth substrate
+│   ├── CONTEXT.md                     # chart/EHR truth substrate and adapters
 │   └── docs/adr/                      # chart/EHR decisions
+├── pi-ledger/
+│   ├── CONTEXT.md                     # reusable cryptographic claim-ledger kernel
+│   └── docs/adr/                      # ledger kernel decisions
 ├── pi-monitor/
 │   ├── CONTEXT.md                     # display-only monitor
 │   └── docs/adr/                      # monitor decisions
@@ -26,21 +29,32 @@ This is a **multi-context umbrella repo**. The root workflow config is shared, b
     └── vitals/README.md               # public telemetry contract authority
 ```
 
+| Area | Context file | ADR authority |
+| --- | --- | --- |
+| `pi-agent/` | `pi-agent/CONTEXT.md` | Create `pi-agent/docs/adr/` only when agent-specific decisions need durable records |
+| `pi-chart/` | `pi-chart/CONTEXT.md` | `pi-chart/docs/adr/` |
+| `pi-ledger/` | `pi-ledger/CONTEXT.md` | `pi-ledger/docs/adr/` |
+| `pi-monitor/` | `pi-monitor/CONTEXT.md` | `pi-monitor/docs/adr/` |
+| `pi-sim/` | `pi-sim/CONTEXT.md` | `pi-sim/docs/adr/` |
+
 ## Before exploring, read these
 
 1. Read root `CONTEXT-MAP.md`.
 2. Read each touched subproject's `CONTEXT.md`.
-3. Read relevant ADRs under that subproject's `docs/adr/`.
+3. Read relevant ADRs under that subproject's `docs/adr/`. For claim-ledger kernel work, read `pi-ledger/CONTEXT.md` and `pi-ledger/docs/adr/` before `pi-chart` adapter docs.
 4. If a task crosses the simulator telemetry boundary, read `pi-sim/vitals/README.md` and, when lane semantics matter, `pi-sim/vitals/.lanes.json`.
 
 Do not duplicate this setup under subprojects. `docs/agents/*` at the root is the shared skill setup for the whole umbrella workspace.
+
+Use `docs/agents/work-surface.md` for the shared conversation → PRD → issue → ADR → canonical-doc promotion ladder. This file only maps domain/context authority.
 
 ## Boundary rules
 
 - `pi-agent` must not depend on hidden `pi-sim` internals. Design as if it only sees mounted/explicitly exposed surfaces.
 - `pi-sim` owns hidden patient state and public telemetry publication.
 - `pi-monitor` is display-only and reads public telemetry; it does not write chart truth.
-- `pi-chart` owns chart/EHR truth and may ingest public telemetry only through explicit adapters.
+- `pi-ledger` owns the reusable cryptographic claim-ledger kernel.
+- `pi-chart` owns chart/EHR truth, clinical workflows, and adapters; it may ingest public telemetry only through explicit adapters and consumes `pi-ledger` through explicit adapters after kernel proof.
 - Public contracts belong producer-side. For telemetry, `pi-sim/vitals/README.md` and `.lanes.json` are authoritative; fixtures are regression evidence only.
 
 ## ADR guidance

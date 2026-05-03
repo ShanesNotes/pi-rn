@@ -5,7 +5,8 @@ clinical agent system.
 ## Intent
 
 - `pi-agent/` agent harness
-- `pi-chart/` agent-native clinical memory substrate
+- `pi-chart/` agent-native clinical memory substrate and chart adapters
+- `pi-ledger/` reusable cryptographic claim-ledger kernel
 - `pi-sim/` clinical monitor simulation
 
 ## Strategic direction
@@ -30,7 +31,9 @@ hidden physiology, but pi-agent and pi-chart see only public clinical
 observations such as monitor output, EHR data, assessment findings, and
 scenario-rollout artifacts.
 
-See `pi-chart/decisions/016-broad-ehr-skeleton-clinical-memory.md` and
+See `pi-chart/docs/adr/016-broad-ehr-skeleton-clinical-memory.md`,
+`pi-chart/docs/adr/020-claim-ledger-kernel-owned-by-pi-ledger.md`,
+`pi-ledger/docs/adr/001-reusable-claim-ledger-kernel.md`, and
 `pi-chart/clinical-reference/broad-ehr-skeleton.md`.
 
 <img width="2102" height="1102" alt="image" src="https://github.com/user-attachments/assets/cda47c4e-a186-4d9e-89d0-2f0dc096d8d1" />
