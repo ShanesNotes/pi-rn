@@ -1,6 +1,6 @@
 # Phase A source artifact mining map
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent

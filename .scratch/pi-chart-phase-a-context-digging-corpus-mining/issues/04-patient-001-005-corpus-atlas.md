@@ -1,6 +1,6 @@
 # patient_001-005 corpus atlas
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent

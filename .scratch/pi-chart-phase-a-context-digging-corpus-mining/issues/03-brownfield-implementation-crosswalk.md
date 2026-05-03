@@ -1,6 +1,6 @@
 # Brownfield implementation crosswalk
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
