@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """Verify architecture-deepening artifact-placement planning artifacts.
 
-This checker is intentionally lane-local and source-edit hostile. It allows the
-pre-existing dirty worktree recorded before this artifact pass plus files under
-`.scratch/architecture-deepening-placement/`, and fails on new status entries
-elsewhere or on root `ingest/` creation.
+The checker is intentionally lane-local and source-edit hostile. It compares a
+recorded `git status --short` baseline with the current status, allows files
+under `.scratch/architecture-deepening-placement/`, and fails on new status
+entries elsewhere or on root `ingest/` creation.
+
+The committed `baseline-status-before-artifact-pass.txt` preserves the original
+artifact-pass baseline. In a shared moving worktree, use `--refresh-baseline`
+before a verification pass to create `baseline-status-local.txt` for already-
+present unrelated dirty files. Do not refresh after making non-placement edits
+you intend this checker to catch.
 """
 
 from __future__ import annotations
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -33,10 +40,31 @@ REQUIRED_ISSUE_SECTIONS = [
 ]
 
 ALLOWED_NEW_PREFIX = ".scratch/architecture-deepening-placement/"
+INITIAL_BASELINE_NAME = "baseline-status-before-artifact-pass.txt"
+LOCAL_BASELINE_NAME = "baseline-status-local.txt"
 
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def checks_dir(root: Path) -> Path:
+    return root / ".scratch" / "architecture-deepening-placement" / "checks"
+
+
+def initial_baseline_path(root: Path) -> Path:
+    return checks_dir(root) / INITIAL_BASELINE_NAME
+
+
+def local_baseline_path(root: Path) -> Path:
+    return checks_dir(root) / LOCAL_BASELINE_NAME
+
+
+def active_baseline_path(root: Path) -> Path:
+    local = local_baseline_path(root)
+    if local.exists():
+        return local
+    return initial_baseline_path(root)
 
 
 def run_git_status(root: Path) -> list[str]:
@@ -51,6 +79,12 @@ def run_git_status(root: Path) -> list[str]:
     return [line for line in result.stdout.splitlines() if line.strip()]
 
 
+def refresh_baseline(root: Path) -> None:
+    path = local_baseline_path(root)
+    path.write_text("\n".join(run_git_status(root)) + "\n", encoding="utf-8")
+    print(f"refreshed local baseline: {path.relative_to(root)}")
+
+
 def status_payload(line: str) -> str:
     payload = line[3:].strip() if len(line) >= 3 else line.strip()
     if " -> " in payload:
@@ -58,14 +92,14 @@ def status_payload(line: str) -> str:
     return payload.strip('"')
 
 
-def assert_contains(path: Path, needles: list[str]) -> list[str]:
+def assert_contains(root: Path, path: Path, needles: list[str]) -> list[str]:
     errors: list[str] = []
     if not path.exists():
-        return [f"missing required file: {path.relative_to(repo_root())}"]
+        return [f"missing required file: {path.relative_to(root)}"]
     text = path.read_text(encoding="utf-8")
     for needle in needles:
         if needle not in text:
-            errors.append(f"{path.relative_to(repo_root())} missing required text: {needle}")
+            errors.append(f"{path.relative_to(root)} missing required text: {needle}")
     return errors
 
 
@@ -78,6 +112,7 @@ def verify_files(root: Path) -> list[str]:
 
     errors.extend(
         assert_contains(
+            root,
             prd,
             [
                 "Status: needs-triage",
@@ -90,11 +125,10 @@ def verify_files(root: Path) -> list[str]:
     )
 
     for issue_name in REQUIRED_ISSUES:
-        errors.extend(assert_contains(issues / issue_name, REQUIRED_ISSUE_SECTIONS))
+        errors.extend(assert_contains(root, issues / issue_name, REQUIRED_ISSUE_SECTIONS))
 
-    baseline = checks / "baseline-status-before-artifact-pass.txt"
-    if not baseline.exists():
-        errors.append(f"missing required file: {baseline.relative_to(root)}")
+    if not initial_baseline_path(root).exists():
+        errors.append(f"missing required file: {initial_baseline_path(root).relative_to(root)}")
     verifier = checks / "verify-artifact-placement.py"
     if not verifier.exists():
         errors.append(f"missing required file: {verifier.relative_to(root)}")
@@ -103,37 +137,53 @@ def verify_files(root: Path) -> list[str]:
 
 
 def verify_no_ingest(root: Path) -> list[str]:
-    errors: list[str] = []
     if (root / "ingest").exists():
-        errors.append("root ingest/ exists; this planning pass must not create pi-rn/ingest/")
-    return errors
+        return ["root ingest/ exists; this planning pass must not create pi-rn/ingest/"]
+    return []
 
 
 def verify_git_status(root: Path) -> list[str]:
-    baseline_path = root / ".scratch" / "architecture-deepening-placement" / "checks" / "baseline-status-before-artifact-pass.txt"
-    if not baseline_path.exists():
-        return ["cannot compare git status: baseline-status-before-artifact-pass.txt is missing"]
+    path = active_baseline_path(root)
+    if not path.exists():
+        return [f"cannot compare git status: {path.relative_to(root)} is missing"]
 
-    baseline = {line for line in baseline_path.read_text(encoding="utf-8").splitlines() if line.strip()}
+    baseline = {line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()}
     current = run_git_status(root)
     errors: list[str] = []
 
     for line in current:
-        path = status_payload(line)
+        current_path = status_payload(line)
         if line in baseline:
             continue
-        if path.startswith(ALLOWED_NEW_PREFIX):
+        if current_path.startswith(ALLOWED_NEW_PREFIX):
             continue
         errors.append(
             "new non-placement worktree entry detected: "
-            f"{line!r}; only {ALLOWED_NEW_PREFIX} is allowed beyond baseline"
+            f"{line!r}; refresh the local baseline before this pass or keep changes under "
+            f"{ALLOWED_NEW_PREFIX}"
         )
 
     return errors
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--refresh-baseline",
+        action="store_true",
+        help="record current git status as a local baseline before a later verification pass",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
     root = repo_root()
+
+    if args.refresh_baseline:
+        refresh_baseline(root)
+        return 0
+
     errors: list[str] = []
     errors.extend(verify_files(root))
     errors.extend(verify_no_ingest(root))
