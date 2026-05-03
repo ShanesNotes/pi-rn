@@ -17,7 +17,7 @@
  *   Adapter calls MUST go through view primitives. Components MUST
  *   NOT read NDJSON files, schemas, or v0.4 prototype generators
  *   directly — those are evidence, not implementation authority
- *   (ADR 018, ADR 019).
+ *   (ADR 018, ADR 020).
  *
  * Connector contract ──────────────────────────────────────────────────
  *   useChartSubstrate({ patientId, encounterId, asOf }) — never

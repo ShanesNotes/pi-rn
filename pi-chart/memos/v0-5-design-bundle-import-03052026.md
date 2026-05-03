@@ -2,7 +2,7 @@
 
 Date: 2026-05-03
 Author: Shane (with Claude Code assistance)
-Related: ADR 018, ADR 019, project memory `project_demo_target_patients`
+Related: ADR 018, ADR 019 lineage, ADR 020, project memory `project_demo_target_patients`
 
 ## What landed
 
