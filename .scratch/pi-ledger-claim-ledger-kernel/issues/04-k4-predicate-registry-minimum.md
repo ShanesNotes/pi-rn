@@ -1,6 +1,6 @@
 # K4 predicate registry minimum
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
@@ -14,6 +14,7 @@ Add the smallest predicate registry seam needed to prevent untyped synthetic ker
 ## Acceptance criteria
 
 - [ ] Starts with failing Rust tests mapped to T-K4-01 through T-K4-04 and T-NEG-01 through T-NEG-03 in `test-spec.md`.
+- [ ] Implementation lives in `pi-ledger/crates/ledger-core/src/predicates.rs` with Rust test coverage; update `lib.rs` only to expose the minimal K4 interface.
 - [ ] Minimal registry fixture loads with no duplicate predicate ids.
 - [ ] Registry rejects duplicate predicate ids.
 - [ ] Registry rejects predicate definitions whose declared shape is outside `context`, `observation`, `interpretation`, and `act`.
@@ -27,7 +28,7 @@ Add the smallest predicate registry seam needed to prevent untyped synthetic ker
 
 ## Blocked by
 
-- `.scratch/pi-ledger-claim-ledger-kernel/issues/02-k1-minimal-claim-validation.md`
+None — K3 append-only ledger was committed green on 2026-05-03.
 
 ## Closeout commands
 
