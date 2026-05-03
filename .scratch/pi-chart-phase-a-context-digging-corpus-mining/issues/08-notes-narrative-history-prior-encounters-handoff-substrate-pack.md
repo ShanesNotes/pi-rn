@@ -1,6 +1,6 @@
 # Notes, narrative, history, prior encounters, and handoff substrate pack
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent

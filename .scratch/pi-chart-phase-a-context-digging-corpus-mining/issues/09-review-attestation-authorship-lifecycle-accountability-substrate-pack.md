@@ -1,6 +1,6 @@
 # Review, attestation, authorship, lifecycle, and accountability substrate pack
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent

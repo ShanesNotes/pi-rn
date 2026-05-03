@@ -1,6 +1,6 @@
 # Rendered chart-digging and prototype/design evidence pass
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent

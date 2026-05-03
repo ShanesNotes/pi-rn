@@ -1,6 +1,6 @@
 # Hot current-state substrate pack
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent

@@ -1,6 +1,6 @@
 # Orders, MAR, med rec, I&O, LDA, and open-loop substrate pack
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
