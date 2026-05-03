@@ -1,6 +1,6 @@
 # Trajectory, evidence, labs, and diagnostics substrate pack
 
-Status: ready-for-agent
+Status: ready-for-human
 Type: AFK
 
 ## Parent
