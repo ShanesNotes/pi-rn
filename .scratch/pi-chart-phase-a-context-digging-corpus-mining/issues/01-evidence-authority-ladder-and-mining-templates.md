@@ -32,6 +32,11 @@ None - can start immediately.
 - Completed under Task 2 with docs-only edits under `.scratch/pi-chart-phase-a-context-digging-corpus-mining/`.
 - 02–14 remain `needs-triage` (unpromoted) and are required to reuse the template defined here.
 
+### Task 2 closeout evidence
+
+- Completed under Task 2 with docs-only edits under `.scratch/pi-chart-phase-a-context-digging-corpus-mining/`.
+- 02–14 remain `needs-triage` (unpromoted) and are required to reuse the template defined here.
+
 ### Canonical row template (copy per recommendation)
 
 ### Downstream reuse list
