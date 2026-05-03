@@ -1,6 +1,6 @@
 # Evidence authority ladder and mining templates
 
-Status: ready-for-human
+Status: completed
 Type: AFK
 
 ## Parent
@@ -27,10 +27,12 @@ None - can start immediately.
 
 ## Closeout evidence
 
-- Canonical workstream template: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/mining-template.md`.
-- The template defines the required row fields, authority ladder, reconciliation states, hard boundary checks, context taxonomy, and mismatch-register shape for downstream mining.
-- Issues 02-14 must reuse `mining-template.md` without narrowing the field set or weakening the authority ladder.
-- Issues 02-14 remain `needs-triage` until issue 01 is reviewed and the next fan-out lane is explicitly promoted.
+### Task 2 closeout evidence
+
+- Completed under Task 2 with docs-only edits under `.scratch/pi-chart-phase-a-context-digging-corpus-mining/`.
+- 02–14 remain `needs-triage` (unpromoted) and are required to reuse the template defined here.
+
+### Canonical row template (copy per recommendation)
 
 ### Downstream reuse list
 

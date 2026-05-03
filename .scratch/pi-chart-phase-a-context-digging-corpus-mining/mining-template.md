@@ -1,6 +1,6 @@
 # Phase A context digging mining template and authority ladder
 
-Template status: active workstream contract
+Status: active workstream template
 Parent PRD: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/PRD.md`
 Gateway issue: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/01-evidence-authority-ladder-and-mining-templates.md`
 
