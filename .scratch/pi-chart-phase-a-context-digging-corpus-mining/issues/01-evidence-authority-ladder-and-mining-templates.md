@@ -1,6 +1,6 @@
 # Evidence authority ladder and mining templates
 
-Status: completed
+Status: ready-for-human
 Type: AFK
 
 ## Parent
@@ -27,17 +27,10 @@ None - can start immediately.
 
 ## Closeout evidence
 
-### Task 2 closeout evidence
-
-- Completed under Task 2 with docs-only edits under `.scratch/pi-chart-phase-a-context-digging-corpus-mining/`.
-- 02–14 remain `needs-triage` (unpromoted) and are required to reuse the template defined here.
-
-### Task 2 closeout evidence
-
-- Completed under Task 2 with docs-only edits under `.scratch/pi-chart-phase-a-context-digging-corpus-mining/`.
-- 02–14 remain `needs-triage` (unpromoted) and are required to reuse the template defined here.
-
-### Canonical row template (copy per recommendation)
+- Canonical workstream template: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/mining-template.md`.
+- The template defines the required row fields, authority ladder, evidence-layer definitions, reconciliation states, hard boundary checks, context taxonomy, downstream closeout checklist, and mismatch-register discipline for downstream mining.
+- Issues 02-14 must reuse `mining-template.md` without narrowing the field set or weakening the authority ladder.
+- Issues 02-14 remain `needs-triage` until issue 01 is reviewed and the next fan-out lane is explicitly promoted.
 
 ### Downstream reuse list
 
@@ -57,6 +50,6 @@ None - can start immediately.
 
 ### Verification
 
-- Worker reported `python3`/node docs-template field checks passed.
-- Worker reported `git status --short` clean/expected before commit.
-- Leader review reconciled duplicate worker template outputs into the canonical artifact below.
+- Worker reported docs-template field checks passed.
+- Leader validation passed: required fields present in `mining-template.md`, issue 01 acceptance checked, issues 02-14 remain `needs-triage`, and markdown diff has no whitespace errors.
+- Source code, patient fixtures/corpus, accepted ADRs, lockfiles, design assets, `pi-ledger`, and `pi-sim` internals were not edited by this issue.
