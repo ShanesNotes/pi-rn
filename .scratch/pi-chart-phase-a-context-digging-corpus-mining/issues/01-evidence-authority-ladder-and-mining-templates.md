@@ -24,3 +24,36 @@ Create the reusable docs-only mining frame for this workstream: an explicit auth
 ## Blocked by
 
 None - can start immediately.
+
+## Closeout / downstream reuse record
+
+### Reusable artifact
+- Created: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/mining-template.md`
+- Status: implemented and ready for immediate reuse by downstream issues.
+
+### Required template re-use mapping
+- Downstream issues 02-14 should reference this template for every recommendation row.
+- Required row fields already mandated by this template:
+  - source artifact citation
+  - brownfield code/test citation or `not-covered`
+  - corpus citation or `not-covered`
+  - reconciliation state
+  - v0.5 implication
+- Required classification terms required by this template:
+  - reconciliation state (`adopt|revise|defer|reject|open-question`)
+  - context typing (`canonical|derived|rendered`)
+  - access layer (`hot|warm|cold`)
+
+### Boundary lock
+- All downstream issue authors must keep existing workstream scope unchanged:
+  - no source implementation edits
+  - no patient fixture edits
+  - no hidden `pi-sim` coupling
+  - no vector/OpenBrain/backend commitment
+  - no EHR-clone framing
+  - no patient migration
+  - no direct agent accepted-writes
+  - no `pi-ledger` kernel expansion
+
+### Status of issues 02-14
+- Issues 02-14 remain unpromoted (`needs-triage`) pending completion of this template adoption and their own mined evidence.
