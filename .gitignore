@@ -14,6 +14,12 @@ Thumbs.db
 .codex
 .omc/
 
+# Project-local agent skill aliases (machine/global-tool specific)
+/.agents
+/skills/
+/.pi/
+/skills-lock.json
+
 # OMX durable planning/context/archive artifacts are intentionally commit-worthy.
 # Keep only volatile runtime/session artifacts ignored across subprojects.
 **/.omx/state/
