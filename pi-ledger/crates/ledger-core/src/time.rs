@@ -70,6 +70,13 @@ impl ValidTimeExpression {
             .get("interval")
             .and_then(Value::as_object)
             .ok_or(TimeError::ExpectedIntervalObject)?;
+        if let Some(unexpected) = interval
+            .keys()
+            .find(|field| !matches!(field.as_str(), "start" | "end"))
+            .cloned()
+        {
+            return Err(TimeError::UnexpectedIntervalField(unexpected));
+        }
         let start = interval
             .get("start")
             .and_then(Value::as_str)
@@ -78,14 +85,6 @@ impl ValidTimeExpression {
             .get("end")
             .and_then(Value::as_str)
             .ok_or(TimeError::MissingIntervalEnd)?;
-        if interval.len() != 2 {
-            let unexpected = interval
-                .keys()
-                .find(|field| !matches!(field.as_str(), "start" | "end"))
-                .cloned()
-                .unwrap_or_else(|| "time.valid.interval".to_string());
-            return Err(TimeError::UnexpectedIntervalField(unexpected));
-        }
 
         let start = CanonicalTimestamp::parse(start)?;
         let end = CanonicalTimestamp::parse(end)?;
@@ -263,6 +262,17 @@ mod tests {
                 start: "2026-05-03T13:00:00Z".to_string(),
                 end: "2026-05-03T12:00:00Z".to_string()
             }
+        );
+        assert_eq!(
+            ValidTimeExpression::parse(&json!({
+                "interval": {
+                    "start": "2026-05-03T12:00:00Z",
+                    "end": "2026-05-03T13:00:00Z",
+                    "precision": "minute"
+                }
+            }))
+            .unwrap_err(),
+            TimeError::UnexpectedIntervalField("precision".to_string())
         );
     }
 }
