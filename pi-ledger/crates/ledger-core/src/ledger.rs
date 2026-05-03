@@ -1,5 +1,6 @@
 use crate::canonical::{canonical_json, record_hash};
 use crate::claim::{ClaimError, validate_claim};
+use crate::time::CanonicalTimestamp;
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -49,6 +50,10 @@ pub enum LedgerError {
         claim_patient_id: String,
     },
     StoreClockExhausted,
+    InvalidAcceptedTime {
+        seq: u64,
+        value: String,
+    },
     HeadHashMismatch {
         expected: Option<String>,
         actual: Option<String>,
@@ -111,14 +116,15 @@ impl StoreClock {
         }
     }
 
-    fn next_accepted_at(&mut self) -> Result<String, LedgerError> {
-        let accepted_at = self
-            .accepted_times
+    fn peek_next_accepted_at(&self) -> Result<&str, LedgerError> {
+        self.accepted_times
             .get(self.next_index)
-            .ok_or(LedgerError::StoreClockExhausted)?
-            .clone();
+            .map(String::as_str)
+            .ok_or(LedgerError::StoreClockExhausted)
+    }
+
+    fn consume_next_accepted_at(&mut self) {
         self.next_index += 1;
-        Ok(accepted_at)
     }
 }
 
@@ -154,8 +160,9 @@ impl AppendLedger {
     pub fn append(&mut self, claim: &Value) -> Result<&LedgerEntry, LedgerError> {
         validate_claim(claim)?;
         self.validate_claim_patient_scope(claim)?;
-        let accepted_at = self.store_clock.next_accepted_at()?;
         let seq = self.entries.len() as u64 + 1;
+        let accepted_at = self.store_clock.peek_next_accepted_at()?.to_string();
+        validate_accepted_at(seq, &accepted_at)?;
         let record_hash = record_hash(claim).map_err(LedgerError::Canonical)?;
         let previous_entry_hash = self.head_hash.clone();
         let accepted = AcceptedMetadata {
@@ -178,6 +185,7 @@ impl AppendLedger {
             entry_version: ENTRY_VERSION,
             accepted,
         };
+        self.store_clock.consume_next_accepted_at();
         self.head_hash = Some(entry.entry_hash.clone());
         let entry_index = self.entries.len();
         self.entries.push(entry);
@@ -252,6 +260,7 @@ impl AppendLedger {
                     actual: entry.accepted.seq,
                 });
             }
+            validate_accepted_at(entry.accepted.seq, &entry.accepted.accepted_at)?;
             let expected_batch_id = batch_id_for_seq(entry.accepted.seq);
             if entry.accepted.batch_id != expected_batch_id {
                 return Err(LedgerError::BatchIdMismatch {
@@ -317,6 +326,14 @@ fn claim_patient_id(claim: &Value) -> Result<&str, LedgerError> {
 
 fn batch_id_for_seq(seq: u64) -> String {
     format!("batch-{seq:012}")
+}
+
+fn validate_accepted_at(seq: u64, value: &str) -> Result<(), LedgerError> {
+    CanonicalTimestamp::parse(value).map_err(|_| LedgerError::InvalidAcceptedTime {
+        seq,
+        value: value.to_string(),
+    })?;
+    Ok(())
 }
 
 fn compute_entry_hash(
@@ -475,6 +492,26 @@ mod tests {
     }
 
     #[test]
+    fn t_k7_02_append_rejects_non_canonical_store_accepted_time_without_mutating_ledger() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06+00:00", "2026-05-03T12:00:06Z"]);
+
+        assert_eq!(
+            ledger.append(&minimal_observation_claim()).unwrap_err(),
+            LedgerError::InvalidAcceptedTime {
+                seq: 1,
+                value: "2026-05-03T12:00:06+00:00".to_string(),
+            }
+        );
+        assert!(ledger.entries().is_empty());
+        assert_eq!(ledger.head_hash(), None);
+        assert!(matches!(
+            ledger.append(&minimal_observation_claim()),
+            Err(LedgerError::InvalidAcceptedTime { seq: 1, .. })
+        ));
+        assert!(ledger.entries().is_empty());
+    }
+
+    #[test]
     fn t_k3_03_fresh_synthetic_ledger_validates_hash_chain_and_head() {
         let ledger = two_entry_ledger();
 
@@ -551,6 +588,20 @@ mod tests {
             AppendLedger::from_snapshot(snapshot),
             Err(LedgerError::BatchIdMismatch { seq: 1, .. })
         ));
+    }
+
+    #[test]
+    fn validation_rejects_non_canonical_accepted_time_in_stored_entry() {
+        let mut snapshot = two_entry_ledger().snapshot();
+        snapshot.entries[0].accepted.accepted_at = "2026-05-03T12:00:06+00:00".to_string();
+
+        assert_eq!(
+            AppendLedger::from_snapshot(snapshot).unwrap_err(),
+            LedgerError::InvalidAcceptedTime {
+                seq: 1,
+                value: "2026-05-03T12:00:06+00:00".to_string(),
+            }
+        );
     }
 
     #[test]

@@ -1,4 +1,5 @@
 use crate::canonical::canonical_json;
+use crate::time::{CanonicalTimestamp, ValidTimeExpression};
 
 use serde_json::Value;
 
@@ -141,49 +142,17 @@ fn validate_time(time: &serde_json::Map<String, Value>) -> Result<(), ClaimError
 
     let valid = time
         .get("valid")
-        .ok_or(ClaimError::MissingField("time.valid"))?
-        .as_object()
-        .ok_or(ClaimError::InvalidField("time.valid"))?;
-    if !time.contains_key("recorded_at") {
-        return Err(ClaimError::MissingField("time.recorded_at"));
-    }
-    if !time.get("recorded_at").is_some_and(Value::is_string) {
-        return Err(ClaimError::InvalidField("time.recorded_at"));
-    }
+        .ok_or(ClaimError::MissingField("time.valid"))?;
+    let recorded_at = time
+        .get("recorded_at")
+        .ok_or(ClaimError::MissingField("time.recorded_at"))?
+        .as_str()
+        .ok_or(ClaimError::InvalidField("time.recorded_at"))?;
 
-    let has_instant = valid.contains_key("instant");
-    let has_interval = valid.contains_key("interval");
-    if valid.len() != 1 || has_instant == has_interval {
-        return Err(ClaimError::InvalidField("time.valid"));
-    }
-    if has_instant {
-        validate_instant(valid.get("instant"))?;
-    }
-    if has_interval {
-        validate_interval(valid.get("interval"))?;
-    }
+    ValidTimeExpression::parse(valid).map_err(|_| ClaimError::InvalidField("time.valid"))?;
+    CanonicalTimestamp::parse(recorded_at)
+        .map_err(|_| ClaimError::InvalidField("time.recorded_at"))?;
     Ok(())
-}
-
-fn validate_instant(value: Option<&Value>) -> Result<(), ClaimError> {
-    if value.is_some_and(Value::is_string) {
-        Ok(())
-    } else {
-        Err(ClaimError::InvalidField("time.valid"))
-    }
-}
-
-fn validate_interval(value: Option<&Value>) -> Result<(), ClaimError> {
-    let interval = value
-        .and_then(Value::as_object)
-        .ok_or(ClaimError::InvalidField("time.valid"))?;
-    let has_start = interval.get("start").is_some_and(Value::is_string);
-    let has_end = interval.get("end").is_some_and(Value::is_string);
-    if interval.len() == 2 && has_start && has_end {
-        Ok(())
-    } else {
-        Err(ClaimError::InvalidField("time.valid"))
-    }
 }
 
 fn validate_revises(value: &Value) -> Result<(), ClaimError> {
@@ -315,6 +284,39 @@ mod tests {
     }
 
     #[test]
+    fn t_k7_01_claim_validation_rejects_non_canonical_valid_time_that_query_would_reject() {
+        let mut instant = minimal_observation_claim();
+        instant["time"]["valid"]["instant"] = json!("2026-05-03T12:00:00+00:00");
+        let mut interval = minimal_observation_claim();
+        interval["time"]["valid"] = json!({
+            "interval": {
+                "start": "2026-05-03T12:00:00Z",
+                "end": "2026-05-03T12:05:00+00:00"
+            }
+        });
+
+        assert_eq!(
+            validate_claim(&instant).unwrap_err(),
+            ClaimError::InvalidField("time.valid")
+        );
+        assert_eq!(
+            validate_claim(&interval).unwrap_err(),
+            ClaimError::InvalidField("time.valid")
+        );
+    }
+
+    #[test]
+    fn t_k7_01_claim_validation_rejects_non_canonical_recorded_at_provenance_time() {
+        let mut claim = minimal_observation_claim();
+        claim["time"]["recorded_at"] = json!("2026-05-03T12:00:05+00:00");
+
+        assert_eq!(
+            validate_claim(&claim).unwrap_err(),
+            ClaimError::InvalidField("time.recorded_at")
+        );
+    }
+
+    #[test]
     fn validates_time_valid_as_exactly_one_instant_or_interval() {
         let mut interval = minimal_observation_claim();
         interval["time"]["valid"] = json!({
@@ -353,6 +355,22 @@ mod tests {
                 "start": "2026-05-03T12:00:00Z",
                 "end": "2026-05-03T12:05:00Z",
                 "precision": "minute"
+            }
+        });
+
+        assert_eq!(
+            validate_claim(&claim).unwrap_err(),
+            ClaimError::InvalidField("time.valid")
+        );
+    }
+
+    #[test]
+    fn t_k7_01_claim_validation_rejects_unordered_valid_intervals() {
+        let mut claim = minimal_observation_claim();
+        claim["time"]["valid"] = json!({
+            "interval": {
+                "start": "2026-05-03T12:05:00Z",
+                "end": "2026-05-03T12:00:00Z"
             }
         });
 

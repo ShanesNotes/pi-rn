@@ -10,6 +10,7 @@ pub mod fixture;
 pub mod ledger;
 pub mod predicates;
 pub mod query;
+pub mod time;
 
 /// Version marker for the scaffolded kernel crate.
 pub const LEDGER_CORE_SCAFFOLD: &str = "pi-ledger.core.scaffold.v1";

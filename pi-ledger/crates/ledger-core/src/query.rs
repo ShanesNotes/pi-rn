@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::ledger::LedgerEntry;
+use crate::time::{CanonicalTimestamp, TimeError, ValidTimeExpression};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum QueryError {
@@ -36,7 +37,7 @@ pub fn point_read<'a>(
     let known_at = parse_query_time("knownAt", known_at)?;
     let mut candidates = Vec::new();
     for entry in entries {
-        if accepted_at(entry)? <= known_at && is_valid_at(entry, valid_at)? {
+        if accepted_at(entry)? <= known_at && is_valid_at(entry, &valid_at)? {
             candidates.push(entry);
         }
     }
@@ -52,71 +53,32 @@ pub fn point_read<'a>(
     Ok(PointReadView { entries })
 }
 
-fn is_valid_at(entry: &LedgerEntry, valid_at: CanonicalTimestamp<'_>) -> Result<bool, QueryError> {
+fn is_valid_at(entry: &LedgerEntry, valid_at: &CanonicalTimestamp) -> Result<bool, QueryError> {
     let claim_id = claim_id(entry);
-    let valid = entry
-        .record
-        .pointer("/time/valid")
-        .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| QueryError::MissingValidTime {
-            claim_id: claim_id.clone(),
+    let valid =
+        entry
+            .record
+            .pointer("/time/valid")
+            .ok_or_else(|| QueryError::MissingValidTime {
+                claim_id: claim_id.clone(),
+            })?;
+    let valid_time =
+        ValidTimeExpression::parse(valid).map_err(|error| QueryError::InvalidValidTime {
+            claim_id,
+            value: invalid_valid_time_value(error),
         })?;
-    if let Some(instant) = valid.get("instant").and_then(serde_json::Value::as_str) {
-        return Ok(parse_claim_valid_time(&claim_id, instant)? <= valid_at);
-    }
-    if let Some(interval) = valid.get("interval").and_then(serde_json::Value::as_object) {
-        let start = interval
-            .get("start")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| QueryError::InvalidValidTime {
-                claim_id: claim_id.clone(),
-                value: "time.valid.interval.start".to_string(),
-            })?;
-        let end = interval
-            .get("end")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| QueryError::InvalidValidTime {
-                claim_id: claim_id.clone(),
-                value: "time.valid.interval.end".to_string(),
-            })?;
-        let start = parse_claim_valid_time(&claim_id, start)?;
-        let end = parse_claim_valid_time(&claim_id, end)?;
-        if end < start {
-            return Err(QueryError::InvalidValidTime {
-                claim_id,
-                value: "time.valid.interval".to_string(),
-            });
-        }
-        return Ok(start <= valid_at && valid_at <= end);
-    }
-    Err(QueryError::InvalidValidTime {
-        claim_id,
-        value: "time.valid".to_string(),
-    })
+    Ok(valid_time.contains(valid_at))
 }
 
-fn parse_query_time<'a>(
-    field: &'static str,
-    value: &'a str,
-) -> Result<CanonicalTimestamp<'a>, QueryError> {
-    CanonicalTimestamp::parse(value).ok_or_else(|| QueryError::InvalidQueryTime {
+fn parse_query_time(field: &'static str, value: &str) -> Result<CanonicalTimestamp, QueryError> {
+    CanonicalTimestamp::parse(value).map_err(|_| QueryError::InvalidQueryTime {
         field,
         value: value.to_string(),
     })
 }
 
-fn parse_claim_valid_time<'a>(
-    claim_id: &str,
-    value: &'a str,
-) -> Result<CanonicalTimestamp<'a>, QueryError> {
-    CanonicalTimestamp::parse(value).ok_or_else(|| QueryError::InvalidValidTime {
-        claim_id: claim_id.to_string(),
-        value: value.to_string(),
-    })
-}
-
-fn accepted_at(entry: &LedgerEntry) -> Result<CanonicalTimestamp<'_>, QueryError> {
-    CanonicalTimestamp::parse(&entry.accepted.accepted_at).ok_or_else(|| {
+fn accepted_at(entry: &LedgerEntry) -> Result<CanonicalTimestamp, QueryError> {
+    CanonicalTimestamp::parse(&entry.accepted.accepted_at).map_err(|_| {
         QueryError::InvalidAcceptedTime {
             claim_id: claim_id(entry),
             value: entry.accepted.accepted_at.clone(),
@@ -124,67 +86,18 @@ fn accepted_at(entry: &LedgerEntry) -> Result<CanonicalTimestamp<'_>, QueryError
     })
 }
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct CanonicalTimestamp<'a>(&'a str);
-
-impl<'a> CanonicalTimestamp<'a> {
-    fn parse(value: &'a str) -> Option<Self> {
-        is_canonical_utc_timestamp(value).then_some(Self(value))
+fn invalid_valid_time_value(error: TimeError) -> String {
+    match error {
+        TimeError::InvalidTimestamp { value } => value,
+        TimeError::MissingIntervalStart => "time.valid.interval.start".to_string(),
+        TimeError::MissingIntervalEnd => "time.valid.interval.end".to_string(),
+        TimeError::InvalidIntervalOrder { .. } => "time.valid.interval".to_string(),
+        TimeError::ExpectedValidTimeObject
+        | TimeError::InvalidValidTimeShape
+        | TimeError::InvalidValidInstant
+        | TimeError::ExpectedIntervalObject
+        | TimeError::UnexpectedIntervalField(_) => "time.valid".to_string(),
     }
-}
-
-fn is_canonical_utc_timestamp(value: &str) -> bool {
-    let bytes = value.as_bytes();
-    if bytes.len() != 20 {
-        return false;
-    }
-    for index in [0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18] {
-        if !bytes[index].is_ascii_digit() {
-            return false;
-        }
-    }
-    if bytes[4] != b'-'
-        || bytes[7] != b'-'
-        || bytes[10] != b'T'
-        || bytes[13] != b':'
-        || bytes[16] != b':'
-        || bytes[19] != b'Z'
-    {
-        return false;
-    }
-
-    let year = parse_digits(bytes, 0, 4);
-    let month = parse_digits(bytes, 5, 7);
-    let day = parse_digits(bytes, 8, 10);
-    let hour = parse_digits(bytes, 11, 13);
-    let minute = parse_digits(bytes, 14, 16);
-    let second = parse_digits(bytes, 17, 19);
-
-    (1..=12).contains(&month)
-        && (1..=days_in_month(year, month)).contains(&day)
-        && hour <= 23
-        && minute <= 59
-        && second <= 59
-}
-
-fn parse_digits(bytes: &[u8], start: usize, end: usize) -> u32 {
-    bytes[start..end].iter().fold(0, |accumulator, byte| {
-        accumulator * 10 + u32::from(byte - b'0')
-    })
-}
-
-fn days_in_month(year: u32, month: u32) -> u32 {
-    match month {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
-        2 if is_leap_year(year) => 29,
-        2 => 28,
-        _ => 0,
-    }
-}
-
-fn is_leap_year(year: u32) -> bool {
-    year.is_multiple_of(4) && !year.is_multiple_of(100) || year.is_multiple_of(400)
 }
 
 fn revision_target(entry: &LedgerEntry) -> Option<(String, String)> {
@@ -304,12 +217,15 @@ mod tests {
             .append(&observation_claim(
                 "claim-offset-valid",
                 88,
-                "2026-05-03T12:00:00+00:00",
+                "2026-05-03T12:00:00Z",
             ))
             .unwrap();
+        let mut instant_entries = instant_ledger.snapshot().entries;
+        instant_entries[0].record["time"]["valid"]["instant"] = json!("2026-05-03T12:00:00+00:00");
+
         assert_eq!(
             point_read(
-                instant_ledger.entries(),
+                &instant_entries,
                 "2026-05-03T12:30:00Z",
                 "2026-05-03T12:30:01Z"
             )
@@ -321,10 +237,16 @@ mod tests {
         );
 
         let mut interval_ledger = test_ledger(["2026-05-03T12:00:10Z"]);
-        interval_ledger.append(&bad_interval_claim()).unwrap();
+        let mut interval_claim = encounter_context_claim();
+        interval_claim["id"] = json!("claim-bad-interval");
+        interval_ledger.append(&interval_claim).unwrap();
+        let mut interval_entries = interval_ledger.snapshot().entries;
+        interval_entries[0].record["time"]["valid"]["interval"]["end"] =
+            json!("2026-05-03T13:00:00+00:00");
+
         assert_eq!(
             point_read(
-                interval_ledger.entries(),
+                &interval_entries,
                 "2026-05-03T12:30:00Z",
                 "2026-05-03T12:30:01Z"
             )
@@ -338,7 +260,7 @@ mod tests {
 
     #[test]
     fn rejects_non_canonical_accepted_times() {
-        let mut ledger = test_ledger(["2026-05-03T12:00:10+00:00"]);
+        let mut ledger = test_ledger(["2026-05-03T12:00:10Z"]);
         ledger
             .append(&observation_claim(
                 "claim-bad-accepted",
@@ -346,14 +268,11 @@ mod tests {
                 "2026-05-03T12:00:00Z",
             ))
             .unwrap();
+        let mut entries = ledger.snapshot().entries;
+        entries[0].accepted.accepted_at = "2026-05-03T12:00:10+00:00".to_string();
 
         assert_eq!(
-            point_read(
-                ledger.entries(),
-                "2026-05-03T12:30:00Z",
-                "2026-05-03T12:30:01Z"
-            )
-            .unwrap_err(),
+            point_read(&entries, "2026-05-03T12:30:00Z", "2026-05-03T12:30:01Z").unwrap_err(),
             QueryError::InvalidAcceptedTime {
                 claim_id: "claim-bad-accepted".to_string(),
                 value: "2026-05-03T12:00:10+00:00".to_string(),
@@ -389,6 +308,34 @@ mod tests {
         assert_eq!(
             claim_ids(view.entries()),
             vec!["claim-known-now".to_string()]
+        );
+    }
+
+    #[test]
+    fn t_k7_04_recorded_at_is_provenance_not_known_time_visibility() {
+        let mut ledger = test_ledger(["2026-05-03T13:00:10Z"]);
+        let mut claim =
+            observation_claim("claim-recorded-before-known", 88, "2026-05-03T12:00:00Z");
+        claim["time"]["recorded_at"] = json!("2026-05-03T11:00:00Z");
+        ledger.append(&claim).unwrap();
+
+        let before_acceptance = point_read(
+            ledger.entries(),
+            "2026-05-03T12:30:00Z",
+            "2026-05-03T12:30:00Z",
+        )
+        .unwrap();
+        let after_acceptance = point_read(
+            ledger.entries(),
+            "2026-05-03T12:30:00Z",
+            "2026-05-03T13:30:00Z",
+        )
+        .unwrap();
+
+        assert!(before_acceptance.entries().is_empty());
+        assert_eq!(
+            claim_ids(after_acceptance.entries()),
+            vec!["claim-recorded-before-known".to_string()]
         );
     }
 
@@ -545,13 +492,6 @@ mod tests {
             "actor": { "kind": "system", "id": "kernel-fixture" },
             "integrity": { "canonicalization": CANONICALIZATION_ID }
         })
-    }
-
-    fn bad_interval_claim() -> Value {
-        let mut claim = encounter_context_claim();
-        claim["id"] = json!("claim-bad-interval");
-        claim["time"]["valid"]["interval"]["end"] = json!("2026-05-03T13:00:00+00:00");
-        claim
     }
 
     fn correction_claim(
