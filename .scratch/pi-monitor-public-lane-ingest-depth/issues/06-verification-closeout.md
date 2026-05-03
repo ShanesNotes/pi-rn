@@ -35,7 +35,3 @@ cargo test --workspace
 cargo build --workspace
 python3 ../.scratch/pi-sim-public-telemetry-contract-lock/checks/verify-pi-monitor-public-consumer.py
 ```
-
-## Comments
-
-- 2026-05-03: Seeded by team planning pass from `.scratch/architecture-deepening-placement/`.

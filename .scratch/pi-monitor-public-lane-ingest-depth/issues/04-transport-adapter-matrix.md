@@ -32,7 +32,3 @@ cargo test -p monitor-cli
 cargo test -p monitor-app
 cargo test --workspace
 ```
-
-## Comments
-
-- 2026-05-03: Seeded by team planning pass from `.scratch/architecture-deepening-placement/`.

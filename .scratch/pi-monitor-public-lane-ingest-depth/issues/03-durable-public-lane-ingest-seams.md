@@ -33,7 +33,3 @@ cargo test -p monitor-ingest
 cargo test -p pulse-public-frame
 cargo clippy --workspace --all-targets -- -D warnings
 ```
-
-## Comments
-
-- 2026-05-03: Seeded by team planning pass from `.scratch/architecture-deepening-placement/`.
