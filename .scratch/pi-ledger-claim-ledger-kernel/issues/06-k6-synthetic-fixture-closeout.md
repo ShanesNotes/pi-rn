@@ -14,6 +14,7 @@ Close out the Phase 1 kernel proof with a deterministic synthetic fixture corpus
 ## Acceptance criteria
 
 - [ ] Starts with failing or pending Rust/check rows mapped to T-K6-01, T-K6-02, T-NEG-07 through T-NEG-09, and T-BOUNDARY-01 through T-BOUNDARY-05 in `test-spec.md`.
+- [ ] Implementation lives in `pi-ledger/crates/ledger-core/src/fixture.rs` for deterministic fixture helpers and Rust coverage; update `lib.rs` only to expose the minimal K6 fixture interface. Any non-Rust mechanical boundary checks must be documented in this issue's closeout evidence rather than hidden in ad hoc scripts.
 - [ ] Fixture inventory contains one generated patient, one encounter, four shape claims, one correction, at least two ledger entries, and seeded predicates.
 - [ ] Fixture generator is deterministic enough for stable hash, sequence, known-time, and boundary assertions.
 - [ ] Fixtures do not use `patient_001`, `patient_002`, committed patient-directory authority, hidden `pi-sim` internals, real PHI, `pi-chart` source layout, or generated cockpit UI assumptions.
