@@ -21,13 +21,17 @@ Pulse is a provider/backend for physiology, not the architecture center. The cur
 
 ## Canonical direction
 
-Current architecture authority:
+Current architecture and workflow authority:
 
-1. `docs/adr/002-pi-sim-as-patient-three-stream-topology.md` — `pi-sim` is the patient; History, Physical, and Vitals are separate streams.
-2. `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` — `pi-sim` is a provider-based patient runtime; Pulse is a backend/provider.
-3. `.omx/plans/plan-pi-sim-architecture-rebase-patient-runtime.md` — detailed implementation direction after the `pi-monitor` split.
-4. `vitals/README.md` — public telemetry contract for `current.json`, the monitor extension, scenarios, and future lanes.
-5. `pulse/README.md` — current Pulse provider/shim implementation notes, not global architecture authority.
+1. `../CONTEXT-MAP.md` and `../docs/agents/work-surface.md` — cross-agent routing and the `.scratch`-first Matt Pocock work surface.
+2. `CONTEXT.md` — pi-sim domain language for hidden patient runtime and public telemetry producer work.
+3. `docs/adr/002-pi-sim-as-patient-three-stream-topology.md` — `pi-sim` is the patient; History, Physical, and Vitals are separate streams.
+4. `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` — `pi-sim` is a provider-based patient runtime; Pulse is a backend/provider.
+5. `docs/adr/004-planning-surface-and-public-contract-authority.md` and `docs/plans/007-authority-ledger-and-ai-alignment-roadmap.md` — planning-surface classification and roadmap order.
+6. `vitals/README.md` plus `vitals/.lanes.json` — public telemetry contract authority for `current.json`, lane metadata, scenarios, and additive public lanes.
+7. `pulse/README.md` — current Pulse provider/shim implementation notes, not global architecture authority.
+
+Use root `.scratch/<feature>/PRD.md` and `.scratch/<feature>/issues/*.md` for new active work. Treat `.omx/plans/*` as OMX runtime evidence/lineage unless mirrored into `.scratch`.
 
 Superseded PySide monitor, shim-first, and chart-display-first plans have been tombstoned or archived under `.omx/archive/`. Future display work belongs in sibling `../pi-monitor`; future chart/EHR ingestion belongs in `../pi-chart` or an explicit adapter lane.
 

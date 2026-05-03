@@ -2,8 +2,13 @@
 
 Status: ready-for-agent
 
-## Problem
-The repo uses Matt Pocock engineering skills and OMX runtime/orchestration skills together. Without a routing rule, agents may confuse durable `.scratch` project artifacts with `.omx` runtime artifacts, or confuse Matt `$tdd` with OMX testing shortcuts.
+## Parent
+
+`.scratch/shared-agent-surface/PRD.md`
+
+## What to build
+
+Document how Matt Pocock engineering skills and OMX runtime/orchestration skills interoperate so agents do not confuse durable `.scratch` project artifacts with `.omx` runtime artifacts or confuse Matt `$tdd` with OMX testing shortcuts.
 
 ## Resolution
 Document package ownership and invocation precedence:
@@ -13,11 +18,14 @@ Document package ownership and invocation precedence:
 - `.scratch` is the durable shared work plane.
 - `.omx` is runtime/session state unless an outcome is mirrored back to `.scratch`.
 
-## Verification
-Read `docs/agents/skill-interoperability.md` and confirm it covers:
+## Acceptance criteria
 
-- ownership matrix
-- invocation rules
-- `tdd` overlap
-- `caveman` one-real-directory rule
-- discovery hygiene
+- [ ] `docs/agents/skill-interoperability.md` explains the ownership matrix.
+- [ ] `docs/agents/skill-interoperability.md` explains invocation rules.
+- [ ] `docs/agents/skill-interoperability.md` documents the `tdd` overlap.
+- [ ] `docs/agents/skill-interoperability.md` documents the `caveman` one-real-directory rule.
+- [ ] `docs/agents/skill-interoperability.md` documents discovery hygiene.
+
+## Blocked by
+
+None - can start immediately.
