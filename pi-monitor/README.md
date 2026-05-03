@@ -60,7 +60,7 @@ cargo run -p monitor-app -- --source-dir ../pi-sim/vitals --windowed
 # native private TCP live app
 cargo run -p monitor-app -- --live-tcp 127.0.0.1:8791 --windowed
 
-# one-command live ECG + ABP + pleth + CO₂ demo from pi-sim
+# one-command live ECG + ABP + pleth + respiration demo from pi-sim
 cd ../pi-sim && npm run monitor:live-demo
 
 # native fixture replay without a running simulator

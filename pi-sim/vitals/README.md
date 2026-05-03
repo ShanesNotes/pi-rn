@@ -35,7 +35,7 @@ Current fixture cases:
 - `scripted-demo/` — normal Docker-free scripted run with frames, JSONL lanes, encounter context, reveal-only assessment output, explicit waveform-unavailable status, and terminal `run_ended`.
 - `scripted-alarm/` — alarm smoke fixture with public `MAP_LOW` and `SPO2_LOW` event records.
 - `provider-unavailable/` — deterministic Pulse-unavailable fixture. Its refresh command is expected to exit non-zero while still writing fallback public files with terminal `provider_unavailable`, `runState: "unavailable"`, and no terminal `run_ended`.
-- `live-demo-waveform/` — positive ECG Lead II + pleth fixture from the demo waveform provider with `sourceKind: "demo"`, `fidelity: "demo"`, and `synthetic: true`.
+- `live-demo-waveform/` — positive ECG Lead II + ABP + pleth + respiration fixture from the demo waveform provider with `sourceKind: "demo"`, `fidelity: "demo"`, and `synthetic: true`.
 
 See `vitals/fixtures/public-contract/README.md` for provenance and refresh commands. Fixture JSON must not include hidden scenario truth, scoring keys, future findings, or sibling/runtime import paths. Waveform fixtures must explicitly label source/fidelity/synthetic status. The demo waveform fixture is labeled `sourceKind: "demo"`, `fidelity: "demo"`, and `synthetic: true`; pure static fixture-only waveform samples should use fixture labels.
 
@@ -61,7 +61,7 @@ npm run sim:run:live-demo -- --out-dir .omx/evidence/live-waveform-monitor-mvp/v
 npm run sim:run:live-demo -- --tcp-port 8791  # optional private localhost NDJSON stream for pi-monitor
 ```
 
-The demo provider emits coherent but synthetic ECG Lead II, arterial pressure, pleth, and CO2 windows through `waveforms/current.json`, with matching `waveforms/status.json` labels: `sourceKind: "demo"`, `fidelity: "demo"`, `synthetic: true`. Numeric HR, SpO2, BP/MAP, RR, temperature, and EtCO2 fluctuate deterministically. This is the current MVP waveform source because the local Pulse provider is scalar-only. The optional `--tcp-port` stream is private localhost, non-durable, and mirrors frame envelopes for smoother monitor display; public JSON lanes remain the authoritative durable contract.
+The demo provider emits coherent but synthetic ECG Lead II, arterial pressure, pleth, and respiration impedance windows through `waveforms/current.json`, with matching `waveforms/status.json` labels: `sourceKind: "demo"`, `fidelity: "demo"`, `synthetic: true`. Numeric HR, SpO2, BP/MAP, RR, and temperature fluctuate deterministically. This is the current MVP waveform source because the local Pulse provider is scalar-only. The optional `--tcp-port` stream is private localhost, non-durable, and mirrors frame envelopes for smoother monitor display; public JSON lanes remain the authoritative durable contract.
 
 To open the popup monitor against this lane:
 

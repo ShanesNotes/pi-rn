@@ -82,7 +82,7 @@ pub fn render_html(model: &DisplayModel) -> String {
         WavePanelSpec::ecg(),
         WavePanelSpec::abp(),
         WavePanelSpec::pleth(),
-        WavePanelSpec::co2(),
+        WavePanelSpec::resp(),
     ];
     let waveform_panels = panels
         .iter()
@@ -290,7 +290,6 @@ struct VitalData {
     nibp: String,
     map: String,
     spo2: String,
-    etco2: String,
     rr: String,
     temp: String,
 }
@@ -304,7 +303,6 @@ impl VitalData {
             nibp,
             map,
             spo2: tile_value(model, "SpO2").unwrap_or_else(|| "97".to_string()),
-            etco2: tile_value(model, "EtCO2").unwrap_or_else(|| "28".to_string()),
             rr: tile_value(model, "RR").unwrap_or_else(|| "16".to_string()),
             temp: tile_value(model, "TEMP").unwrap_or_else(|| "33.2".to_string()),
         }
@@ -316,14 +314,13 @@ fn render_vital_cards(vitals: &VitalData) -> String {
         r#"<article class="vital-card" style="--vital:var(--green)"><div class="vital-head"><span class="vital-label">HR</span><span class="vital-unit">bpm</span></div><div class="vital-value">{hr}</div><div class="hr-limits"><div>120</div><div>50</div></div><div class="pvc"><div>PVC</div><div style="color:var(--green)">0</div></div></article>
 <article class="vital-card" style="--vital:var(--red)"><div class="vital-head"><span class="vital-label">NIBP</span><span class="vital-unit">mmHg</span></div><div class="vital-value medium">{nibp}</div><div class="map">MAP<strong>{map}</strong></div><div class="nibp-time">18:50    5 min ago</div><div class="side-limits"><div>120</div><div>80</div></div></article>
 <article class="vital-card" style="--vital:var(--teal)"><div class="vital-head"><span class="vital-label">SpO₂</span><span class="vital-unit">%</span></div><div class="vital-value small">{spo2}</div><div class="side-limits" style="color:var(--teal);right:129px;top:58px"><div>100</div><div>90</div></div><div class="indicator"></div></article>
-<article class="vital-card" style="--vital:var(--amber)"><div class="vital-head"><span class="vital-label">etCO₂</span><span class="vital-unit">mmHg</span></div><div class="vital-value small">{etco2}</div><div class="side-limits" style="color:var(--amber);right:129px;top:58px"><div>50</div><div>15</div></div><div class="fi"><div>FI</div><div style="color:var(--amber)">2</div></div></article>
-<article class="vital-card" style="--vital:#223037"><div class="vital-head"><span class="vital-label">RR</span><span class="vital-unit">br/min</span></div><div class="vital-value small">{rr}</div><div class="side-limits" style="right:129px;top:49px"><div>30</div><div>8</div></div><div class="indicator" style="--vital:#223037;top:36px;height:76px"></div></article>
-<article class="vital-card" style="--vital:var(--green)"><div class="vital-head"><span class="vital-label">TEMP</span><span class="vital-unit">°C</span></div><div class="vital-value small" style="font-size:72px;left:137px;top:46px">{temp}</div><div class="temp-limits"><div>38.0</div><div>36.0</div></div></article>"#,
+<article class="vital-card" style="--vital:var(--amber)"><div class="vital-head"><span class="vital-label">RR</span><span class="vital-unit">br/min</span></div><div class="vital-value small">{rr}</div><div class="side-limits" style="color:var(--amber);right:129px;top:58px"><div>30</div><div>8</div></div><div class="indicator" style="--vital:var(--amber);"></div></article>
+<article class="vital-card" style="--vital:var(--green)"><div class="vital-head"><span class="vital-label">TEMP</span><span class="vital-unit">°C</span></div><div class="vital-value small" style="font-size:72px;left:137px;top:46px">{temp}</div><div class="temp-limits"><div>38.0</div><div>36.0</div></div></article>
+<article class="vital-card" style="--vital:#8f918e"><div class="vital-head"><span class="vital-label">--</span><span class="vital-unit"></span></div><div class="vital-value small">--</div></article>"#,
         hr = escape(&vitals.hr),
         nibp = escape(&vitals.nibp),
         map = escape(&vitals.map),
         spo2 = escape(&vitals.spo2),
-        etco2 = escape(&vitals.etco2),
         rr = escape(&vitals.rr),
         temp = escape(&vitals.temp),
     )
@@ -345,7 +342,7 @@ impl WavePanelSpec {
     fn ecg() -> Self {
         Self {
             signal: "ECG_LeadII",
-            label: "ECG III",
+            label: "ECG II",
             unit: "1 mV",
             right_label: "HR",
             ticks: &["1", "0", "-1"],
@@ -381,15 +378,15 @@ impl WavePanelSpec {
             show_time_axis: false,
         }
     }
-    fn co2() -> Self {
+    fn resp() -> Self {
         Self {
-            signal: "CO2",
-            label: "CO₂",
-            unit: "mmHg",
-            right_label: "etCO₂",
-            ticks: &["50", "25", "0"],
-            axis_min: 0.0,
-            axis_max: 50.0,
+            signal: "Respiration",
+            label: "RESP",
+            unit: "imp",
+            right_label: "RR",
+            ticks: &["1", "0", "-1"],
+            axis_min: -1.05,
+            axis_max: 1.05,
             color_var: "var(--amber)",
             show_time_axis: true,
         }
@@ -668,7 +665,7 @@ mod tests {
         core.accept_frame(frame, 0);
         let html = render_html(&core.display_model(0));
         assert!(html.contains("<svg"));
-        assert!(html.contains("ECG III"));
+        assert!(html.contains("ECG II"));
         assert!(html.contains("polyline"));
     }
 
@@ -681,10 +678,10 @@ mod tests {
         for expected in [
             "JOHN SMITH",
             "BED 07",
-            "ECG III",
+            "ECG II",
             "ABP",
             "PLETH",
-            "CO₂",
+            "RESP",
             "NIBP",
             "114/73",
             "EVENTS",

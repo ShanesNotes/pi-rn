@@ -412,13 +412,6 @@ fn build_tiles(vitals: &BTreeMap<VitalKey, Quantity>, state: SourceState) -> Vec
         |v| format!("{:.1}", v),
         offline,
     ));
-    out.push(tile(
-        vitals,
-        VitalKey::EndTidalCarbonDioxidePressure,
-        "mmHg",
-        |v| format!("{:.0}", v),
-        offline,
-    ));
     out
 }
 
@@ -458,10 +451,12 @@ fn build_waveform_strips(
     sweep_now_s: f64,
 ) -> Vec<WaveformStripModel> {
     if waveforms.is_empty() {
-        return unavailable_strips("waveform feed unavailable — no synthetic ECG/pleth/capnogram");
+        return unavailable_strips(
+            "waveform feed unavailable — no synthetic ECG/pleth/respiration",
+        );
     }
     let mut strips = Vec::new();
-    for preferred in ["ECG_LeadII", "Pleth", "ArterialPressure", "CO2"] {
+    for preferred in ["ECG_LeadII", "Pleth", "ArterialPressure", "Respiration"] {
         if let Some(waveform) = waveforms.get(preferred) {
             strips.push(waveform_strip(preferred, waveform, state, sweep_now_s));
         }
@@ -528,7 +523,7 @@ fn waveform_strip(
 }
 
 fn unavailable_strips(message: &str) -> Vec<WaveformStripModel> {
-    ["ECG", "Pleth", "ABP", "CO2"]
+    ["ECG", "Pleth", "ABP", "Resp"]
         .into_iter()
         .map(|signal| WaveformStripModel {
             signal: signal.to_string(),
@@ -557,7 +552,7 @@ fn waveform_summary(strips: &[WaveformStripModel], state: SourceState) -> String
     }
     let available = strips.iter().filter(|strip| strip.available).count();
     if available == 0 {
-        "waveform feed unavailable — no synthetic ECG/pleth/capnogram".to_string()
+        "waveform feed unavailable — no synthetic ECG/pleth/respiration".to_string()
     } else {
         format!("waveform feed available — {available} frame-provided strip(s)")
     }
