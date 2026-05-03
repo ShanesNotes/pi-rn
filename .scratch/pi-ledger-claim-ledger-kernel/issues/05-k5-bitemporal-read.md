@@ -1,6 +1,6 @@
 # K5 minimal bitemporal read
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
@@ -14,6 +14,7 @@ Implement minimal point-query read semantics over synthetic ledger entries for c
 ## Acceptance criteria
 
 - [ ] Starts with failing Rust tests mapped to T-K5-01 through T-K5-03, T-NEG-06, and T-REBUILD-03 in `test-spec.md`.
+- [ ] Implementation lives in `pi-ledger/crates/ledger-core/src/query.rs` with Rust test coverage; update `lib.rs` only to expose the minimal K5 interface.
 - [ ] `validAt` filters by clinical valid time.
 - [ ] `knownAt` filters by accepted knowledge time.
 - [ ] Claims accepted after `knownAt` are invisible even when their valid time is before `validAt`.
@@ -27,8 +28,7 @@ Implement minimal point-query read semantics over synthetic ledger entries for c
 
 ## Blocked by
 
-- `.scratch/pi-ledger-claim-ledger-kernel/issues/03-k3-append-only-ledger.md`
-- `.scratch/pi-ledger-claim-ledger-kernel/issues/04-k4-predicate-registry-minimum.md`
+None — K4 predicate registry minimum was committed green on 2026-05-03.
 
 ## Closeout commands
 
