@@ -1,6 +1,7 @@
 # Inventory public telemetry publication responsibilities
 
-Status: ready-for-agent
+Status: needs-triage
+
 Type: AFK
 
 ## Parent

@@ -1,6 +1,8 @@
 # PRD: pi-chart post-rebase validation Module audit
 
-Status: parked
+Status: needs-triage
+
+Parking state: parked
 Owner: post-rebase `pi-chart` closeout owner, not current-code implementers
 Date: 2026-05-03
 Source issue: `.scratch/architecture-deepening-placement/issues/04-park-pi-chart-validation-until-rebase.md`
@@ -113,3 +115,7 @@ After rebase closeout, a future maintainer can review this PRD and either:
 3. reject it if rebase closeout proves the candidate is obsolete or owned elsewhere.
 
 Any future issue slices must start from the closeout's stable owners/files/verification commands, not from the historical evidence list above.
+
+## Further Notes
+
+This parking artifact is intentionally non-executable until the pi-chart rebase closeout names stable validation owners, files, Interfaces, and verification commands. Current `pi-chart` references are historical candidate evidence only.
