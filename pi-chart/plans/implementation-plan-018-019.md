@@ -18,13 +18,13 @@
   - ADR 019 package source: `/home/ark/Downloads/pi-chart-context-engineering-package.zip`, containing top-level directory `pi-chart-adr-019-context-engineering-package/`.
   - Expected literal zip names from the prompt were not found, but the contents match the expected package directories and themes.
 - ADR 018/019 install state:
-  - `pi-chart/decisions/018-architecture-rebase-clinical-truth-substrate.md` already exists and is accepted repo authority. It is a different ADR 018 than the package's `018-kernel-predicate-bitemporal-ledger.md`.
-  - No `pi-chart/decisions/019-*.md` exists.
+  - `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md` already exists and is accepted repo authority. It is a different ADR 018 than the package's `018-kernel-predicate-bitemporal-ledger.md`.
+  - No `pi-chart/docs/adr/019-*.md` exists.
   - Current repo contains ADR 019 gate/planning docs under `pi-chart/docs/plans/`, but these define readiness for a clean-slate/hybrid decision, not context engineering.
   - No exact package files from either zip are installed.
 - Rebase/stale-language findings:
   - `pi-chart/README.md` still says `schemas/event.schema.json` is the ontology; package ADR 018 explicitly narrows this to predicate/profile registry as ontology and envelope as carrier.
-  - `pi-chart/docs/architecture/source-authority.md` says future `decisions/019-*` should decide clean-slate vs hybrid after spike evidence. Package ADR 019 uses ADR 019 for Context Engineering instead. This is a numbering/semantic conflict.
+  - `pi-chart/docs/architecture/source-authority.md` says future `docs/adr/019-*` should decide clean-slate vs hybrid after spike evidence. Package ADR 019 uses ADR 019 for Context Engineering instead. This is a numbering/semantic conflict.
   - Current query language is `asOf`; no repo implementation of `validAt` + `knownAt` exists.
   - `pi-chart/ROADMAP.md` still treats profile registry and time-travel as deferred/later seams; package ADR 018 promotes predicate/profile registry and bitemporal query semantics to foundation work.
   - Current ADR 018 forbids immediate source/schema/fixture rewrites and requires evidence before clean-slate rewrite. Package ADR 018 is compatible with hybrid migration if treated as substrate hardening, but its `Status: accepted architecture` is stale relative to this repo because it was not installed or accepted here.
@@ -35,7 +35,7 @@
 
 | Package file | Should be copied into `pi-chart/`? | Already present? | Differences/conflicts | Recommended action |
 |---|---:|---:|---|---|
-| `pi-chart-adr-018-package/decisions/018-kernel-predicate-bitemporal-ledger.md` | Yes, but not under `decisions/018-*` as-is | No | Conflicts with existing accepted `decisions/018-architecture-rebase-clinical-truth-substrate.md`; package status says accepted but repo has not accepted it | Copy as synthesis source, e.g. `pi-chart/plans/adr-018-019-synthesis/package-018/decisions/018-kernel-predicate-bitemporal-ledger.md`; later promote as amended/new ADR with non-conflicting number/status |
+| `pi-chart-adr-018-package/decisions/018-kernel-predicate-bitemporal-ledger.md` | Yes, but not under `docs/adr/018-*` as-is | No | Conflicts with existing accepted `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`; package status says accepted but repo has not accepted it | Copy as synthesis source, e.g. `pi-chart/plans/adr-018-019-synthesis/package-018/decisions/018-kernel-predicate-bitemporal-ledger.md`; later promote as amended/new ADR with non-conflicting number/status |
 | `plans/prd-018-kernel-predicate-bitemporal-ledger.md` | Yes | No | Assumes package ADR path and status; needs reconciliation with current ADR 018 source-authority gate | Copy as synthesis source; create reconciled execution PRD later |
 | `plans/prd-018a-claim-kernel-and-compat.md` | Yes | No | Good first source-code slice, but must not start until docs install PR completes | Copy |
 | `plans/prd-018b-predicate-registry-and-validation.md` | Yes | No | Current repo has `schemas/profiles/index.json` only; no predicate registry | Copy |
@@ -46,13 +46,13 @@
 | `plans/issues-018-kernel-predicate-bitemporal-ledger.md` | Yes | No | Issue IDs conflict semantically with existing ADR 018 lanes; useful as source backlog | Copy then map issue IDs into reconciled first issues |
 | `.github/ISSUE_TEMPLATE/pi-chart-adr-018-agent-issue.md` | Maybe | No | Repo issue-template ownership not inspected beyond `.github/`; adding template is separate process work | Skip in first install; copy only if issue workflow wants package templates |
 
-Recommended ADR 018 package installation rule: preserve package content verbatim under a synthesis-source directory, but do not install it as accepted `decisions/018-*` and do not replace current ADR 018.
+Recommended ADR 018 package installation rule: preserve package content verbatim under a synthesis-source directory, but do not install it as accepted `docs/adr/018-*` and do not replace current ADR 018.
 
 ### ADR 019 package: `/home/ark/Downloads/pi-chart-context-engineering-package.zip`
 
 | Package file | Should be copied into `pi-chart/`? | Already present? | Differences/conflicts | Recommended action |
 |---|---:|---:|---|---|
-| `pi-chart-adr-019-context-engineering-package/decisions/019-context-engineering.md` | Yes, but not directly as accepted `decisions/019-*` without HITL decision | No | Current repo reserves ADR 019 conceptually for clean-slate/hybrid rewrite decision after spike/corpus evidence; package uses ADR 019 for Context Engineering | Copy as synthesis source; later decide whether it becomes ADR 019, ADR 020+, or an ADR 019 appendix after resolving numbering |
+| `pi-chart-adr-019-context-engineering-package/decisions/019-context-engineering.md` | Yes, but not directly as accepted `docs/adr/019-*` without HITL decision | No | Current repo reserves ADR 019 conceptually for clean-slate/hybrid rewrite decision after spike/corpus evidence; package uses ADR 019 for Context Engineering | Copy as synthesis source; later decide whether it becomes ADR 019, ADR 020+, or an ADR 019 appendix after resolving numbering |
 | `plans/context-engineering-index.md` | Yes | No | Useful package index only | Copy |
 | `plans/issues-019-context-engineering.md` | Yes | No | Strong backlog, but several issues depend on ADR 018 claim/ledger primitives that do not exist | Copy then dependency-map |
 | `plans/prd-019-context-engineering.md` | Yes | No | Assumes ContextPacket schema/hash/compiler path; current repo only has `contextBundle` read-side composition | Copy then reconcile |
@@ -64,7 +64,7 @@ Recommended ADR 018 package installation rule: preserve package content verbatim
 | `plans/test-spec-019-context-engineering.md` | Yes | No | Useful test matrix; depends on ADR 018 hash/bitemporal primitives | Copy then split into phase gates |
 | `.github/ISSUE_TEMPLATE/pi-chart-adr-019-agent-issue.md` | Maybe | No | Same issue-template process concern as ADR 018 | Skip in first install unless issue templates are explicitly desired |
 
-Recommended ADR 019 package installation rule: preserve as research package and reconcile against current source-authority docs before any `decisions/019-*` creation.
+Recommended ADR 019 package installation rule: preserve as research package and reconcile against current source-authority docs before any `docs/adr/019-*` creation.
 
 ## 2. Current Architecture Reality Map
 
@@ -76,7 +76,7 @@ Recommended ADR 019 package installation rule: preserve as research package and 
 | Current validation path | `validateChart` uses AJV schemas plus TypeScript graph checks. It enforces patient isolation, note/communication binding, links resolution, assessment support sufficiency, supersession/correction, fulfillment/address/resolution/contradiction rules, transform provenance, source-kind warnings, intervals, vitals quality, and review/attestation rules. It does not validate canonical claims, predicate definitions, ledger hash chains, packet hashes, or bitemporal transaction visibility. | `pi-chart/src/validate.ts`; `pi-chart/src/schema.ts`; `pi-chart/src/validate.test.ts`; `pi-chart/src/schema.test.ts` |
 | Current schemas/profiles/predicates | Schemas exist for events, notes, constraints, pi-chart registry, session, vitals, and vital metrics. A minimal `schemas/profiles/index.json` exists with `action.claim_review.v1` and `communication.attestation.v1`. No `schemas/predicates/`, `predicate.schema.json`, `context-packet.schema.json`, `task-profiles/`, `ledger` schema, or claim schema exists. | `pi-chart/schemas/`; `pi-chart/schemas/profiles/index.json` |
 | Current tests/fixtures | Tests are colocated in `src/**/*.test.ts` and `scripts/**/*.test.ts`. Existing patient fixtures `patient_001` through `patient_005` exercise clinical memory surfaces. `tests/fixtures/agent-canvas-context.json` supports Agent Canvas. No ADR 018 claim-kernel, ledger mutation, bitemporal known-time, ContextPacket, packet hash, replay, or omission fixtures exist. | `pi-chart/src/*.test.ts`; `pi-chart/src/views/*.test.ts`; `pi-chart/scripts/*.test.ts`; `pi-chart/tests/fixtures/`; `pi-chart/patients/` |
-| Current plans/ADRs that constrain work | Current accepted ADR 018 is architecture rebase/source-authority. It requires hybrid migration, context hygiene, no premature clean-slate rewrite, and no hidden pi-sim coupling. ADR 019 corpus/spike docs are prerequisite gates and explicitly not rewrite authorization. Source-authority map ranks accepted ADRs and canonical docs above proposals/packages. | `pi-chart/decisions/018-architecture-rebase-clinical-truth-substrate.md`; `pi-chart/docs/architecture/source-authority.md`; `pi-chart/docs/plans/prd-adr018-next-phase-clean-slate-spike.md`; `pi-chart/docs/plans/prd-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`; `pi-chart/docs/plans/clinical-fidelity-corpus-review-adr-019.md` |
+| Current plans/ADRs that constrain work | Current accepted ADR 018 is architecture rebase/source-authority. It requires hybrid migration, context hygiene, no premature clean-slate rewrite, and no hidden pi-sim coupling. ADR 019 corpus/spike docs are prerequisite gates and explicitly not rewrite authorization. Source-authority map ranks accepted ADRs and canonical docs above proposals/packages. | `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md`; `pi-chart/docs/architecture/source-authority.md`; `pi-chart/docs/plans/prd-adr018-next-phase-clean-slate-spike.md`; `pi-chart/docs/plans/prd-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`; `pi-chart/docs/plans/clinical-fidelity-corpus-review-adr-019.md` |
 | Current public exports | `src/index.ts` exports reads, writes, derived, validate, session helpers, views, and types. It does not export `contextBundle` from root today; `contextBundle` is exported from `src/views/index.ts`. No claim, ledger, predicate, context compiler, or replay exports exist. | `pi-chart/src/index.ts`; `pi-chart/src/views/index.ts`; `pi-chart/docs/plans/test-spec-adr018-next-phase-clean-slate-spike.md` |
 
 ## 3. ADR 018 Gap Analysis
@@ -119,7 +119,7 @@ Recommended ADR 019 package installation rule: preserve as research package and 
 | Compression records | No deterministic compression contract. | Summaries can obscure source/loss. | Add deterministic predicate rollups only; records include source claim ids, method, output, loss estimate. | `src/context/compression.ts` | Missing source/loss fails; deterministic rollup passes. | High: misleading summaries. |
 | Bitemporal replay of context | Current views have `asOf`; no transaction known time. | Future-known leakage not preventable. | Require ADR 018 `knownAt` in compiler and replay tests before context replay acceptance. | `src/context/compiler.ts`, `src/context/replay.ts`, claim query code | Backdated result/correction context fixture. | High: core safety requirement. |
 | Agent output binding rule | Current agent claims can use `links.supports`; no packet proof binding. | Outputs can be detached from consumed context. | Add helper to attach compile claim + packet hash refs to `inputs[]` once claim kernel exists; compatibility maps to legacy supports where needed. | `src/context/bind.ts`, `src/claims/compat.ts` | Agent claim binding validates; cycle detection. | Medium: circular packet/claim evidence. |
-| ADR 020/021 stubs | Current ADR numbering has conflict: ADR 019 already reserved conceptually for clean-slate decision. | Stub numbers could collide. | Defer stubs until numbering resolution; if created, use non-conflicting numbers/status and state watch triggers + PHI retention/redaction are deferred. | `decisions/020-*.md`, `decisions/021-*.md` later | Docs grep checks. | Medium: ADR number drift. |
+| ADR 020/021 stubs | Current ADR numbering has conflict: ADR 019 already reserved conceptually for clean-slate decision. | Stub numbers could collide. | Defer stubs until numbering resolution; if created, use non-conflicting numbers/status and state watch triggers + PHI retention/redaction are deferred. | `docs/adr/020-*.md`, `docs/adr/021-*.md` later | Docs grep checks. | Medium: ADR number drift. |
 
 ## 5. Dependency Graph
 
@@ -165,7 +165,7 @@ Ordered dependency list:
 
 | PR | PR title | Goal | Issue IDs covered | Files likely touched | Acceptance criteria | Tests / commands | Rollback strategy |
 |---:|---|---|---|---|---|---|---|
-| 1 | Install ADR 018/019 synthesis packages safely | Preserve package docs without overwriting existing ADR 018 or creating misleading accepted ADR 019. | 018-019-00 | `pi-chart/plans/adr-018-019-synthesis/**`, optional index doc | Package files copied verbatim with source hashes; status banner says synthesis/not accepted repo ADR; no `decisions/018-*` overwrite; no source/schema/package changes. | `git diff --name-only -- pi-chart/src pi-chart/schemas pi-chart/package.json` empty; structural grep for package hashes. | Delete synthesis directory and index; no code rollback. |
+| 1 | Install ADR 018/019 synthesis packages safely | Preserve package docs without overwriting existing ADR 018 or creating misleading accepted ADR 019. | 018-019-00 | `pi-chart/plans/adr-018-019-synthesis/**`, optional index doc | Package files copied verbatim with source hashes; status banner says synthesis/not accepted repo ADR; no `docs/adr/018-*` overwrite; no source/schema/package changes. | `git diff --name-only -- pi-chart/src pi-chart/schemas pi-chart/package.json` empty; structural grep for package hashes. | Delete synthesis directory and index; no code rollback. |
 | 2 | Add claim kernel type foundation | Introduce canonical claim types with no storage/write changes. | 018-01 | `src/claims/types.ts`, `src/claims/types.test.ts`, `src/index.ts` type exports | Types compile; four shapes only; no write/read behavior change. | `npm run typecheck`; `npm test -- 'src/claims/*types*'`; `npm test`. | Remove new files and exports. |
 | 3 | Add legacy event-to-claim compatibility mapper | Map current `EventEnvelope` into `Claim` and back where possible. | 018-02 | `src/claims/compat.ts`, tests | Every current clinical/structural type maps; links/supports/supersedes/corrects preserve semantics; actor/source/transform preserved. | `npm run typecheck`; targeted compat tests; `npm test`. | Remove mapper; legacy code remains untouched. |
 | 4 | Add predicate registry foundation | Create versioned predicate definitions and loader. | 018-03, 018-04 | `schemas/predicates/**`, `schemas/predicate.schema.json`, `src/claims/predicates.ts`, tests | Duplicate ids rejected; unknown shapes rejected; seed predicates cover all mapper outputs. | `npm run typecheck`; predicate loader tests. | Remove registry files/loader; mapper still works with static predicate strings. |
@@ -201,8 +201,8 @@ Ordered dependency list:
 - Exact acceptance criteria:
   - Verbatim package markdown files are copied from `/home/ark/Downloads/pi-chart-rebase-package.zip` and `/home/ark/Downloads/pi-chart-context-engineering-package.zip` into a synthesis-source directory.
   - The synthesis README states these packages are research/planning inputs, not accepted repo ADRs.
-  - The README states current accepted ADR 018 remains `pi-chart/decisions/018-architecture-rebase-clinical-truth-substrate.md`.
-  - The README states `decisions/019-*` does not currently exist and package ADR 019 conflicts with the existing clean-slate/corpus gate meaning.
+  - The README states current accepted ADR 018 remains `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md`.
+  - The README states `docs/adr/019-*` does not currently exist and package ADR 019 conflicts with the existing clean-slate/corpus gate meaning.
   - No files under `pi-chart/src/`, `pi-chart/schemas/`, `pi-chart/scripts/`, `pi-chart/patients/`, `pi-chart/package.json`, or `pi-chart/package-lock.json` are changed.
   - Existing dirty files outside `pi-chart` are not touched.
 - Tests required:
@@ -217,8 +217,8 @@ Ordered dependency list:
   - Blocks all later ADR 018/019 implementation issues.
   - Does not require npm tests because it is docs/package preservation only.
 - Things not to do:
-  - Do not copy `018-kernel-predicate-bitemporal-ledger.md` into `pi-chart/decisions/` as an accepted ADR.
-  - Do not create `pi-chart/decisions/019-context-engineering.md` in this issue.
+  - Do not copy `018-kernel-predicate-bitemporal-ledger.md` into `pi-chart/docs/adr/` as an accepted ADR.
+  - Do not create `pi-chart/docs/adr/019-context-engineering.md` in this issue.
   - Do not edit product source, schemas, fixtures, scripts, or package files.
   - Do not delete or rename the zip files in `/home/ark/Downloads` unless a separate archival policy is approved.
 
@@ -348,7 +348,7 @@ git diff --name-only -- pi-chart/src pi-chart/schemas pi-chart/scripts pi-chart/
 | Relation-claim complexity | Moving `fulfills`/`addresses`/`resolves`/`contradicts` into claims can double-count and break views. | Build a shared relation index that consumes both legacy links and relation claims; migrate one relation family at a time. |
 | Multi-writer/concurrency risk | Patient-local `seq` and head hash can race under concurrent writers. | State v1 single-writer assumption; use atomic append/head checks; add conflict detection; defer robust multi-writer service semantics. |
 | Migration risk | Backfilling ledger from timeline/frontmatter may create irreversible-looking audit artifacts from inferred order. | Deterministic migration order; mark `activity.kind = migrate`; keep legacy files; idempotency tests; require operator acceptance before deleting compatibility. |
-| ADR numbering risk | Package ADR 018/019 names conflict with current accepted ADR 018 and planned ADR 019 meaning. | Install as synthesis sources first; resolve numbering/status in docs PR before `decisions/019-*` or ADR 020/021 stubs. |
+| ADR numbering risk | Package ADR 018/019 names conflict with current accepted ADR 018 and planned ADR 019 meaning. | Install as synthesis sources first; resolve numbering/status in docs PR before `docs/adr/019-*` or ADR 020/021 stubs. |
 | Current branch divergence risk | Branch is ahead 33 and behind 8; rebase could change docs/source reality. | Avoid implementation until rebase plan includes conflict review; rerun package comparison after syncing/rebasing. |
 
 ## 10. Final Recommendation
@@ -356,13 +356,13 @@ git diff --name-only -- pi-chart/src pi-chart/schemas pi-chart/scripts pi-chart/
 - Proceed with the direction as substrate hardening, not as a rewrite.
 - Implement first: safe package installation/reconciliation under a synthesis-source path, then ADR 018 claim type foundation and compatibility mapper.
 - Defer:
-  - Any `decisions/019-*` creation until ADR numbering and clean-slate/context-engineering meaning is resolved.
+  - Any `docs/adr/019-*` creation until ADR numbering and clean-slate/context-engineering meaning is resolved.
   - Ledger dual-write until claim types, compatibility mapping, predicate registry, and hash utilities pass tests.
   - `issueContext` and `replayContext` until ADR 018 batch ledger and `knownAt` semantics exist.
   - ADR 020/021 stubs until numbering is settled.
   - Production PHI retention/redaction decisions until ADR 021.
 - Do not touch yet:
-  - Existing accepted `pi-chart/decisions/018-architecture-rebase-clinical-truth-substrate.md`.
+  - Existing accepted `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md`.
   - Source files, schemas, package files, scripts, or patient fixtures during the package-install/reconciliation issue.
   - Existing dirty files outside `pi-chart`.
   - Hidden `pi-sim` internals or direct pi-agent/pi-sim coupling.

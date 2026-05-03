@@ -1,5 +1,7 @@
 # pi-chart ARCHITECTURE
 
+> **V0.5 clean-canvas note (2026-05-03):** This code map describes the brownfield `0.3.0-partial` implementation. For reusable claim-ledger kernel work, ADR 020, `pi-ledger` ADR 001, and `.scratch/pi-ledger-claim-ledger-kernel/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patients/`, `patient_001`, legacy `decisions/`, and ADR 019 path assumptions here. Treat those details as prototype evidence unless a current issue promotes them.
+
 How the pi-chart `0.3.0-partial` spec (`DESIGN.md`) is realized in code. This doc
 is a map, not a spec — when the code moves, this doc moves with it.
 When the contract moves, `DESIGN.md` moves first.
@@ -11,7 +13,7 @@ PRIMITIVES        DESIGN.md §1              foundation; changes via ADR
 SPEC              DESIGN.md §2–§10          schemas, invariants, views
 CODE MAP          ARCHITECTURE.md (this)    modules, flow
 ROADMAP           ROADMAP.md                phases, deferrals
-DECISIONS         decisions/NNN-*.md        ADRs for pivots
+DECISIONS         docs/adr/NNN-*.md        ADRs for pivots
 ```
 
 ---
@@ -200,14 +202,14 @@ locked**. Tracked in ROADMAP §"Seams."
 ```
 Synthea CSV/FHIR output
    │
-   ▼  src/importers/synthea/   (not yet implemented; see decisions/001)
+   ▼  src/importers/synthea/   (not yet implemented; see docs/adr/001)
 normalize → envelopes with source.kind="synthea_import"
    │
    ▼  appendEvent(...) — same write path as runtime
 patients/<id>/timeline/.../events.ndjson + _imports/synthea/manifest.yaml
 ```
 
-See `decisions/001-mimic-to-synthea.md` for the pivot rationale.
+See `docs/adr/001-mimic-to-synthea.md` for the pivot rationale.
 
 ---
 

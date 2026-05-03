@@ -1,45 +1,46 @@
-# pi-chart planning surface
+# pi-chart legacy planning surface
 
-This directory is the durable planning surface for pi-chart work. Future agents should start here, then follow links outward only when a card tells them to.
+> **Status:** Historical/promoted planning surface from the pre-Matt-skills workflow. Not the default active PRD or issue tracker.
+> New active work should start in `.scratch/<feature>/PRD.md` and `.scratch/<feature>/issues/*.md`. Durable decisions belong in `pi-chart/docs/adr/`.
 
-## Canonical entrypoints
+This directory preserves useful PRDs, test specs, reports, and planning boards as lineage. Future agents should not add new active planning scratchpads here unless a current `.scratch` PRD or accepted ADR explicitly says to promote a durable summary.
 
-1. [`kanban-prd-board.md`](kanban-prd-board.md) — current board of PRD/workstream cards.
-2. [`phase-a-status-matrix.md`](phase-a-status-matrix.md) — exact-once Phase A source coverage for PHA-001.
-3. [`prd-phase-a-completion-to-implementation-bridge.md`](prd-phase-a-completion-to-implementation-bridge.md) — deepest immediate execution PRD.
-4. [`test-spec-phase-a-completion-to-implementation-bridge.md`](test-spec-phase-a-completion-to-implementation-bridge.md) — paired PHA-001 verification contract.
-5. Thin backlog PRD/test-spec pairs:
-   - [`prd-v03-foundation-reconciliation.md`](prd-v03-foundation-reconciliation.md) / [`test-spec-v03-foundation-reconciliation.md`](test-spec-v03-foundation-reconciliation.md)
-   - [`prd-adr17-actor-attestation-decision.md`](prd-adr17-actor-attestation-decision.md) / [`test-spec-adr17-actor-attestation-decision.md`](test-spec-adr17-actor-attestation-decision.md)
-   - [`prd-adapter-boundary-future-work.md`](prd-adapter-boundary-future-work.md) / [`test-spec-adapter-boundary-future-work.md`](test-spec-adapter-boundary-future-work.md)
-   - [`prd-omx-planning-history-promotion.md`](prd-omx-planning-history-promotion.md) / [`test-spec-omx-planning-history-promotion.md`](test-spec-omx-planning-history-promotion.md)
+## Current use
+
+Use this directory for:
+
+- historical evidence;
+- accepted reports that are already linked from canonical docs;
+- old PRD/test-spec pairs when a `.scratch` issue cites them as source inputs;
+- generated or legacy board artifacts that need banner/archive review.
+
+Do not treat file existence here as implementation approval.
 
 ## Source authority rule
 
-Use this hierarchy unless a card says otherwise:
+Use this hierarchy unless a current `.scratch` issue says otherwise:
 
 1. Current user instruction for the active workflow.
-2. Accepted ADRs in `decisions/` with explicit accepted status.
-3. Phase A charter/execution/template docs for Phase A process and scope.
-4. `ROADMAP.md` for macro sequencing.
-5. `/memos` and research reports as evidence/proposals, not accepted policy by default.
-6. `.omx/plans` PRD/test-spec/report artifacts as execution history unless promoted here.
-7. `.omx/context`, `.omx/specs`, `/wiki`, `.omx/wiki` as derived traceability.
+2. Accepted ADRs in `docs/adr/` with explicit accepted status.
+3. Subproject `CONTEXT.md` plus canonical architecture docs.
+4. `.scratch/<feature>/PRD.md` and `.scratch/<feature>/issues/*.md` for active work.
+5. These legacy `docs/plans/*` files only when explicitly cited.
+6. `/memos` and research reports as evidence/proposals, not accepted policy by default.
+7. `.omx/plans` PRD/test-spec/report artifacts as execution history unless promoted into `.scratch`, an ADR, or canonical docs.
+8. `.omx/context`, `.omx/specs`, `/wiki`, `.omx/wiki` as derived traceability.
 
 ## How agents should use this surface
 
-1. Pick a card from `Ready for PRD execution` or `Ready for tracer execution`.
-2. Read only that card, its linked PRD/test-spec, and named source inputs.
-3. Start with the card's first failing or characterization test.
-4. Keep changes inside the owned files listed by the card.
-5. Run the card's verification command.
+1. Start from `.scratch/<feature>/PRD.md` or the user's cited issue.
+2. Read files in this directory only when the active PRD/issue names them as source inputs.
+3. If useful content here needs to drive implementation, summarize it into `.scratch/<feature>/` first.
+4. Keep changes inside files owned by the active issue.
+5. Run the active issue's verification command.
 6. Report evidence and unresolved HITL questions.
 
 ## Standing guardrails
 
-These are not a ban on implementation. They describe how agents should move from planning into code safely.
-
-- Product code changes are allowed only when a selected PRD/tracer card explicitly owns the files and starts from tests or executable validation.
+- Product code changes are allowed only when a selected `.scratch` issue explicitly owns the files and starts from tests or executable validation.
 - Planning-surface maintenance cards are docs-only unless the card says otherwise.
 - Do not couple `pi-chart` or `pi-agent` to hidden `pi-sim` internals.
 - Do not add dependencies unless the active card or user explicitly approves them.
@@ -47,6 +48,4 @@ These are not a ban on implementation. They describe how agents should move from
 
 ## Dashboard
 
-`dashboard.html` is a generated, gitignored build artifact. Regen via `npm run dashboard` from `pi-chart/`. Source of truth is `kanban-prd-board.md`. Open the resulting file via `file://` in a browser for a 4-column glance view.
-
-For live development, `npm run dashboard:dev` starts a local server at `http://localhost:5173` that rebuilds the page in memory on each request and auto-reloads the browser via Server-Sent Events whenever `kanban-prd-board.md` changes. No disk write; the static `dashboard.html` is unaffected.
+`dashboard.html` is a legacy generated planning artifact. Treat it as historical/promoted evidence unless a current `.scratch` issue re-authorizes dashboard work.

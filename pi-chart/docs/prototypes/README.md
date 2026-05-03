@@ -50,6 +50,22 @@ Agent Canvas becomes the documentation workbench, chat moves to the bottom of
 the main surface, and the right side is an artifact scratchpad with stage,
 discard, and Chart actions.
 
+## v0.5 Cockpit Scaffold
+
+Captured layout from the v0.5 Claude Design handoff bundle. Lives at
+[`v0-5-cockpit/`](v0-5-cockpit/) — open `index.html` in a browser; no build
+step. The runtime data plane is split across three named adapter modules:
+
+- `adapters/pi-monitor.js` — vitals tiles + waveforms + vitals flowsheet
+  (will wrap pi-monitor's public-frame contract)
+- `adapters/pi-agent.js` — agent chat + artifact lifecycle (will wrap
+  pi-agent harness)
+- `adapters/pi-chart.js` — patient/labs/MAR/notes/orders/I&O/events
+  (will wrap `pi-ledger` through a chart adapter/projection after ADR 020)
+
+Source-of-truth design system lives at
+[`../design/v0-5-design-system/`](../design/v0-5-design-system/).
+
 ## Screenshots
 
 Capture a prototype with the local browser helper:

@@ -1,6 +1,6 @@
 # Broad EHR skeleton for clinical memory
 
-Status: accepted reference direction via `decisions/016-broad-ehr-skeleton-clinical-memory.md`.
+Status: accepted reference direction via `docs/adr/016-broad-ehr-skeleton-clinical-memory.md`.
 
 This is the clinical reference contract for the first broad EHR skeleton.
 It is not a full EHR product spec. It defines the minimum observable

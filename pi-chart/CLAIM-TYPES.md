@@ -1,5 +1,7 @@
 # Claim types
 
+> **V0.5 clean-canvas note (2026-05-03):** This reference describes the brownfield event-envelope vocabulary. For reusable claim-ledger kernel work, ADR 020, `pi-ledger` ADR 001, and `.scratch/pi-ledger-claim-ledger-kernel/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patient_001`, and ADR 019 path assumptions here. Treat those details as prototype evidence unless a current issue promotes them.
+
 The event envelope (`id`, `subject`, `effective_at`, `recorded_at`, `author`,
 `source`, `status`, plus the conditional `encounter_id`, `certainty`, `data`,
 `links`) is shared by two type families:

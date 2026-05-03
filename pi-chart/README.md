@@ -1,5 +1,7 @@
 # pi-chart
 
+> **V0.5 clean-canvas note (2026-05-03):** This primer describes the brownfield `0.3.0-partial` chart substrate. For reusable claim-ledger kernel work, ADR 020, `pi-ledger` ADR 001, and `.scratch/pi-ledger-claim-ledger-kernel/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patients/`, `patient_001`, legacy `decisions/`, and ADR 019 path assumptions here. Treat those details as prototype evidence unless a current issue promotes them.
+
 Durable clinical memory substrate for `pi-agent`, running against `pi-sim`.
 
 Not an EHR clone. A minimal, append-oriented, provenance-rich substrate
@@ -44,7 +46,7 @@ pi-chart/
 ├── CLAIM-TYPES.md            # event types, subtypes, data shapes
 ├── ARCHITECTURE.md           # code map over DESIGN
 ├── ROADMAP.md                # phases, shipped vs deferred, open seams
-├── decisions/                # ADRs (NNN-*.md) for pivots over primitives
+├── docs/adr/                 # ADRs (NNN-*.md) for pivots over primitives
 ├── clinical-reference/       # domain research feeding design (including Phase A)
 ├── pi-chart.yaml             # system registry (patient ids, defaults)
 ├── sessions/
@@ -199,7 +201,7 @@ cycle: escalation trigger met; SpO2 89% sustained, SBAR to provider
   proof before pi-agent integration — see `ROADMAP.md`. Research
   directives and outputs live under `clinical-reference/`.
 - **Phase 3:** Synthea import (`src/importers/synthea/`). Per
-  `decisions/001-mimic-to-synthea.md`, Synthea is the primary historical
+  `docs/adr/001-mimic-to-synthea.md`, Synthea is the primary historical
   corpus; MIMIC-IV is a later-optional path requiring credentialing.
 - **Phase 4:** UI. Separate design doc when ready; will compose view
   primitives.

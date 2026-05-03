@@ -1,19 +1,21 @@
 # pi-chart DESIGN
 
+> **V0.5 clean-canvas note (2026-05-03):** This spec describes the brownfield `0.3.0-partial` substrate. For reusable claim-ledger kernel work, ADR 020, `pi-ledger` ADR 001, and `.scratch/pi-ledger-claim-ledger-kernel/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patients/`, `patient_001`, legacy `decisions/`, and ADR 019 path assumptions here. Treat those details as prototype evidence unless a current issue promotes them.
+
 Planning document for pi-chart `0.3.0-partial`. Intended audience: a
 human operator and coding agents working together. This is the spec;
 `README.md` is the primer.
 
 **Revision:** `0.3.0-partial`, updated after ADRs 002-011 and ADR 016.
 The original v0.2 council-reviewed text remains the base; later accepted
-ADRs are integrated in place and tracked in `decisions/`.
+ADRs are integrated in place and tracked in `docs/adr/`.
 
 Scope:
 
 1. How pi-chart becomes a **multi-patient EHR substrate** without losing
    the single-patient-chart primitive.
 2. How imported historical data (Synthea primary; MIMIC-IV optional-later
-   per `decisions/001-mimic-to-synthea.md`) and runtime data (pi-sim +
+   per `docs/adr/001-mimic-to-synthea.md`) and runtime data (pi-sim +
    pi-agent) live in the same chart as one stream of claims, not two
    modes.
 3. The **view primitives** — the six projections over the claim graph
@@ -33,7 +35,7 @@ ask.
 ## 1. Primitives — the load-bearing foundation
 
 > **§0-level invariant.** This section is the foundation pi-chart reduces
-> to. Changes here require an ADR in `decisions/` and a version bump of
+> to. Changes here require an ADR in `docs/adr/` and a version bump of
 > `schema_version`. Everything below §1 is implementation over these
 > primitives.
 
@@ -640,7 +642,7 @@ None of these are tabs. Any chart UI will compose them.
 ## 5. MIMIC-IV ingestion
 
 > **Status note (post ADR 001).** The mechanics below were written for
-> MIMIC-IV. Per `decisions/001-mimic-to-synthea.md`, **Synthea is now
+> MIMIC-IV. Per `docs/adr/001-mimic-to-synthea.md`, **Synthea is now
 > the primary historical corpus**; MIMIC-IV is optional-later and
 > requires credentialed access. This section is retained as structural
 > reference — rebase logic, provenance preservation, manifest writer,
@@ -1150,12 +1152,12 @@ Council-approved amendments, all integrated above.
 
 ---
 
-**Post-revision amendments (tracked in `decisions/`)**
+**Post-revision amendments (tracked in `docs/adr/`)**
 - **2026-04-20:** §1 renamed from "The load-bearing principle" to
   "Primitives — the load-bearing foundation" with a §0-invariant
   callout. Changes to §1 now require an ADR + `schema_version` bump.
   Companion docs added: `ARCHITECTURE.md` (code map), `ROADMAP.md`
-  (phases + seams), `decisions/` (ADRs), `clinical-reference/` (domain
+  (phases + seams), `docs/adr/` (ADRs), `clinical-reference/` (domain
   research).
 - **2026-04-20 — ADR 001:** Phase 3 importer pivots from MIMIC-IV to
   Synthea as primary corpus; MIMIC-IV optional-later. §0 scope, §5

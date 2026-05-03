@@ -1,5 +1,7 @@
 # pi-chart ROADMAP
 
+> **V0.5 clean-canvas note (2026-05-03):** This roadmap includes brownfield/prototype milestones. For reusable claim-ledger kernel work, ADR 020, `pi-ledger` ADR 001, and `.scratch/pi-ledger-claim-ledger-kernel/` supersede older `patients/`, `patient_001`, Synthea/MIMIC, legacy `decisions/`, and ADR 019 path assumptions here. Treat those details as historical evidence unless a current issue promotes them.
+
 What is shipped, what is next, what is deferred. Churns freely — update
 in the same commit that moves a phase forward.
 
@@ -50,7 +52,7 @@ Two parallel tracks:
 
 ### Track B — synthetic patients (build)
 
-- Pivot away from MIMIC-IV ingestion (see `decisions/001-mimic-to-synthea.md`).
+- Pivot away from MIMIC-IV ingestion (see `docs/adr/001-mimic-to-synthea.md`).
 - Build a small set of hand-crafted + Synthea-seeded patients that
   exercise the view primitives against realistic trajectories.
 - Target breadth: ≥5 patients, varied admit contexts, multi-day
@@ -127,7 +129,7 @@ future ADR when the corresponding artifact makes the need concrete.
 
 ## Phase 3 — Synthea import (deferred, not blocked)
 
-- Per `decisions/001`, the historical-data source is Synthea, not MIMIC.
+- Per `docs/adr/001`, the historical-data source is Synthea, not MIMIC.
 - Scope: `src/importers/synthea/`, provenance preservation
   (`source.kind: "synthea_import"` + structural original ids), manifest
   writer (`_imports/synthea/manifest.yaml` per patient), idempotent

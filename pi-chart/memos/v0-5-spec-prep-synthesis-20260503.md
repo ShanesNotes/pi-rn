@@ -357,7 +357,7 @@ Path: `pi-chart/memos/v0-5-roadmap-conventions-and-gates-20260503.md`
 Required content:
 
 - Date format: headers use `YYYY-MM-DD`; filename suffix uses `YYYYMMDD` only when needed; reject `DDMMYYYY` going forward.
-- Artifact location authority: `.omx/` as Codex/RALPLAN working area; durable project-visible planning in `pi-chart/docs/planning/v0.5/`; architect memos/mirrors in `pi-chart/memos/`; accepted ADRs in `pi-chart/decisions/`.
+- Artifact location authority: `.omx/` as Codex/RALPLAN working area; active PRD/issues in `.scratch/pi-chart-v0-5/`; durable index in `pi-chart/docs/planning/v0.5/`; architect memos/mirrors in `pi-chart/memos/`; accepted ADRs in `pi-chart/docs/adr/`.
 - Citation format for brownfield, package, and cross-spec references.
 - Delta-table requirement for future PRDs/test-specs.
 - RFC2119 gate language.
@@ -376,13 +376,13 @@ Path: `pi-chart/memos/adr-numbering-reconciliation-20260503.md`
 Recommended stance:
 
 - Package ADR numbers remain archival identifiers inside `.omx/package-archive/`.
-- Accepted repo ADR numbers continue from current `pi-chart/decisions/` sequence.
-- Kernel ADR becomes `pi-chart/decisions/019-v0-5-claim-ledger-kernel.md` if/when accepted.
+- Accepted repo ADR numbers continue from current `pi-chart/docs/adr/` sequence.
+- Kernel ADR becomes `pi-chart/docs/adr/019-v0-5-claim-ledger-kernel.md` if/when accepted.
 - If a package concept is promoted, it receives a new accepted repo ADR number and cites the package source.
 
 Acceptance criteria:
 
-- Names the existing conflict with `pi-chart/decisions/018-architecture-rebase-clinical-truth-substrate.md`.
+- Names the existing conflict with `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md`.
 - Defines package citation convention.
 - Prevents future PRDs from claiming package ADRs are accepted repo ADRs.
 
@@ -542,10 +542,10 @@ Date suffix note: headers use `YYYY-MM-DD`; filename suffixes use `YYYYMMDD` onl
 1. `pi-chart/memos/v0-5-roadmap-conventions-and-gates-20260503.md`
 2. `pi-chart/memos/adr-numbering-reconciliation-20260503.md`
 3. `pi-chart/memos/package-archive-adoption-map-20260503.md`
-4. `.omx/plans/prd-v0-5-claim-ledger-kernel.md`
-5. `.omx/plans/test-spec-v0-5-claim-ledger-kernel.md`
-6. Multi-agent/multi-model review of Phase 1 PRD/test-spec.
-7. Issue-slice decomposition only after PRD/test-spec approval.
+4. `.omx/plans/prd-v0-5-claim-ledger-kernel.md` and `.omx/plans/test-spec-v0-5-claim-ledger-kernel.md` as reviewed OMX drafts.
+5. `.scratch/pi-chart-v0-5/PRD.md` as the active Matt-compatible bridge.
+6. `.scratch/pi-chart-v0-5/issues/*.md` issue-slice decomposition only after PRD/test-spec approval.
+7. TDD implementation only from approved issue slices.
 
 ## 13. Acceptance Criteria for This Synthesis Artifact
 
@@ -600,7 +600,7 @@ A dedicated synthesis artifact gives spec authors one comprehensive guide while 
 ### Follow-ups
 
 1. Finalize this artifact after Architect/Critic approval.
-2. Mirror/distill approved planning into project-visible artifacts under `pi-chart/memos/` and `pi-chart/docs/planning/v0.5/`.
+2. Mirror/distill approved planning into `.scratch/pi-chart-v0-5/`, `pi-chart/memos/`, and `pi-chart/docs/planning/v0.5/` as appropriate.
 3. Draft the three Phase 0 durable artifacts.
 4. Draft Phase 1 PRD/test-spec from K0-K6 only.
 
