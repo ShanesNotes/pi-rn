@@ -1,0 +1,109 @@
+<!doctype html>
+<html><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;620;680;760&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#171717; --ink-2:#48443f; --ink-3:#85807a;
+    --paper:#f2f0eb; --card:#fbfaf6;
+    --line:#171717; --hair:rgba(23,23,23,.18);
+    --accent:#b3402f; --accent-soft:rgba(179,64,47,.10);
+    --ok:#3d7c56; --ok-deep:#2d5e40; --ok-soft:rgba(61,124,86,.10);
+    --amber:#bd7808;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:"Inter Tight",ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:18px 22px;background:var(--paper);font-family:var(--sans);color:var(--ink)}
+
+  .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+
+  .btn{
+    border:1px solid var(--line);
+    background:var(--card); color:var(--ink);
+    padding:7px 12px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    line-height:1.1;
+  }
+  .btn.dark{background:var(--ink);color:var(--card)}
+  .btn.warn{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+  /* primary chart action — filled green (canonical "committed to chart") */
+  .btn.chart{
+    background:var(--ok);
+    border-color:var(--ok);
+    color:var(--card);
+    display:inline-flex; align-items:center; gap:8px;
+    box-shadow:0 1px 0 rgba(255,255,255,.18) inset, 0 6px 14px -6px rgba(45,94,64,.45);
+  }
+  .btn.chart::before{
+    content:"";
+    width:6px; height:6px; border-radius:50%;
+    background:var(--card);
+  }
+  .btn.chart:hover{ background:var(--ok-deep); border-color:var(--ok-deep); }
+  .btn.chart:active{ transform:translateY(1px); box-shadow:none }
+
+  /* outline variant — lower-emphasis "chart" usage if needed */
+  .btn.chart-outline{
+    background:var(--card);
+    border-color:var(--ok);
+    color:var(--ok);
+  }
+
+  .stamps{display:flex;gap:8px;flex-wrap:wrap}
+  .stamp{display:inline-block;border:1px solid var(--line);padding:3px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+  .stamp.warn{border-color:var(--amber);color:var(--amber)}
+  .stamp.alert{border-color:var(--accent);color:var(--accent)}
+
+  .footnote{
+    margin-top:6px;
+    border-top:1px dashed var(--hair); padding-top:8px;
+    font-family:var(--mono); font-size:9.5px; color:var(--ink-3); letter-spacing:.04em;
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+  .footnote b{color:var(--ink); font-weight:600}
+  .footnote .ok{color:var(--ok)}
+</style>
+</head>
+<body>
+
+  <div class="lbl">cycle actions · draft → staged → charted</div>
+  <div class="row">
+    <button class="btn">stage</button>
+    <button class="btn chart">chart</button>
+    <button class="btn warn">discard</button>
+    <button class="btn">defer</button>
+  </div>
+
+  <div class="lbl">chart · variants</div>
+  <div class="row">
+    <button class="btn chart">chart</button>
+    <button class="btn chart">chart cycle</button>
+    <button class="btn chart-outline">chart · outline</button>
+    <button class="btn dark">co-sign</button>
+  </div>
+
+  <div class="lbl">stamps</div>
+  <div class="stamps">
+    <span class="stamp">COCKPIT · V0.4</span>
+    <span class="stamp warn">4 DRAFTS PENDING</span>
+    <span class="stamp alert">WATCHER · RESP ↑</span>
+    <span class="stamp">read-only</span>
+  </div>
+
+  <div class="footnote">
+    <span><b class="ok">chart</b> is the canonical commit-to-record action — RN signature required, agent cannot invoke</span>
+    <span>renamed from <b>commit</b> · v0.5 docs</span>
+  </div>
+
+</body></html>

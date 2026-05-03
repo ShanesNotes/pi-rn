@@ -1,0 +1,261 @@
+# π-chart Design System
+
+> The chart is canonical. Current state is a query. Derived summaries are disposable.
+
+**π-chart** is the UI/UX surface of the **pi-rn** project — an **agent-native clinical workspace**. It is a re-imagining of how AI agents and bedside clinicians deliver care together, built on top of the `pi-chart` clinical-memory substrate.
+
+This design system captures the visual and interaction language of pi-chart so any new screen, slide, or prototype reads as part of the same product.
+
+---
+
+## What pi-chart is
+
+- **Substrate (today):** a filesystem-native, append-only, provenance-rich clinical memory store. One patient = one directory of NDJSON events, JSONL vitals, Markdown notes.
+- **UI surface (this system):** the **clinical cockpit** + **agent canvas** that lets a bedside RN read that memory and review agent-drafted artifacts before commit.
+- **Companions:**
+  - `pi-agent` — the agent harness that drafts assessments, handoffs, addenda.
+  - `pi-sim` — hidden patient simulator (the agent only sees public observations).
+  - `pi-monitor` — Rust crate for monitor stream simulation.
+
+**Strategic bet:** clinical memory + agent partial observability — the agent only knows what was observed, reported, inferred, or documented. Never ground truth.
+
+## The aesthetic
+
+A natural-minimalist **paper / scratchpad / penciled-chart** vibe. Reminiscent of pre-EHR paper charting — raw, hand-organized, but with professional polish. Deliberately contrasted against the noisy, color-saturated information density of modern EHR surfaces (Epic, Cerner). Fewer pixels, bigger type, mono labels, brutalist 1px black borders, warm off-white paper.
+
+## Sources
+
+- **Repo:** `github.com/ShanesNotes/pi-rn` (sibling: `Noah-RN`)
+- **Design source of truth:**
+  - `pi-chart/docs/prototypes/pi-chart-cockpit.html` — read-only review cockpit
+  - `pi-chart/docs/prototypes/pi-chart-scratchpad.html` — agent canvas / co-pilot
+  - `pi-chart/docs/prototypes/pi-chart-agent-canvas.html` — v0.4 cockpit + canvas
+  - `pi-chart/scripts/agent-canvas.ts` — generator for the v0.4 surface
+  - `pi-chart/scripts/dashboard.ts` — kanban PRD board renderer
+- **Spec:** `pi-chart/DESIGN.md` (`0.3.0-partial`), `ARCHITECTURE.md`, `CLAIM-TYPES.md`, `ROADMAP.md`
+- **Logo:** `uploads/pi-chart-logo.png` → `assets/pi-chart-logo.png`
+
+---
+
+## Index of this folder
+
+| File | What's in it |
+|---|---|
+| `README.md` | This document — context, fundamentals, foundations, iconography, manifest |
+| `colors_and_type.css` | Full token set: ink/paper/line, mono/sans, type scale, semantic vars |
+| `SKILL.md` | Agent Skills entrypoint — load this when generating π-chart designs |
+| `assets/` | Logo, the pi (π) glyph, any imagery |
+| `preview/` | Design-system preview cards (rendered on the Design System tab) |
+| `ui_kits/pi-chart/` | High-fidelity React/JSX recreation of the cockpit + agent canvas |
+
+---
+
+## CONTENT FUNDAMENTALS
+
+How copy is written across the surface.
+
+### Voice
+- **Lower-case sentence-fragment captions** for chrome and metadata (`chart clock`, `as of`, `cycle state`). Capitalize only proper nouns and the start of full sentences.
+- **Calm, declarative clinical prose** for content. No exclamation marks, no hype. Sentences read like a charge nurse handing off a shift.
+- **Second-person is rare.** The system addresses no-one; it surfaces facts. Avoid "you," prefer naming the actor (`rn_shane`, `pi-agent`, `next_shift_rn`).
+- **First-person is forbidden.** Never "I drafted…" — instead "Drafted reassessment, handoff, …".
+
+### Casing
+- `UPPERCASE` only inside the **mono tag** style (letter-spaced 0.16em). Used for section labels (`PATIENT`, `ACUITY`, `VITALS · STREAMING · 30s`) and stamps (`COCKPIT · V0.4`, `4 AGENT DRAFTS PENDING`).
+- Sentence-case for headings and prose.
+- `snake_case` for IDs and code references shown in UI: `patient_002`, `enc_p002_001`, `run_p002_0930`, `note_20260419T0910_nursing`.
+
+### Vocabulary (canonical clinical terms)
+The chart lives or dies by precise terms. Use these spellings exactly:
+
+| Concept | Term in copy |
+|---|---|
+| Patient identifier | `patient_002` (lower, snake) |
+| Encounter | `enc_p002_001` |
+| Time-of-day | `09:30` (24-hour, no AM/PM, ASCII colon) |
+| Date stamp | `2026-04-19 09:30 CT` (ISO date · time · tz abbr) |
+| Vital units | `89%`, `30/min`, `112 bpm`, `2.8 mmol/L`, `37.8 °C`, `6L simple mask` (no hyphen between unit & value beyond what's natural) |
+| Cycle states | `draft` → `staged` → `committed` → `discarded` (lowercase) |
+| Acuity tag | `WATCHER`, `STABLE`, `CRITICAL` (uppercase, inside an outlined chip) |
+| View primitives | `currentState()`, `timeline()`, `trend()`, `evidenceChain()`, `openLoops()`, `narrative()`, `memoryProof()` (mono, with parens) |
+
+### Common phrases
+- "Chart is canonical." / "Current state is a query."
+- "Chat is process. Chartable output lands in the scratchpad — never in chat."
+- "Agent Canvas is a workspace. The chart remains canonical."
+- "Generated by pi-agent. Not chart truth until committed."
+- "prototype affordance · would write through `appendEvent`/`writeCommunicationNote`"
+
+### Tone examples
+✅ `Worsening respiratory status: SpO₂ 96→89% over 30 min on 6L simple mask; RR 24→30 with new accessory muscle use.`
+✅ `ABG/lactate has resulted but bedside work-of-breathing remains the anchor for the watch item.`
+✅ `Reassess oxygen response and work of breathing by 09:50; escalate if SpO₂ < 90% or accessory muscle use persists.`
+❌ "Hey! Looks like the patient might be getting worse 😟" — never.
+❌ "We've drafted some great suggestions for you!" — never.
+
+### Emoji
+**Never.** Emoji are not part of the system. Status is communicated by mono tags, outlined chips, color (red `--accent` for signal, amber `--amber` for draft, green `--ok` for committed), and unicode glyphs only when they're clinical (`SpO₂`, `→`, `↑`, `↓`, `·`, `Δ`, `≥`).
+
+### Unicode glyphs in regular use
+`π` (brand), `·` (separator), `→` `↑` `↓` (trends), `Δ` (delta), `■` `●` `○` (status squares/dots), `↻` (open loop), `≥` `≤` `<` `>` (thresholds), `²` `°` (units, e.g. SpO₂, 37.8 °C).
+
+---
+
+## VISUAL FOUNDATIONS
+
+### Colors
+Anchored on a **paper palette** (warm off-white, three steps), **ink** (four steps from near-black to bone), and a single **alert accent** (rust red `#b3402f`) used sparingly.
+
+| Token | Hex | Use |
+|---|---|---|
+| `--ink` | `#171717` | text, hard 1px borders |
+| `--ink-2` | `#48443f` | secondary text |
+| `--ink-3` | `#85807a` | metadata, mono labels |
+| `--ink-4` | `#c8c0b8` | hairline, dotted underlines |
+| `--paper` | `#f2f0eb` | page background |
+| `--paper-2` | `#e7e3dc` | active nav strip |
+| `--card` | `#fbfaf6` | panel surface |
+| `--accent` | `#b3402f` | watcher / signal red |
+| `--accent-soft` | `rgba(179,64,47,0.10)` | accent fill, draft band |
+| `--amber` | `#bd7808` | draft state |
+| `--ok` | `#3d7c56` | committed state |
+| `--accent-2` | `#315f63` | secondary informational tint |
+
+Backgrounds use a soft top-down gradient (`linear-gradient(180deg, #f8f6f1 0%, var(--paper) 38%, #ece8df 100%)`) to suggest paper held up to light. Never use bluish-purple gradients; never use emoji-card colors.
+
+### Type
+- **Sans:** Inter Tight (preferred) / Inter — for headings, prose, body. Letter-spacing `-0.005em` at body size.
+- **Mono:** JetBrains Mono / SF Mono / ui-monospace — for **all** labels, timestamps, IDs, vital numbers, status chips.
+- **The mono tag is the system's signature element:** `font-family: mono; font-size: 9.5–10px; letter-spacing: 0.16em; text-transform: uppercase; color: ink-3`. Use it everywhere a label needs a name.
+- **Vital readouts** are big mono numbers (27px, weight 620) — the chart speaks numerically.
+
+### Spacing
+4-pt baseline. Common values: card padding `12px 13px`, cell padding `10px 12px`, gap `10–14px`, panel min-height `66–108px`.
+
+### Backgrounds
+- Page: warm paper gradient.
+- Cards/panels: `--card` over the paper, with a 1px `--line` (black) border.
+- Timeline / event-row backgrounds use `linear-gradient(--grid 1px, transparent 1px) 0 0/100% 38px` to evoke graph-paper rule lines.
+- **No images, no full-bleed photography, no illustrations.** This is a paper system.
+
+### Borders
+- **1px solid black (`--line`)** is the primary border — brutalist, decisive. Used on every card, vital tile, panel, and the outer shell.
+- **Hairline (`--hair`, ~18% opacity)** for internal dividers between rows or cells.
+- **Grid (`--grid`, ~7% opacity)** for ruled-paper backgrounds and event-row separators.
+- **Border-radius: 0** everywhere. No rounded corners. Ever. Pills/chips/buttons are right-angled.
+
+### Shadows
+- Panels: subtle warm drop shadow `0 10px 24px rgba(32,28,24,0.045)` + 1px inset white highlight (`0 1px 0 rgba(255,255,255,0.75) inset`).
+- Modals: `18px 24px 0 rgba(26,26,26,0.18)` — a hard, offset, brutalist shadow that reads as "scrap of paper laid on top."
+- **Never glassy/blurred shadows.** Avoid bluish neon glows.
+
+### Corner radii
+**0px.** Pills are `border-radius: 999px` only when truly capsule-shaped (the `WATCHER` chip is rectangular, not capsule).
+
+### Cards
+A card = `1px solid --line` + `background: --card` + `padding: 12px 13px` + the panel shadow above. Inside, a card header (`.ph`) is a baseline-aligned flex row with an `h3` left and a mono `.ct` right, separated from body by a 1px hair underline.
+
+### Animation & motion
+- **Effectively none.** Static document feel.
+- Allowed: instant tab toggles, instant modal show/hide, pointer-driven resize handles for the chat pane.
+- Never: bouncy spring animations, fade-ins, slide transitions, page transitions, parallax. The chart is not a website; it is a piece of paper.
+
+### Hover states
+- Nav rows: background flips to `--paper-2`, font-weight to 650, left border becomes 2px solid `--ink`.
+- Cards/buttons: subtle background lift to `#fff` (one step lighter than `--card`); never a color shift.
+- Links: dotted underline in `--accent` for cited claims, solid underline elsewhere.
+
+### Press states
+- Buttons darken: a `.btn.primary` is already `--ink` on `--card`; pressed flips background to `#000` (no scale change).
+- No shrink-on-press, no haptic-style scale transforms.
+
+### Transparency / blur
+- Used **only** in the accent-soft fill (`rgba(179,64,47,0.10)`) for draft bands and signal event-row backgrounds.
+- Backdrop-blur is **not** used. The system is opaque, paper-on-paper.
+
+### Imagery / illustration
+- **No photography, no illustrations, no SVG decorations.**
+- The only "image" is the **π** glyph (set in mono, weight 760) as the brand mark.
+- Sparkline graphs are 1.5–2px polylines drawn in SVG over a transparent rule grid.
+- All "iconography" is unicode + the mono-tag treatment.
+
+### Layout rules
+- **Fixed design width: 1480px** for the cockpit/canvas surface (with min-width fallback at 1100–1120px).
+- **Three-column shell:** 208px nav · fluid center · 374–408px right rail (scratchpad / drawer).
+- **Header band** is always there: brand line + crumb on the left, mono right-aligned status (`asOf`, `scope`, `open loops`, stamps) on the right, separated from the body by a 1px solid black underline.
+- **Patient bar** sits below the header, edge-to-edge, 4–6 cells wide, divided by hairlines.
+
+### Use of color in vitals / events
+A row, tile, or event becomes "signal" by: (1) flipping the type color to `--accent`, (2) adding a 1px `--accent` border, (3) filling background with `--accent-soft`. That trio is the visual grammar of "this matters now."
+
+---
+
+## ICONOGRAPHY
+
+The π-chart system **does not use an icon font or an SVG icon library.** Iconography is achieved through:
+
+1. **The mono tag** — uppercase letter-spaced labels (`PATIENT`, `VITALS`) carry the role of an icon. Recognition comes from typography, not glyphs.
+2. **Outlined chips/stamps** — `<span class="stamp">COCKPIT · V0.4</span>` reads as an icon because of its shape and frame.
+3. **Status squares & dots** — small filled `<span class="sq">` (8×8) or radial `<span class="dot">` (7×7) tinted by state (`amber` for draft, `--accent` for watcher, `--ink` for committed).
+4. **Unicode glyphs** — `→ ↑ ↓ ↻ Δ ● ○ ■ □ · π ²` carry directional, status, and brand meaning. Always rendered in the page font (mono inside tags, sans inside prose).
+5. **The π glyph** — the brand mark. Used inline as `<span class="pi">π</span>-chart`. Always mono, weight 760. The full wordmark lives at `assets/pi-chart-logo.png`.
+6. **Sparklines** — inline SVG polylines (1.5–2px stroke) for trend visualization. Drawn programmatically; not stored as assets.
+
+**Substitutions / flags:**
+- **No CDN icon library is loaded.** If a future screen needs glyphs the system doesn't cover (e.g. a play button, a download arrow), prefer a unicode character or the outlined-stamp pattern before reaching for Lucide/Heroicons. If you must, document the substitution.
+- **Fonts** are loaded from Google Fonts in this design system (`Inter Tight`, `JetBrains Mono`) as a substitution for the codebase's default `Inter` + `ui-monospace`. **Flag:** if a more specific font is desired (e.g. a hand-drawn pencil display face for headers to lean further into the scratchpad vibe), the user should attach it.
+
+---
+
+## Manifest
+
+```
+.
+├── README.md                    ← you are here
+├── SKILL.md                     ← Agent Skill entrypoint
+├── colors_and_type.css          ← all design tokens
+├── assets/
+│   ├── pi-chart-logo.png        ← official wordmark
+│   └── pi-glyph.svg             ← π brand mark, mono, weight 760
+├── preview/                     ← design-system preview cards
+│   ├── colors-ink.html
+│   ├── colors-paper.html
+│   ├── colors-semantic.html
+│   ├── type-display.html
+│   ├── type-mono-tag.html
+│   ├── type-vital.html
+│   ├── spacing-borders.html
+│   ├── shadow-elevation.html
+│   ├── component-stamp.html
+│   ├── component-button.html
+│   ├── component-vital-tile.html
+│   ├── component-event-row.html
+│   ├── component-patient-bar.html
+│   ├── component-nav.html
+│   ├── component-artifact-card.html
+│   ├── brand-logo.html
+│   └── brand-pi-glyph.html
+└── ui_kits/
+    └── pi-chart/
+        ├── README.md
+        ├── index.html           ← interactive cockpit + agent-canvas recreation
+        ├── DocBand.jsx
+        ├── PatientBar.jsx
+        ├── VitalsRow.jsx
+        ├── Nav.jsx
+        ├── EventStream.jsx
+        ├── DraftBand.jsx
+        ├── ArtifactCard.jsx
+        ├── AgentChat.jsx
+        ├── Composer.jsx
+        ├── CommitBar.jsx
+        └── ...
+```
+
+---
+
+## Caveats
+
+- **Fonts are substitutions.** The codebase uses generic `Inter, system-ui` and `ui-monospace`. This system specifies **Inter Tight** + **JetBrains Mono** loaded from Google Fonts to lean further into the editorial / scratchpad register. Swap if you have a specific licensed face.
+- **No real product imagery exists** — the system is intentionally text+rules+sparklines. If a marketing surface ever needs photography, the visual rules need a separate doc.
+- **The cockpit is a 1480px desktop surface.** Tablet/phone are out of scope as of `v0.4`.

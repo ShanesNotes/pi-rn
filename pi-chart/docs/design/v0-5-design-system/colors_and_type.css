@@ -1,0 +1,170 @@
+/* ============================================================
+   π-chart Design System — colors_and_type.css
+   Source of truth: pi-chart/docs/prototypes/* (cockpit, scratchpad, agent-canvas)
+   Aesthetic: paper / scratchpad / penciled clinical chart.
+   ============================================================ */
+
+:root {
+  /* ---------- INK (text + line) ---------- */
+  --ink:        #171717;   /* primary text, hard borders */
+  --ink-2:      #48443f;   /* secondary text */
+  --ink-3:      #85807a;   /* tertiary / metadata */
+  --ink-4:      #c8c0b8;   /* hairline-on-dark, dotted underlines */
+
+  /* ---------- PAPER (background) ---------- */
+  --paper:      #f2f0eb;   /* page background — warm off-white */
+  --paper-2:    #e7e3dc;   /* nav/active strip, modebar */
+  --card:       #fbfaf6;   /* card / panel surface */
+
+  /* ---------- LINE (border) ---------- */
+  --line:       #171717;   /* hard 1px border (brutalist black) */
+  --hair:       rgba(23,23,23,0.18);  /* internal divider */
+  --grid:       rgba(23,23,23,0.07);  /* graph paper / row grid */
+
+  /* ---------- SEMANTIC COLOR ---------- */
+  --accent:       #b3402f; /* alert / signal red — clinical "watcher" */
+  --accent-soft:  rgba(179,64,47,0.10);
+  --accent-2:     #315f63; /* desaturated teal — secondary info */
+  --amber:        #bd7808; /* draft / staged warning */
+  --amber-soft:   #f8ecd5;
+  --ok:           #3d7c56; /* committed / success green */
+
+  /* ---------- TYPE FAMILIES ---------- */
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: "Inter Tight", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* ---------- TYPE SCALE ---------- */
+  --fs-micro: 9.5px;   /* mono labels, tags */
+  --fs-tag:   10px;    /* chips, stamps */
+  --fs-meta:  11px;    /* mono metadata */
+  --fs-body:  13px;    /* default body */
+  --fs-read:  13.5px;  /* note prose */
+  --fs-h3:    14px;    /* panel head */
+  --fs-h2:    18px;    /* patient name */
+  --fs-h1:    25px;    /* doc title */
+  --fs-vital: 27px;    /* vital readout */
+
+  /* ---------- LETTER SPACING ---------- */
+  --tracking-tag:   0.16em;  /* uppercase mono labels */
+  --tracking-meta:  0.12em;  /* event labels */
+  --tracking-body:  -0.005em;
+
+  /* ---------- LINE HEIGHT ---------- */
+  --lh-tight: 1.35;   /* default */
+  --lh-prose: 1.5;    /* notes */
+
+  /* ---------- SPACING ---------- */
+  --pad-row:  6px;
+  --pad-cell: 10px 12px;
+  --pad-card: 12px 13px;
+  --gap-grid: 12px;
+
+  /* ---------- ELEVATION ---------- */
+  --shadow-paper: 0 1px 0 rgba(255,255,255,0.75) inset, 0 14px 34px rgba(32,28,24,0.055);
+  --shadow-panel: 0 1px 0 rgba(255,255,255,0.75) inset, 0 10px 24px rgba(32,28,24,0.045);
+
+  /* ---------- BACKGROUND ---------- */
+  --bg-page: linear-gradient(180deg, #f8f6f1 0%, var(--paper) 38%, #ece8df 100%);
+}
+
+/* ============================================================
+   SEMANTIC TYPOGRAPHY
+   ============================================================ */
+
+html, body {
+  font-family: var(--sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-body);
+  color: var(--ink);
+  background: var(--bg-page) fixed;
+}
+
+.h1, h1 { margin: 0; font-family: var(--sans); font-size: var(--fs-h1); font-weight: 620; letter-spacing: 0; }
+.h1 .pi, h1 .pi { font-family: var(--mono); font-weight: 760; }
+
+.h2, h2 { margin: 0; font-size: var(--fs-h2); font-weight: 680; letter-spacing: 0; }
+.h3, h3 { margin: 0; font-size: var(--fs-h3); font-weight: 680; letter-spacing: 0; }
+
+/* mono — used for ALL clinical metadata, labels, timestamps, IDs */
+.mono { font-family: var(--mono); }
+
+/* tag — uppercase mono micro-label (the system's signature element) */
+.tag, .k {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* meta — mono metadata, sentence-case */
+.meta {
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  color: var(--ink-3);
+}
+
+/* prose — reading text inside notes */
+.prose, .narrative p {
+  font-size: var(--fs-read);
+  line-height: var(--lh-prose);
+}
+
+/* crumb — nav / breadcrumb */
+.crumb {
+  font-family: var(--mono);
+  color: var(--ink-3);
+  font-size: var(--fs-tag);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+/* ct — count / right-side metadata in nav rows */
+.ct {
+  font-family: var(--mono);
+  font-size: var(--fs-tag);
+  color: var(--ink-3);
+}
+
+/* vital readout — large mono number */
+.vital-n {
+  font-family: var(--mono);
+  font-size: var(--fs-vital);
+  font-weight: 620;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.vital-n small { font-size: 12px; color: var(--ink-2); margin-left: 3px; }
+
+/* citation — dotted-underlined inline ref */
+.cite {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  border-bottom: 1px dotted var(--ink-4);
+  color: var(--ink-3);
+}
+
+/* agent-mark — inline draft annotation */
+.agent-mark {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 0 4px;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  line-height: 1.5;
+}
+
+/* stamp — bordered uppercase doc badge */
+.stamp {
+  display: inline-block;
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: var(--fs-tag);
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+.stamp.warn  { border-color: var(--amber);  color: var(--amber); }
+.stamp.alert { border-color: var(--accent); color: var(--accent); }

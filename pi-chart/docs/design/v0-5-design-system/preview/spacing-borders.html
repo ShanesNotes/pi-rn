@@ -1,0 +1,199 @@
+<!doctype html>
+<html><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;620;680;760&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* All values normalized to colors_and_type.css tokens.
+     Elevation tiers use --shadow-paper / --shadow-panel.
+     Layout matches other foundation cards: flat --paper bg,
+     18/22 padding, mono crumb header, --hair rule. */
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:18px 22px;
+    background:var(--paper);
+    font-family:var(--sans); color:var(--ink);
+  }
+
+  .head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--hair);
+    padding-bottom:8px;
+  }
+  .crumb{
+    font-family:var(--mono);
+    font-size:var(--fs-micro); letter-spacing:var(--tracking-tag); text-transform:uppercase;
+    color:var(--ink-3);
+  }
+  .crumb b{color:var(--ink); font-weight:700}
+  .meta{
+    font-family:var(--mono);
+    font-size:var(--fs-micro); color:var(--ink-3);
+    display:flex; gap:14px;
+  }
+  .meta span b{color:var(--ink); font-weight:600}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:18px var(--gap-grid);
+  }
+
+  .specimen{ position:relative; height:108px; }
+
+  .box{
+    width:100%; height:100%;
+    background:var(--card);
+    border:1px solid var(--line);
+    display:flex; flex-direction:column; justify-content:flex-end;
+    padding:var(--pad-card);
+  }
+  .box .label{
+    font-family:var(--mono);
+    font-size:var(--fs-micro); letter-spacing:var(--tracking-tag); text-transform:uppercase;
+    color:var(--ink-3);
+  }
+  .box .name{
+    font-size:var(--fs-h3); font-weight:680; letter-spacing:var(--tracking-body); margin-top:2px;
+  }
+
+  /* ELEVATION TIERS — canonical, token-driven */
+  .e-flat   { /* no shadow */ }
+  .e-panel  { box-shadow: var(--shadow-panel); }   /* default card */
+  .e-paper  { box-shadow: var(--shadow-paper); }   /* lifted modal/sheet */
+
+  /* draft — accent fill, no shadow (signal comes from color, not depth) */
+  .e-draft{
+    background:var(--accent-soft);
+    border-color:var(--accent);
+  }
+  .e-draft .label, .e-draft .name{color:var(--accent)}
+  .e-draft::before{
+    content:"draft";
+    position:absolute; top:9px; right:10px;
+    font-family:var(--mono);
+    font-size:var(--fs-micro); letter-spacing:var(--tracking-tag); text-transform:uppercase;
+    border:1px solid var(--accent); color:var(--accent);
+    padding:1px 5px; line-height:1;
+  }
+
+  /* mono caption under each specimen */
+  .cap{
+    position:absolute;
+    left:0; right:0; top:calc(100% + 6px);
+    display:flex; justify-content:space-between; gap:8px;
+    font-family:var(--mono);
+    font-size:var(--fs-micro); color:var(--ink-3);
+    border-top:1px solid var(--hair);
+    padding-top:6px;
+    letter-spacing:var(--tracking-meta);
+    text-transform:uppercase;
+  }
+  .cap b{color:var(--ink); font-weight:600}
+  .cap .role{color:var(--ink-3)}
+  .e-draft + .cap b{color:var(--accent)}
+  .e-draft + .cap .role{color:var(--accent)}
+
+  /* second row — border weights */
+  .row2{ margin-top:34px; }
+  .row2 .specimen{ height:72px; }
+  .row2 .box .name{ font-size:13px; }
+  .b-hair  { border-color:var(--hair); }
+  .b-line  { border-color:var(--line); }
+  .b-dashed{ border-style:dashed; border-color:var(--ink-2); }
+  .b-double{
+    border:1px solid var(--line);
+    box-shadow: 0 0 0 3px var(--card), 0 0 0 4px var(--line);
+  }
+
+  .legend{
+    margin-top:14px;
+    border-top:1px dashed var(--hair); padding-top:8px;
+    display:flex; gap:18px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:var(--fs-micro); color:var(--ink-3); letter-spacing:.04em;
+  }
+  .legend b{color:var(--ink); font-weight:600; letter-spacing:var(--tracking-tag); text-transform:uppercase}
+  .legend code{font-family:var(--mono); color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+  <div class="head">
+    <div class="crumb">borders &amp; elevation · <b>π-chart</b> · paper system</div>
+    <div class="meta">
+      <span><b>3</b> shadow tiers</span>
+      <span><b>4</b> border roles</span>
+    </div>
+  </div>
+
+  <!-- ELEVATION ROW -->
+  <div class="grid">
+    <div class="specimen">
+      <div class="box e-flat">
+        <div class="label">flat · 1px ink</div>
+        <div class="name">no shadow</div>
+      </div>
+      <div class="cap"><b>panel</b><span class="role">canonical</span></div>
+    </div>
+
+    <div class="specimen">
+      <div class="box e-panel">
+        <div class="label">--shadow-panel</div>
+        <div class="name">y10 · 24 / 4.5%</div>
+      </div>
+      <div class="cap"><b>card</b><span class="role">default surface</span></div>
+    </div>
+
+    <div class="specimen">
+      <div class="box e-paper">
+        <div class="label">--shadow-paper</div>
+        <div class="name">y14 · 34 / 5.5%</div>
+      </div>
+      <div class="cap"><b>sheet</b><span class="role">modal / focus</span></div>
+    </div>
+
+    <div class="specimen">
+      <div class="box e-draft">
+        <div class="label">accent-soft fill</div>
+        <div class="name">draft band</div>
+      </div>
+      <div class="cap"><b>pi-agent</b><span class="role">uncommitted</span></div>
+    </div>
+  </div>
+
+  <!-- BORDER ROW -->
+  <div class="grid row2">
+    <div class="specimen">
+      <div class="box b-hair">
+        <div class="label">--hair · .18α</div>
+        <div class="name">hairline</div>
+      </div>
+    </div>
+    <div class="specimen">
+      <div class="box b-line">
+        <div class="label">--line · 1px</div>
+        <div class="name">canonical</div>
+      </div>
+    </div>
+    <div class="specimen">
+      <div class="box b-dashed">
+        <div class="label">1px dashed</div>
+        <div class="name">pending / draft</div>
+      </div>
+    </div>
+    <div class="specimen">
+      <div class="box b-double">
+        <div class="label">double-rule</div>
+        <div class="name">chart gate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b>tokens</b> · <code>--shadow-paper</code> · <code>--shadow-panel</code> · <code>--line</code> · <code>--hair</code></span>
+    <span><b>radius</b> · 0px · system-wide</span>
+  </div>
+
+</body></html>

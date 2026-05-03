@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>π-chart · cockpit · v0.5 scaffold</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;540;600;620;660;680;760&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="stage" id="root"></div>
+
+<!-- React 18 via CDN; same pattern as the existing pi-chart prototype HTMLs. -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<!--
+  Adapters — the three seams the cockpit binds to.
+    · PiChart   : chart-substrate (will wrap claim-ledger reads, ADR 019)
+    · PiMonitor : vitals stream (wraps pi-monitor public-frame contract)
+    · PiAgent   : agent canvas (wraps pi-agent chat + artifact lifecycle)
+  Plain JS (no JSX); each registers its hook on `window`.
+-->
+<script src="adapters/pi-chart.js"></script>
+<script src="adapters/pi-monitor.js"></script>
+<script src="adapters/pi-agent.js"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+/* ── chrome ──────────────────────────────────────────────────────── */
+
+const Mark = () => (
+  <div className="mark"><div className="pi">π</div><div className="word">chart</div></div>
+);
+
+const DocBand = ({ docband }) => (
+  <header className="docband">
+    <div className="id">
+      <Mark />
+      <div className="cycle-id">cycle <b>{docband.cycle}</b> · loop <b>{docband.loop}</b> · cycle close <b>{docband.close}</b></div>
+    </div>
+    <div className="meta">
+      <span><span className="dot"></span><span className="live">LIVE</span> · pi-agent run <b>{docband.run}</b></span>
+      <span>as of <b>{docband.asOf}</b></span>
+      <span className="stamp">read-only</span>
+      <span className="stamp warn">shift active</span>
+    </div>
+  </header>
+);
+
+const Patient = ({ patient }) => (
+  <section className="patient">
+    <span className="name">{patient.name}</span>
+    <span className="code">{patient.code}</span>
+    <span className="meta">{patient.meta}</span>
+    <span className="acu"><span className="d"></span>{patient.acuity}</span>
+  </section>
+);
+
+const Toolbar = ({ title, sub, win, setWin, windows }) => (
+  <div className="toolbar">
+    <div className="left">
+      <h2>{title}</h2>
+      {sub && <span className="sub">{sub}</span>}
+    </div>
+    {windows && (
+      <div className="win">
+        {windows.map(w => (
+          <button key={w} className={win === w ? "on" : ""} onClick={() => setWin(w)}>{w}</button>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+const FsLegend = () => (
+  <div className="fs-legend">
+    <span className="item"><span className="swatch high"></span>high</span>
+    <span className="item"><span className="swatch low"></span>low</span>
+    <span className="item"><span className="swatch crit"></span>critical</span>
+    <span className="item"><span className="swatch now"></span>most recent</span>
+    <span className="item" style={{ marginLeft: "auto", color: "var(--ink-3)" }}>scroll right for older →</span>
+  </div>
+);
+
+const Flowsheet = ({ times, rows, nowLabel = "now", showSpark = true }) => (
+  <div className="flowsheet">
+    <div className="scroll">
+      <table className="fs">
+        <thead>
+          <tr>
+            <th></th>
+            {showSpark && <th className="spark-h">trend</th>}
+            {times.map((t, i) => (
+              <th key={i} className={i === 0 ? "now-h" : ""}>
+                <span className="label">{i === 0 ? nowLabel : t}</span>
+                {i === 0 && <span className="when">{t}</span>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            if (r.section) {
+              return (
+                <tr key={i} className="section">
+                  <th>{r.section}</th>
+                  {showSpark && <td></td>}
+                  {times.map((_, j) => <td key={j}></td>)}
+                </tr>
+              );
+            }
+            return (
+              <tr key={i} className={(r.signal ? "signal " : "") + (r.total ? "total" : "")}>
+                <th>
+                  {r.k}
+                  {r.ref && <span className="ref">{r.ref}</span>}
+                </th>
+                {showSpark && (
+                  <td className="spark-cell">
+                    {r.spark ? (
+                      <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+                        <polyline points={r.spark} />
+                      </svg>
+                    ) : null}
+                  </td>
+                )}
+                {r.cells.map((c, j) => (
+                  <td key={j} className={(c.cls || "") + (j === 0 ? " now" : "")}>
+                    {c.v}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+/* ── tab bodies ──────────────────────────────────────────────────── */
+
+const VitalsTab = ({ monitor }) => {
+  const [win, setWin] = useState("4h");
+  return (
+    <>
+      <Toolbar title="Vitals · flowsheet" sub="continuous monitor + manual checks · pi-monitor public frame" win={win} setWin={setWin} windows={["1h", "4h", "12h", "24h"]} />
+      <section className="vitals">
+        {monitor.tiles.map((v, i) => (
+          <div key={i} className={"v" + (v.signal ? " signal" : "")}>
+            <span className={"alarm " + v.alarm}></span>
+            <div className="k">{v.k}</div>
+            <div className="n">{v.n}<small>{v.u}</small></div>
+            <div className="wave">
+              <svg viewBox="0 0 600 38" preserveAspectRatio="none">
+                <path className={"trace " + v.wave} d={monitor.waveforms[v.wave]} />
+              </svg>
+            </div>
+          </div>
+        ))}
+      </section>
+      <Flowsheet times={monitor.flowsheet.times} rows={monitor.flowsheet.rows} nowLabel="now" />
+      <FsLegend />
+    </>
+  );
+};
+
+const LabsTab = ({ chart }) => {
+  const [win, setWin] = useState("24h");
+  return (
+    <>
+      <Toolbar title="Labs · flowsheet" sub={`results paired by draw time · ${win} · ${chart.labs.summary}`} win={win} setWin={setWin} windows={["12h", "24h", "72h", "7d"]} />
+      <Flowsheet times={chart.labs.times} rows={chart.labs.rows} nowLabel="latest" />
+      <FsLegend />
+      <div className="card">
+        <div className="card-h"><h3>Cultures · pending</h3><span className="ct">{chart.labs.cultures.length} specimens</span></div>
+        {chart.labs.cultures.map((c, i) => (
+          <div key={i} className="trend-row" style={{ gridTemplateColumns: "180px 1fr 100px 90px" }}>
+            <div className="label"><b>{c.name}</b></div>
+            <div className="delta" style={{ textAlign: "left", color: "var(--ink-2)" }}>{c.ts}</div>
+            <div className="now" style={{ fontSize: 13, color: "var(--ink-2)" }}>{c.st}</div>
+            <div className="delta">{c.days}</div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+};
+
+const MarSection = ({ title, count, rows }) => (
+  <div className="mar-section">
+    <div className="head"><span>{title}</span><span><b>{count}</b> · {rows.length} items</span></div>
+    {rows.map((r, i) => (
+      <div key={i} className={"mar-row " + r.st}>
+        <span className="time">{r.time}</span>
+        <span className="med"><b>{r.med}</b><small>{r.note}</small></span>
+        <span className="route">{r.route}</span>
+        <span className="by">{r.by || "—"}</span>
+        <span className="st">{r.st}</span>
+      </div>
+    ))}
+  </div>
+);
+
+const MarTab = ({ chart }) => (
+  <>
+    <Toolbar title="MAR · medication administration" sub="scheduled · PRN · continuous" />
+    <div className="card"><MarSection title="Scheduled" count="1 late · 1 due" rows={chart.mar.scheduled} /></div>
+    <div className="card"><MarSection title="Continuous" count="2 active" rows={chart.mar.continuous} /></div>
+    <div className="card"><MarSection title="PRN · last 4h" count="" rows={chart.mar.prn} /></div>
+  </>
+);
+
+const NotesTab = ({ chart }) => (
+  <>
+    <Toolbar title="Clinician notes" sub={`${chart.notes.length} entries · last 24h`} />
+    {chart.notes.map((n, i) => (
+      <article key={i} className={"note" + (n.agent ? " agent" : "")}>
+        <div className="h">
+          <span className="by">{n.by}<span className="role">{n.role}</span></span>
+          <span className="ts">
+            {n.ts}
+            {n.signed ? <span className="signed">signed</span> : <span className="draft">unsigned · draft</span>}
+          </span>
+        </div>
+        {n.body.map((p, j) => <p key={j}>{p}</p>)}
+        {n.chips?.length > 0 && (
+          <div className="chips">
+            {n.chips.map((c, j) => <span key={j} className="chip">{c}</span>)}
+          </div>
+        )}
+      </article>
+    ))}
+  </>
+);
+
+const OrdersTab = ({ chart }) => (
+  <>
+    <Toolbar title="Orders" sub={`${chart.orders.rows.length} entries · ${chart.orders.summary}`} />
+    <div className="card">
+      <div className="card-h"><h3>Active orders</h3><span className="ct">queued · active · DC</span></div>
+      {chart.orders.rows.map((o, i) => (
+        <div key={i} className={"order-row " + o.st}>
+          <span className="ts">{o.ts}</span>
+          <span className="what"><b>{o.what}</b><small>{o.note}</small></span>
+          <span className="by">{o.by}</span>
+          <span className="st">{o.st}</span>
+        </div>
+      ))}
+    </div>
+  </>
+);
+
+const IoTab = ({ chart }) => (
+  <>
+    <Toolbar title="Intake & output · flowsheet" sub={`hourly grid · ${chart.io.totals.since}`} />
+    <section className="io-totals">
+      <div className="io-cell">
+        <div className="k">In</div>
+        <div className="n">{chart.io.totals.in}<small>mL</small></div>
+        <div className="delta">{chart.io.totals.inDelta}</div>
+      </div>
+      <div className="io-cell">
+        <div className="k">Out</div>
+        <div className="n">{chart.io.totals.out}<small>mL</small></div>
+        <div className="delta">{chart.io.totals.outDelta}</div>
+      </div>
+      <div className="io-cell net">
+        <div className="k">Net</div>
+        <div className="n">{chart.io.totals.net}<small>mL</small></div>
+        <div className="delta">{chart.io.totals.netDelta}</div>
+      </div>
+    </section>
+    <Flowsheet times={chart.io.hours} rows={chart.io.rows} nowLabel="this hour" showSpark={false} />
+    <FsLegend />
+  </>
+);
+
+const EventsTab = ({ chart }) => (
+  <>
+    <Toolbar title="Event stream" sub={`${chart.events.length} events · last 60m · monitor + bedside + orders`} />
+    <section className="stream">
+      {chart.events.map((e, i) => (
+        <div key={i} className={"row" + (e.signal ? " signal" : "")}>
+          <span className="t">{e.t}</span>
+          <span className="type">{e.type}</span>
+          <span className="summary" title={e.summary}>{e.summary}</span>
+          <span className="src">{e.src}</span>
+        </div>
+      ))}
+    </section>
+  </>
+);
+
+/* ── scratchpad artifact card ────────────────────────────────────── */
+
+const Artifact = ({ a, active, onSelect, onStage, onCommit, onDiscard }) => (
+  <div
+    role="button"
+    tabIndex={0}
+    className={`art ${a.status} ${active ? "active" : ""}`}
+    onClick={() => onSelect(a.id)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(a.id); }
+    }}
+  >
+    <div className="top">
+      <span className="kind">{a.kind}</span>
+      <span className={"st " + a.status}>{a.status}</span>
+    </div>
+    <h3>{a.title}</h3>
+    <div className="sub">{a.sub}</div>
+    <div className="conf">
+      <span className="label">conf</span>
+      <span className="bar" style={{ "--conf": a.conf + "%" }}></span>
+      <span className="pct">{a.conf}%</span>
+      <span className="run">run {a.run}</span>
+    </div>
+    {active && a.status !== "discarded" && a.status !== "committed" && (
+      <div className="acts" onClick={(e) => e.stopPropagation()}>
+        {a.status === "draft" && <button className="ok" onClick={() => onStage(a.id)}>stage</button>}
+        {a.status === "staged" && <button onClick={() => onStage(a.id)}>unstage</button>}
+        {a.status === "staged" && <button className="ok" onClick={() => onCommit(a.id)}>commit</button>}
+        <button className="warn" onClick={() => onDiscard(a.id)}>discard</button>
+      </div>
+    )}
+  </div>
+);
+
+/* ── App ─────────────────────────────────────────────────────────── */
+
+const App = () => {
+  // Connector contract — every adapter call accepts (patientId, encounterId, asOf).
+  // Demo target: patient_002. Regression target (modularity): patient_001.
+  const ctx = { patientId: "patient_002", encounterId: "enc_p002_001", asOf: "14:54:31" };
+
+  const chart   = PiChart.useChartSubstrate(ctx);
+  const monitor = PiMonitor.useVitalsStream({ ...ctx, window: "4h" });
+  const agent   = PiAgent.useAgentCanvas(ctx);
+
+  const [tab, setTab] = useState("vitals");
+  const [draft, setDraft] = useState("");
+
+  const TABS = [
+    { id: "vitals", label: "Vitals",  ct: `${monitor.tiles.length} live`, signal: true,  body: <VitalsTab monitor={monitor} /> },
+    { id: "labs",   label: "Labs",    ct: chart.labs.summary,             signal: true,  body: <LabsTab chart={chart} /> },
+    { id: "mar",    label: "MAR",     ct: chart.mar.summary,              warn: true,    body: <MarTab chart={chart} /> },
+    { id: "notes",  label: "Notes",   ct: `${chart.notes.length} today`,                  body: <NotesTab chart={chart} /> },
+    { id: "orders", label: "Orders",  ct: chart.orders.summary,                            body: <OrdersTab chart={chart} /> },
+    { id: "io",     label: "I & O",   ct: chart.io.summary,                                body: <IoTab chart={chart} /> },
+    { id: "events", label: "Events",  ct: `${chart.events.length} · 60m`,                  body: <EventsTab chart={chart} /> },
+  ];
+
+  const send = () => {
+    const t = draft.trim();
+    if (!t) return;
+    agent.send(t);
+    setDraft("");
+  };
+
+  const stagedCount = agent.counts.staged;
+  const activeTab = TABS.find(t => t.id === tab);
+
+  return (
+    <>
+      <DocBand docband={chart.docband} />
+      <Patient patient={chart.patient} />
+
+      <div className="shell">
+        <main className="chart">
+          <div className="tabs" role="tablist">
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={`tab ${tab === t.id ? "on" : ""} ${t.signal ? "signal" : ""} ${t.warn ? "warn" : ""}`}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}<span className="ct">{t.ct}</span>
+              </button>
+            ))}
+          </div>
+          <div className="tab-body">{activeTab.body}</div>
+        </main>
+
+        <aside className="pad">
+          <div className="ph">
+            <span className="lbl">scratchpad · <b>pi-agent</b></span>
+            <span className="run">run <b>{agent.run}</b> · {agent.arts.length} artifacts</span>
+          </div>
+
+          <div className="filters">
+            {["all", "draft", "staged", "committed", "discarded"].map(f => (
+              <a key={f} className={agent.filter === f ? "on" : ""} onClick={() => agent.setFilter(f)}>
+                {f}<span className="ct">{agent.counts[f]}</span>
+              </a>
+            ))}
+          </div>
+
+          <div className="arts">
+            {agent.visible.map(a => (
+              <Artifact
+                key={a.id}
+                a={a}
+                active={a.id === agent.activeId}
+                onSelect={agent.setActiveId}
+                onStage={agent.stage}
+                onCommit={(id) => agent.setStatus(id, "committed")}
+                onDiscard={(id) => agent.setStatus(id, "discarded")}
+              />
+            ))}
+          </div>
+
+          <div className="gate">
+            <span><b>{stagedCount}</b> staged · agent cannot commit · <span className="req">RN signature required</span></span>
+            <span>cycle close <b>{chart.docband.close}</b></span>
+          </div>
+
+          <section className="chat">
+            <div className="ch">
+              <span><b>pi-agent</b> · co-pilot</span>
+              <span className="note">chat is process · chartable output goes to scratchpad</span>
+            </div>
+            <div className="body">
+              {agent.chat.map((m, i) => (
+                <div key={i} className="msg">
+                  <div className={"who" + (m.agent ? " agent" : "")}>
+                    {m.who}<span className="time">{m.time}</span>
+                  </div>
+                  <div className="body-txt">
+                    <div className="txt">{m.txt}</div>
+                    {m.scope && <div className="scope">{m.scope}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="composer">
+              <textarea
+                placeholder="ask pi-agent to draft, refine, or attach. output appears in scratchpad — never in chat."
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              />
+              <button onClick={send}>send ↵</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div className="commit">
+        <span className="left">
+          <span>cycle <b>{chart.docband.cycle}</b> · {agent.counts.draft} drafts · {stagedCount} staged · {agent.counts.committed} committed</span>
+        </span>
+        <span className="right">
+          <button onClick={agent.discardStaged}>discard staged</button>
+          <button className="primary" onClick={agent.commitAll}>chart {stagedCount} · sign</button>
+        </span>
+      </div>
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

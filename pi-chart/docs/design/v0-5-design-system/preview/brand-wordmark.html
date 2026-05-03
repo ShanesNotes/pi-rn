@@ -1,0 +1,239 @@
+<!doctype html>
+<html><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;620;680;760&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box}
+  body{margin:0; padding:18px 22px; background:var(--paper); font-family:var(--sans); color:var(--ink)}
+
+  .head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--hair); padding-bottom:8px;
+  }
+  .crumb{font-family:var(--mono); font-size:var(--fs-micro); letter-spacing:var(--tracking-tag); text-transform:uppercase; color:var(--ink-3)}
+  .crumb b{color:var(--ink); font-weight:700}
+  .meta{font-family:var(--mono); font-size:var(--fs-micro); color:var(--ink-3)}
+
+  /* canonical mark mixin — ruled-below π glyph */
+  .mark{display:inline-flex; flex-direction:column; align-items:center; line-height:1}
+  .mark .pi{font-family:var(--mono); font-weight:760; color:var(--ink); line-height:.78}
+  .mark .word{
+    font-family:var(--mono); font-weight:700;
+    text-transform:uppercase; text-align:center;
+    border-top:1px solid var(--ink); color:var(--ink);
+  }
+  /* size variants of the canonical mark */
+  .m-hero .pi{font-size:152px}
+  .m-hero .word{font-size:16px; letter-spacing:.18em; padding:7px 18px 0; min-width:118px; margin-top:8px}
+
+  .m-display .pi{font-size:104px}
+  .m-display .word{font-size:13px; letter-spacing:.18em; padding:5px 14px 0; min-width:88px; margin-top:6px}
+
+  .m-app .pi{font-size:60px}
+  .m-app .word{font-size:9px; letter-spacing:.18em; padding:4px 9px 0; min-width:54px; margin-top:4px}
+
+  .m-min .pi{font-size:34px}
+  .m-min .word{font-size:6.5px; letter-spacing:.18em; padding:2.5px 6px 0; min-width:32px; margin-top:2.5px}
+
+  /* lockup variant — horizontal wordmark "π / chart" with full word */
+  .lockup-h{display:inline-flex; align-items:center; gap:14px; line-height:1}
+  .lockup-h .pi{font-family:var(--mono); font-weight:760; font-size:64px; line-height:.85; color:var(--ink)}
+  .lockup-h .div{width:1px; height:48px; background:var(--ink)}
+  .lockup-h .word{
+    font-family:var(--mono); font-weight:700; font-size:18px;
+    letter-spacing:.18em; text-transform:uppercase; color:var(--ink);
+  }
+
+  /* hero */
+  .hero{
+    border:1px solid var(--ink); background:var(--card);
+    padding:46px 28px 36px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    margin-bottom:14px;
+    position:relative;
+  }
+  .hero .pin{
+    position:absolute; top:10px; left:14px;
+    font-family:var(--mono); font-size:var(--fs-micro);
+    letter-spacing:var(--tracking-tag); text-transform:uppercase; color:var(--ink-3);
+  }
+  .hero .pin b{color:var(--ink); font-weight:700}
+  .hero .cap{
+    margin-top:24px;
+    font-family:var(--mono); font-size:var(--fs-micro); color:var(--ink-3); letter-spacing:.04em;
+  }
+  .hero .cap b{color:var(--ink); font-weight:600}
+
+  /* size strip */
+  .sizes{
+    display:grid; grid-template-columns:1.1fr 1fr 1fr;
+    border:1px solid var(--hair); background:var(--card);
+    margin-bottom:14px;
+  }
+  .size{
+    padding:18px 18px 14px;
+    border-right:1px solid var(--hair);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    min-height:200px; position:relative;
+  }
+  .size:last-child{border-right:0}
+  .size .lbl{
+    position:absolute; top:8px; left:12px;
+    font-family:var(--mono); font-size:var(--fs-micro);
+    letter-spacing:var(--tracking-tag); text-transform:uppercase; color:var(--ink-3);
+  }
+  .size .px{
+    margin-top:10px;
+    font-family:var(--mono); font-size:var(--fs-micro); color:var(--ink-3); letter-spacing:.04em;
+  }
+
+  /* lockup card — horizontal companion */
+  .lockup-card{
+    border:1px solid var(--hair); background:var(--card);
+    padding:30px 24px;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:14px;
+    position:relative;
+  }
+  .lockup-card .pin{
+    position:absolute; top:8px; left:12px;
+    font-family:var(--mono); font-size:var(--fs-micro);
+    letter-spacing:var(--tracking-tag); text-transform:uppercase; color:var(--ink-3);
+  }
+  .lockup-card .pin b{color:var(--ink)}
+
+  /* application surfaces */
+  .apps{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px}
+  .app{
+    border:1px solid var(--hair); background:var(--card);
+    min-height:130px; position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .app .pin{
+    position:absolute; top:8px; left:12px;
+    font-family:var(--mono); font-size:var(--fs-micro);
+    letter-spacing:var(--tracking-tag); text-transform:uppercase; color:var(--ink-3);
+    background:var(--card); padding:0 4px; z-index:1;
+  }
+
+  /* App 1 — favicon / app icon (dark) */
+  .app.icon{background:var(--ink); border-color:var(--ink)}
+  .app.icon .pin{color:rgba(251,250,246,.6); background:var(--ink)}
+  .app.icon .mark .pi{color:var(--card)}
+  .app.icon .mark .word{color:var(--card); border-top-color:var(--card)}
+
+  /* App 2 — doc-band */
+  .app.doc{padding:0; align-items:stretch}
+  .app.doc .docband-inner{
+    flex:1; display:flex; align-items:center; justify-content:space-between;
+    padding:18px 18px 14px;
+    border-bottom:1px solid var(--ink);
+    background:var(--card);
+  }
+  .app.doc .ts{font-family:var(--mono); font-size:10px; color:var(--ink-3); letter-spacing:.04em}
+  .app.doc .ts b{color:var(--ink); font-weight:600}
+
+  /* App 3 — filesystem */
+  .app.fs{display:block; padding:18px 18px; align-items:flex-start}
+  .app.fs .pin{position:static; margin-bottom:10px}
+  .app.fs .fs-head{display:flex; align-items:center; gap:10px; padding-bottom:8px; border-bottom:1px solid var(--hair); margin-bottom:8px}
+  .app.fs .fs-head .mark .pi{font-size:24px; line-height:1}
+  .app.fs .fs-head .mark .word{font-size:5.5px; letter-spacing:.18em; padding:2px 5px 0; min-width:26px; margin-top:2px; border-top-width:.5px}
+  .app.fs .fs-head .ttl{font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.04em}
+  .fs-row{
+    display:grid; grid-template-columns: 16px 1fr auto; gap:10px;
+    font-family:var(--mono); font-size:11px; color:var(--ink-2);
+    padding:3px 0;
+  }
+  .fs-row .marker{ color:var(--ink-3); font-weight:600 }
+  .fs-row b{color:var(--ink); font-weight:600}
+  .fs-row .meta-r{color:var(--ink-3); font-size:10px}
+
+  /* footnote */
+  .footnote{
+    border-top:1px dashed var(--hair); padding-top:8px;
+    font-family:var(--mono); font-size:var(--fs-micro); color:var(--ink-3); letter-spacing:.04em;
+    display:flex; gap:14px; flex-wrap:wrap; justify-content:space-between;
+  }
+  .footnote b{color:var(--ink); font-weight:600}
+</style>
+</head>
+<body>
+
+  <div class="head">
+    <div class="crumb">π-chart wordmark · <b>built on canonical glyph</b></div>
+    <div class="meta">hero · sizes · horizontal · in-context</div>
+  </div>
+
+  <!-- hero — the canonical mark, given air -->
+  <div class="hero">
+    <span class="pin">canonical · <b>π over rule</b></span>
+    <div class="mark m-hero"><div class="pi">π</div><div class="word">chart</div></div>
+    <div class="cap"><b>π-chart</b> · JetBrains Mono 760 / 700 · ink #171717</div>
+  </div>
+
+  <!-- canonical sizes -->
+  <div class="sizes">
+    <div class="size">
+      <span class="lbl">display</span>
+      <div class="mark m-display"><div class="pi">π</div><div class="word">chart</div></div>
+      <div class="px">π 104 · marketing · 1× cap-height clear</div>
+    </div>
+    <div class="size">
+      <span class="lbl">application</span>
+      <div class="mark m-app"><div class="pi">π</div><div class="word">chart</div></div>
+      <div class="px">π 60 · doc-band · header use</div>
+    </div>
+    <div class="size">
+      <span class="lbl">minimum</span>
+      <div class="mark m-min"><div class="pi">π</div><div class="word">chart</div></div>
+      <div class="px">π 34 · floor · do not go smaller</div>
+    </div>
+  </div>
+
+  <!-- horizontal lockup — companion form when stacked is too tall -->
+  <div class="lockup-card">
+    <span class="pin">horizontal lockup · <b>where stacked won't fit</b></span>
+    <div class="lockup-h">
+      <span class="pi">π</span>
+      <span class="div"></span>
+      <span class="word">CHART</span>
+    </div>
+  </div>
+
+  <!-- in-context applications, all using the canonical glyph -->
+  <div class="apps">
+    <div class="app icon">
+      <span class="pin">app icon · favicon</span>
+      <div class="mark m-app"><div class="pi">π</div><div class="word">chart</div></div>
+    </div>
+
+    <div class="app doc">
+      <span class="pin">doc-band · header</span>
+      <div class="docband-inner">
+        <div class="mark m-app"><div class="pi">π</div><div class="word">chart</div></div>
+        <span class="ts">v0.5 · 2026-05-03 · <b>read-only</b></span>
+      </div>
+    </div>
+
+    <div class="app fs">
+      <span class="pin">filesystem</span>
+      <div class="fs-head">
+        <div class="mark"><div class="pi">π</div><div class="word">chart</div></div>
+        <span class="ttl">/π-chart · v0.5</span>
+      </div>
+      <div class="fs-row"><span class="marker">└</span>cockpit.html<span class="meta-r">12 KB</span></div>
+      <div class="fs-row"><span class="marker">└</span>cards.css<span class="meta-r">5 KB</span></div>
+      <div class="fs-row"><span class="marker">└</span>scratchpad.json<span class="meta-r">3 drafts</span></div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>built on the canonical glyph · stacked is primary · horizontal is fallback for tight bands</span>
+    <span>retired · the v0 PNG prototype · letter-glyph variants</span>
+  </div>
+
+</body></html>
