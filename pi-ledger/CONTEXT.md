@@ -14,10 +14,14 @@
 - **Claim**: minimal clinical fact/action/context/interpretion record with stable id, predicate, subject, object, time, actor/provenance, and integrity fields.
 - **Ledger-acceptable Claim**: a Claim that satisfies the kernel's structural rules and is canonicalizable under the active canonicalization; a validated Claim must be hashable.
 - **Canonicalization**: deterministic JSON-compatible byte representation used for cryptographic hashes.
+- **Canonical UTC timestamp**: kernel timestamp string in `YYYY-MM-DDTHH:MM:SSZ` form.
 - **Record hash**: SHA-256 proof of canonical claim content; never the only claim identity.
 - **Append ledger**: patient-scoped ordered record of accepted claims with sequence, accepted time, previous-entry hash, and head validation.
 - **Valid time**: when the claim applies clinically.
+- **Valid time expression**: Claim time expression that is exactly one canonical UTC instant or one canonical UTC interval with `start <= end`.
+- **Recorded time**: Claim provenance timestamp for when the source actor or adapter says the Claim was recorded.
 - **Known time**: when the ledger accepted the claim.
+- **Adapter-local timestamp normalization**: conversion of source-system timestamps into **Canonical UTC timestamp** form before they enter the claim-ledger kernel.
 - **Adapter**: concrete consumer-side integration layer, such as `pi-chart`, that translates ledger primitives into chart views/workflows.
 
 ## Invariants
@@ -27,6 +31,10 @@
 - Append-only clinical truth: correction creates a new claim and does not erase the prior claim.
 - Store-assigned accepted time, sequence, and batch identity are not caller authority.
 - Valid time and known time remain distinct.
+- **Recorded time** is not ledger **Known time**; only store-assigned accepted time controls known-time visibility.
+- A Claim has exactly one **Valid time expression**.
+- Ledger-acceptable Claims and store-assigned known times use **Canonical UTC timestamp** form so valid time and known time can be compared deterministically without adapter-local normalization.
+- Timezone and offset interpretation stay outside `pi-ledger`; adapters normalize timestamps before kernel entry.
 - Patient identity is explicit; no cross-patient ledger mixing.
 - Hidden simulator/oracle state is never ledger evidence.
 - FHIR, openEHR, UI models, runtime transcripts, and chart-specific layouts are boundary adapters, not internal ledger identity.
