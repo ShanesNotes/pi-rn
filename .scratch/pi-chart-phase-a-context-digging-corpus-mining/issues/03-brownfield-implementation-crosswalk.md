@@ -86,4 +86,7 @@ This issue 03 artifact crosswalks current brownfield `pi-chart` code, views, and
 ## Verification record
 
 - `git status --short` before edit: clean.
-- Structural verification command and final `git status --short` recorded by worker closeout after validation.
+- `python3 - <<PY ...` structural check: `OK: 22 crosswalk rows, 13 columns each`.
+- `git status --short` after edit: `M .scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/03-brownfield-implementation-crosswalk.md` only.
+- `git diff --stat -- .scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/03-brownfield-implementation-crosswalk.md`: `1 file changed, 76 insertions(+), 13 deletions(-)`.
+
