@@ -28,10 +28,10 @@ the project is reorganising around are explicit.
 ## Status
 
 Directional product evidence only — see ADR 018 (architecture rebase:
-clinical truth substrate) and ADR 019 (V0.5 clean-canvas claim-ledger
-kernel). The visual language captured here is more durable than any
+clinical truth substrate) and ADR 020 (claim-ledger kernel owned by
+`pi-ledger`). The visual language captured here is more durable than any
 specific component or data shape; expect the substrate-side primitives
-to evolve as the kernel proves itself.
+to evolve as the kernel and chart adapter prove themselves.
 
 ## Hard rules to preserve when re-deriving
 

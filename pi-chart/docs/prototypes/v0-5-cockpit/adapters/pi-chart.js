@@ -5,9 +5,9 @@
  * truth substrate.
  *
  * Seam ────────────────────────────────────────────────────────────────
- *   The substrate is being rebuilt under `src/claim-ledger/` per
- *   ADR 019 (V0.5 clean-canvas claim-ledger kernel). Once the kernel
- *   stabilises, this adapter wraps:
+ *   The cryptographic kernel moved to sibling `pi-ledger` per ADR 020.
+ *   Once that kernel interface stabilises, this chart-side adapter wraps
+ *   ledger-backed chart projections such as:
  *
  *     - currentState(patientId, encounterId, asOf) → labs, MAR, orders
  *     - timeline(patientId, encounterId, asOf, window) → event stream
@@ -25,9 +25,9 @@
  *   Regression target patient_001 (modularity check).
  *
  * Future ──────────────────────────────────────────────────────────────
- *   Replace fixture body with real reads from the claim-ledger kernel
- *   once it lands. Snapshot shape stays stable; that is what the
- *   cockpit binds to.
+ *   Replace fixture body with real reads from ledger-backed chart
+ *   projections once the adapter lane lands. Snapshot shape stays stable;
+ *   that is what the cockpit binds to.
  */
 
 (function (global) {

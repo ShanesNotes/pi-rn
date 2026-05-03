@@ -29,7 +29,7 @@ to make the v0.5 reorganisation seams explicit:
 |---|---|---|
 | `adapters/pi-monitor.js` | vitals tiles, waveforms, vitals flowsheet | poll/EventSource over `current.json`, `vitals.jsonl`, `timeline.jsonl` (ADR 018 boundary — public-frame only) |
 | `adapters/pi-agent.js` | chat, artifacts, draft → staged → committed lifecycle | HTTP/SSE bridge to pi-agent runs |
-| `adapters/pi-chart.js` | patient bar, doc band, labs, MAR, notes, orders, I&O, event stream | view primitives over `src/claim-ledger/` once ADR 019 stabilises |
+| `adapters/pi-chart.js` | patient bar, doc band, labs, MAR, notes, orders, I&O, event stream | view primitives over `pi-ledger`-backed chart projections once ADR 020 adapter work stabilises |
 
 Each adapter is fixture-backed today but hooks into React state, so swapping
 the body for a real subscriber is a per-adapter change that does not touch
@@ -55,9 +55,9 @@ cockpit must continue to render against either patient unchanged.
 
 ADR 018 is explicit: UI prototypes and generated cockpit artefacts are
 directional product evidence only. They do not define the core
-architecture. ADR 019 narrows that further: the V0.5 kernel proves
-itself first; do not retrofit `src/types.ts` or current `EventEnvelope`
-modules ahead of it.
+architecture. ADR 020 narrows that further: the reusable kernel is owned
+by `pi-ledger`; do not retrofit `src/types.ts` or current `EventEnvelope`
+modules ahead of the kernel and adapter proof.
 
 The scaffold therefore preserves the visual language and the adapter
 seams (durable) without committing to any specific data shape on the

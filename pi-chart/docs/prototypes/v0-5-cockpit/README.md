@@ -7,8 +7,9 @@ adapted so the runtime data flows through three named seams instead of being
 inlined.
 
 This prototype is **directional product evidence**, not implementation
-authority (ADR 018). The substrate it points at is the V0.5 clean-canvas
-claim-ledger kernel under `pi-chart/src/claim-ledger/` (ADR 019).
+authority (ADR 018). The substrate it points at is now `pi-ledger`
+consumed through a future `pi-chart` adapter/projection seam (ADR 020);
+older ADR 019 `pi-chart/src/claim-ledger/` path language is superseded.
 
 ## Run
 
@@ -57,7 +58,7 @@ exposes a hook the App composes:
 |---|---|---|---|---|
 | `adapters/pi-monitor.js` | `PiMonitor.useVitalsStream` | pi-monitor public-frame contract | fixture tiles, waveforms, flowsheet | poll/EventSource over `current.json`, `vitals.jsonl`, `timeline.jsonl` |
 | `adapters/pi-agent.js`   | `PiAgent.useAgentCanvas`   | pi-agent harness | fixture chat + artifact lifecycle | HTTP/SSE bridge to `pi-agent` runs |
-| `adapters/pi-chart.js`   | `PiChart.useChartSubstrate` | claim-ledger kernel (ADR 019) | fixture labs/MAR/notes/orders/I&O/events/patient/docband | view primitives over `src/claim-ledger/` once stable |
+| `adapters/pi-chart.js`   | `PiChart.useChartSubstrate` | `pi-ledger` via future chart adapter/projection (ADR 020) | fixture labs/MAR/notes/orders/I&O/events/patient/docband | view primitives over ledger-backed chart projections once stable |
 
 **Connector contract (per project memory).** Every adapter call accepts
 `(patientId, encounterId, asOf)` and never hardcodes either:
@@ -88,7 +89,7 @@ cockpit must continue to render against either patient unchanged.
 ## What this scaffold deliberately does NOT do
 
 - Does **not** retrofit `src/types.ts`, `src/schema.ts`, or any v0.4
-  prototype generator (per ADR 019 — kernel proves itself first).
+  prototype generator (per ADR 020 — `pi-ledger` proves the kernel first).
 - Does **not** import from `pi-sim` internals or hidden simulator state
   (per ADR 018 — pi-monitor public surface only).
 - Does **not** bundle or include a build step. The repo is mid-rebase;
