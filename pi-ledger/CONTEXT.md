@@ -12,6 +12,7 @@
 
 - **Claim ledger kernel**: reusable substrate for tamper-evident clinical claims, not a chart UI or EHR clone.
 - **Claim**: minimal clinical fact/action/context/interpretion record with stable id, predicate, subject, object, time, actor/provenance, and integrity fields.
+- **Ledger-acceptable Claim**: a Claim that satisfies the kernel's structural rules and is canonicalizable under the active canonicalization; a validated Claim must be hashable.
 - **Canonicalization**: deterministic JSON-compatible byte representation used for cryptographic hashes.
 - **Record hash**: SHA-256 proof of canonical claim content; never the only claim identity.
 - **Append ledger**: patient-scoped ordered record of accepted claims with sequence, accepted time, previous-entry hash, and head validation.

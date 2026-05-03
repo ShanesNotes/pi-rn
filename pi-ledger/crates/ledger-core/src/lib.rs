@@ -4,6 +4,8 @@
 //! through the active `.scratch/pi-ledger-claim-ledger-kernel/` TDD issues,
 //! beginning with canonicalization and record hashing.
 
+pub mod canonical;
+
 /// Version marker for the scaffolded kernel crate.
 pub const LEDGER_CORE_SCAFFOLD: &str = "pi-ledger.core.scaffold.v1";
 
