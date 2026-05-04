@@ -1,6 +1,6 @@
 # Hot/warm/cold context access model
 
-Status: ready-for-agent
+Status: ready-for-human
 Type: AFK
 
 ## Parent
@@ -13,13 +13,13 @@ Create the v0.5 context-access model for clinician-style chart digging. Classify
 
 ## Acceptance criteria
 
-- [ ] Defines hot, warm, and cold context in clinical terms with examples from substrate packs and patient corpus.
-- [ ] Identifies hot facts that must never depend on semantic/vector retrieval, including safety constraints, active problems, current vitals/trajectory, active orders/intents, pending/open loops, current meds where relevant, and recent critical changes.
-- [ ] Identifies warm context such as supporting evidence, recent notes, recent labs/orders/actions, review history, and nearby trend windows.
-- [ ] Identifies cold context such as H&P, prior encounters, discharge summaries, consult history, old imaging narratives, longitudinal disease history, and narrative background.
-- [ ] States that cold/semantic/vector eligibility is a future access requirement, not an implementation decision.
-- [ ] Ties context-access classes back to evidence rows from issues 05-10.
-- [ ] Does not introduce vector store, embeddings, OpenBrain architecture, backend selection, access-plane implementation, or runtime tools.
+- [x] Defines hot, warm, and cold context in clinical terms with examples from substrate packs and patient corpus.
+- [x] Identifies hot facts that must never depend on semantic/vector retrieval, including safety constraints, active problems, current vitals/trajectory, active orders/intents, pending/open loops, current meds where relevant, and recent critical changes.
+- [x] Identifies warm context such as supporting evidence, recent notes, recent labs/orders/actions, review history, and nearby trend windows.
+- [x] Identifies cold context such as H&P, prior encounters, discharge summaries, consult history, old imaging narratives, longitudinal disease history, and narrative background.
+- [x] States that cold/semantic/vector eligibility is a future access requirement, not an implementation decision.
+- [x] Ties context-access classes back to evidence rows from issues 05-10.
+- [x] Does not introduce vector store, embeddings, OpenBrain architecture, backend selection, access-plane implementation, or runtime tools.
 
 ## Blocked by
 
@@ -32,3 +32,5 @@ Create the v0.5 context-access model for clinician-style chart digging. Classify
 ## Comments
 
 - 2026-05-04: Maintainer approved issues 05-10 substrate-pack outputs; this issue is unblocked for AFK synthesis.
+
+- 2026-05-04: Created `.scratch/pi-chart-phase-a-context-digging-corpus-mining/hot-warm-cold-context-access-model.md`; acceptance criteria checked; issues 12-14 remain `needs-triage`.
