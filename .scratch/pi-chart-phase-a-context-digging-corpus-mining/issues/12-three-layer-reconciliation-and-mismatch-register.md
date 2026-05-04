@@ -1,6 +1,6 @@
 # Three-layer reconciliation and mismatch register
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
@@ -30,3 +30,7 @@ Assemble the three-layer reconciliation register that decides, for every meaning
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/09-review-attestation-authorship-lifecycle-accountability-substrate-pack.md`
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/10-rendered-chart-digging-and-prototype-design-evidence-pass.md`
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/11-hot-warm-cold-context-access-model.md`
+
+## Comments
+
+- 2026-05-04: Maintainer approved issue 11 hot/warm/cold context-access model; issue 12 is unblocked for AFK reconciliation. Issues 13-14 remain gated.
