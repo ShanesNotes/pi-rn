@@ -117,47 +117,13 @@ impl<'a> RevisionAdmissibleClaim<'a> {
             })?
             .clone();
 
-        for entry in entries {
-            let candidate = validate_claim(&entry.record).map_err(|error| {
-                AdmissionError::InvalidTargetClaim {
-                    seq: entry.accepted.seq,
-                    error,
-                }
-            })?;
-            let stored_hash = RecordHash::parse(&entry.record_hash).map_err(|_| {
-                AdmissionError::MalformedStoredTargetRecordHash {
-                    seq: entry.accepted.seq,
-                    claim_id: candidate.id().to_string(),
-                    value: entry.record_hash.clone(),
-                }
-            })?;
-            let recomputed_hash = record_hash(&entry.record).map_err(AdmissionError::Canonical)?;
-            if stored_hash != recomputed_hash {
-                return Err(AdmissionError::StoredTargetRecordHashMismatch {
-                    seq: entry.accepted.seq,
-                    claim_id: candidate.id().to_string(),
-                    stored: stored_hash,
-                    recomputed: recomputed_hash,
-                });
-            }
-            if candidate.patient_id() == claim.patient_id()
-                && candidate.id() == revision_target.id()
-                && &stored_hash == revision_target.hash()
-            {
-                return Ok(Self {
-                    raw: claim.raw(),
-                    id: claim.id(),
-                    patient_id: claim.patient_id(),
-                    target_patient_id: claim.target_patient_id().to_string(),
-                    revision_target,
-                });
-            }
-        }
-
-        Err(AdmissionError::CorrectionTargetNotFound {
-            claim_id: claim.id().to_string(),
-            target_id: revision_target.id().to_string(),
-            target_hash: revision_target.hash().clone(),
+        prove_revision_target(claim.id(), claim.patient_id(), &revision_target, entries)?;
+        Ok(Self {
+            raw: claim.raw(),
+            id: claim.id(),
+            patient_id: claim.patient_id(),
+            target_patient_id: claim.target_patient_id().to_string(),
+            revision_target,
         })
     }
 
@@ -180,4 +146,56 @@ impl<'a> RevisionAdmissibleClaim<'a> {
     pub fn revision_target(&self) -> &RevisionTarget<'a> {
         &self.revision_target
     }
+
+    pub(crate) fn verify_against(&self, entries: &[LedgerEntry]) -> Result<(), AdmissionError> {
+        prove_revision_target(
+            self.id(),
+            self.patient_id(),
+            self.revision_target(),
+            entries,
+        )
+    }
+}
+
+fn prove_revision_target(
+    claim_id: &str,
+    claim_patient_id: &str,
+    revision_target: &RevisionTarget<'_>,
+    entries: &[LedgerEntry],
+) -> Result<(), AdmissionError> {
+    for entry in entries {
+        let candidate =
+            validate_claim(&entry.record).map_err(|error| AdmissionError::InvalidTargetClaim {
+                seq: entry.accepted.seq,
+                error,
+            })?;
+        let stored_hash = RecordHash::parse(&entry.record_hash).map_err(|_| {
+            AdmissionError::MalformedStoredTargetRecordHash {
+                seq: entry.accepted.seq,
+                claim_id: candidate.id().to_string(),
+                value: entry.record_hash.clone(),
+            }
+        })?;
+        let recomputed_hash = record_hash(&entry.record).map_err(AdmissionError::Canonical)?;
+        if stored_hash != recomputed_hash {
+            return Err(AdmissionError::StoredTargetRecordHashMismatch {
+                seq: entry.accepted.seq,
+                claim_id: candidate.id().to_string(),
+                stored: stored_hash,
+                recomputed: recomputed_hash,
+            });
+        }
+        if candidate.patient_id() == claim_patient_id
+            && candidate.id() == revision_target.id()
+            && &stored_hash == revision_target.hash()
+        {
+            return Ok(());
+        }
+    }
+
+    Err(AdmissionError::CorrectionTargetNotFound {
+        claim_id: claim_id.to_string(),
+        target_id: revision_target.id().to_string(),
+        target_hash: revision_target.hash().clone(),
+    })
 }

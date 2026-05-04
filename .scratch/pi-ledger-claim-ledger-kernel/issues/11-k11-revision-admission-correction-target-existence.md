@@ -100,6 +100,9 @@ git status --short
 - Baseline before K11 source edits: `cd pi-ledger && cargo test --workspace` — PASS, 109 tests.
 - Red evidence: after adding K11 tests, `cd pi-ledger && cargo test -p ledger-core t_k11 -- --nocapture` failed because `RevisionAdmissibleClaim`, revision-specific `AdmissionError` variants, `LedgerError::RevisionAdmissionRequired`, and `AppendLedger::append_revision_admissible` did not exist.
 - Green focused evidence: `cd pi-ledger && cargo test -p ledger-core t_k11 -- --nocapture` — PASS, 7 tests.
+- Post-cleanup reinforcement: added direct cross-patient target-entry regression; `cd pi-ledger && cargo test -p ledger-core t_k11 -- --nocapture` — PASS, 8 tests.
+- Review-block fix red evidence: added regression proving a detached `RevisionAdmissibleClaim` admitted against same-patient ledger A could be appended to same-patient ledger B without the target; `cd pi-ledger && cargo test -p ledger-core t_k11_08 -- --nocapture` initially failed because append succeeded.
+- Review-block fix evidence: `append_revision_admissible` now re-checks the revision proof against `self.entries()` before mutation and wraps admission failures as `LedgerError::Admission(AdmissionError::...)`; `cd pi-ledger && cargo test -p ledger-core t_k11 -- --nocapture` — PASS, 9 tests.
 - Implementation evidence:
   - Extended `ledger-core::admission` with `RevisionAdmissibleClaim<'a>`.
   - `AppendAdmissibleClaim` now carries the captured optional `RevisionTarget` from `ValidatedClaim`.
@@ -113,7 +116,7 @@ git status --short
   - Snapshot re-read still uses `AppendLedger::from_snapshot(snapshot)` without Predicate registry or Revision admission re-audit.
 - Final checks:
   - `cd pi-ledger && cargo fmt --all -- --check` — PASS.
-  - `cd pi-ledger && cargo test --workspace` — PASS, 116 tests.
+  - `cd pi-ledger && cargo test --workspace` — PASS, 118 tests after state-bound revision append fix.
   - `cd pi-ledger && cargo clippy --workspace --all-targets -- -D warnings` — PASS.
   - `git diff --check` — PASS.
   - `git status --short` — checked before commit; only K11 files staged, with unrelated dirty/untracked files preserved.

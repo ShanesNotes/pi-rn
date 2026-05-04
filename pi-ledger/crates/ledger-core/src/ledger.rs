@@ -1,4 +1,4 @@
-use crate::admission::{AppendAdmissibleClaim, RevisionAdmissibleClaim};
+use crate::admission::{AdmissionError, AppendAdmissibleClaim, RevisionAdmissibleClaim};
 use crate::canonical::{canonical_json, record_hash};
 use crate::claim::{ClaimError, ValidatedClaim, validate_claim};
 use crate::hash::{EntryHash, RecordHash};
@@ -13,6 +13,7 @@ pub const RECORD_KIND_CLAIM: &str = "claim";
 #[derive(Debug, Eq, PartialEq)]
 pub enum LedgerError {
     Claim(ClaimError),
+    Admission(AdmissionError),
     Canonical(String),
     InvalidRecordHash {
         seq: u64,
@@ -202,6 +203,9 @@ impl AppendLedger {
                 claim_patient_id: claim.patient_id().to_string(),
             });
         }
+        claim
+            .verify_against(&self.entries)
+            .map_err(LedgerError::Admission)?;
         self.append_record_without_predicate_or_revision_admission(claim.raw())
     }
 
@@ -910,6 +914,68 @@ mod tests {
                 error: ClaimError::UnsupportedShape("relation".to_string()),
             }
         );
+    }
+
+    #[test]
+    fn t_k11_07_revision_admission_rejects_cross_patient_target_entries() {
+        let registry = phase1_registry().unwrap();
+        let mut other_patient_claim = minimal_observation_claim();
+        other_patient_claim["subject"]["patientId"] = json!("patient_other");
+        let other_patient_validated = validate_claim(&other_patient_claim).unwrap();
+        let other_patient_admitted =
+            AppendAdmissibleClaim::admit(&other_patient_validated, "patient_other", &registry)
+                .unwrap();
+        let mut other_patient_ledger = AppendLedger::new(
+            "patient_other",
+            StoreClock::deterministic(["2026-05-03T12:00:06Z"]),
+        );
+        let cross_patient_target_hash = other_patient_ledger
+            .append_admissible(&other_patient_admitted)
+            .unwrap()
+            .record_hash
+            .clone();
+        let correction = correction_claim("claim-v0-5-001", &cross_patient_target_hash);
+        let admitted = admit_for_test(&correction);
+
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, other_patient_ledger.entries()).unwrap_err(),
+            AdmissionError::CorrectionTargetNotFound {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+                target_id: "claim-v0-5-001".to_string(),
+                target_hash: RecordHash::parse(&cross_patient_target_hash).unwrap(),
+            }
+        );
+    }
+
+    #[test]
+    fn t_k11_08_revision_admissible_proof_is_rechecked_against_receiving_ledger() {
+        let mut proof_ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let base_claim = minimal_observation_claim();
+        let target_hash = append_admitted_for_test(&mut proof_ledger, &base_claim)
+            .record_hash
+            .clone();
+        let correction = correction_claim("claim-v0-5-001", &target_hash);
+        let admitted = admit_for_test(&correction);
+        let detached_revision_proof =
+            RevisionAdmissibleClaim::admit(&admitted, proof_ledger.entries()).unwrap();
+        let mut receiving_ledger = test_ledger(["2026-05-03T12:00:07Z", "2026-05-03T12:00:08Z"]);
+
+        assert_eq!(
+            receiving_ledger
+                .append_revision_admissible(&detached_revision_proof)
+                .unwrap_err(),
+            LedgerError::Admission(AdmissionError::CorrectionTargetNotFound {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+                target_id: "claim-v0-5-001".to_string(),
+                target_hash: RecordHash::parse(&target_hash).unwrap(),
+            })
+        );
+        assert!(receiving_ledger.entries().is_empty());
+        assert_eq!(receiving_ledger.head_hash(), None);
+
+        let entry = append_admitted_for_test(&mut receiving_ledger, &minimal_observation_claim());
+        assert_eq!(entry.accepted.accepted_at, "2026-05-03T12:00:07Z");
+        assert_eq!(entry.accepted.seq, 1);
     }
 
     #[test]
