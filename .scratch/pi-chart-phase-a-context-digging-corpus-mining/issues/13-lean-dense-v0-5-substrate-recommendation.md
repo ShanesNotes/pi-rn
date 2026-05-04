@@ -1,6 +1,6 @@
 # Lean dense v0.5 substrate recommendation
 
-Status: needs-triage
+Status: ready-for-agent
 Type: HITL-draft
 
 ## Parent
@@ -24,3 +24,7 @@ Draft the final lean dense v0.5 substrate recommendation from the reconciliation
 ## Blocked by
 
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/12-three-layer-reconciliation-and-mismatch-register.md`
+
+## Comments
+
+- 2026-05-04: Maintainer approved issue 12 reconciliation/mismatch register; issue 13 is unblocked for HITL-draft synthesis. Issue 14 remains gated.
