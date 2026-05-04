@@ -37,3 +37,5 @@ Validation summary:
 - Used approved source-map, brownfield-crosswalk, and corpus-atlas evidence; each artifact marks weak/missing evidence as mismatch-register input.
 - Preserved canonical/derived/rendered and hot/warm/cold classifications.
 - Boundary held: docs-only under `.scratch/pi-chart-phase-a-context-digging-corpus-mining`; no source, patient, ADR, design asset, lockfile, `pi-ledger`, or `pi-sim` edits.
+- Verification captured: artifact row structural check passed for 6 rows; `git diff --check` passed; issue 10 remained `ready-for-human`; issues 11-14 remained `needs-triage`; `pi-chart` typecheck and test suite passed after `npm ci` restored locked local dependencies.
+- Subagent skip reason: narrow docs-only lane with concrete issue/artifact scope and no independent implementation slice; serial evidence mining was safer.
