@@ -207,8 +207,12 @@ function assertProviderUnavailableContract(): void {
   assert.equal(terminal.runState, "unavailable", "unavailable event state");
   assert.equal(objectField(terminal, "payload").terminal, true, "unavailable terminal payload flag");
   assert.equal(objectField(terminal, "payload").terminalReason, "provider_unavailable", "unavailable terminal reason");
+  assert.equal(objectField(terminal, "payload").message, "provider unavailable", "unavailable public message is sanitized");
+  assert.doesNotMatch(JSON.stringify(objectField(terminal, "payload")), /Pulse shim|fetch failed|\/tmp|secret/i, "unavailable public payload omits provider/shim detail");
   assert.equal(events.some((event) => event.kind === "run_ended"), false, "unavailable fixture does not emit run_ended");
-  assertAssessmentStatus(readJson(join(fixture.dir, "assessments", "status.json")), false);
+  const assessmentStatus = readJson(join(fixture.dir, "assessments", "status.json"));
+  assertAssessmentStatus(assessmentStatus, false);
+  assert.equal(assessmentStatus.reason, "provider_unavailable", "unavailable assessment status reason");
   assertWaveformUnavailable(fixture, readJson(join(fixture.dir, "waveforms", "status.json")), "provider_unavailable");
 }
 
@@ -243,6 +247,7 @@ function assertFixtureDenylist(): void {
     ...fixtureFiles(CASES.demo.dir),
     ...fixtureFiles(CASES.alarm.dir),
     ...fixtureFiles(CASES.unavailable.dir),
+    ...fixtureFiles(CASES.liveWaveform.dir),
   ];
   for (const path of textPaths) {
     const text = readFileSync(path, "utf8");

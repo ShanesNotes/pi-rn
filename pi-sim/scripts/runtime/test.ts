@@ -521,12 +521,99 @@ async function testPulseRunnerUnavailable(): Promise<void> {
     assert.equal(events.at(-1)?.kind, "provider_unavailable");
     assert.equal(events.at(-1)?.payload.terminal, true);
     assert.equal(events.at(-1)?.payload.terminalReason, "provider_unavailable");
+    assert.equal(events.at(-1)?.payload.message, "provider unavailable");
+    assert.doesNotMatch(JSON.stringify(events.at(-1)?.payload), /shim offline|Pulse shim|\/tmp|secret/i);
     assert.equal(events.some((event) => event.kind === "run_ended"), false);
+    const assessmentStatus = readJson<PublicAssessmentStatus>(join(dir, "assessments", "status.json"));
+    assert.equal(assessmentStatus.available, false);
+    assert.equal(assessmentStatus.reason, "provider_unavailable");
     const waveformStatus = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
     assert.deepEqual(
       { available: waveformStatus.available, reason: waveformStatus.reason, runState: waveformStatus.runState, source: waveformStatus.source },
       { available: false, reason: "provider_unavailable", runState: "unavailable", source: "pi-sim-pulse" },
     );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function testProviderUnavailableFallbackClearsOptionalCurrentsAndSanitizesMessage(): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-unavailable-optional-"));
+  try {
+    seedOptionalCurrentFiles(dir);
+    assert.ok(existsSync(join(dir, "encounter", "current.json")));
+    assert.ok(existsSync(join(dir, "assessments", "current.json")));
+    assert.ok(existsSync(join(dir, "waveforms", "current.json")));
+
+    const provider = new InitUnavailableOptionalProvider();
+    await assert.rejects(
+      runProviderRuntime({
+        provider,
+        publisher: new PublicTelemetryPublisher(dir),
+        thresholds,
+        duration_s: 10,
+        dt_s: 10,
+        now: deterministicNow(),
+      }),
+      (error: unknown) => isProviderUnavailableError(error),
+    );
+
+    assert.equal(provider.encounterCalls, 0, "fallback must not call optional encounter capability after init unavailable");
+    assert.equal(provider.waveformCalls, 0, "fallback must not call optional waveform capability after init unavailable");
+    assert.equal(existsSync(join(dir, "encounter", "current.json")), false, "provider-unavailable fallback clears stale encounter current");
+    assert.equal(existsSync(join(dir, "assessments", "current.json")), false, "provider-unavailable fallback clears stale assessment current");
+    assert.equal(existsSync(join(dir, "waveforms", "current.json")), false, "provider-unavailable fallback clears stale waveform current");
+
+    const assessmentStatus = readJson<PublicAssessmentStatus>(join(dir, "assessments", "status.json"));
+    assert.deepEqual(
+      { available: assessmentStatus.available, reason: assessmentStatus.reason, runState: assessmentStatus.runState },
+      { available: false, reason: "provider_unavailable", runState: "unavailable" },
+    );
+    const waveformStatus = readJson<WaveformStatus>(join(dir, "waveforms", "status.json"));
+    assert.deepEqual(
+      { available: waveformStatus.available, reason: waveformStatus.reason, runState: waveformStatus.runState },
+      { available: false, reason: "provider_unavailable", runState: "unavailable" },
+    );
+    const events = readEvents(dir);
+    assertEventIndexes(events);
+    assert.equal(events.some((event) => event.kind === "run_ended"), false);
+    const terminal = events.at(-1);
+    assert.equal(terminal?.kind, "provider_unavailable");
+    assert.equal(terminal?.payload.message, "provider unavailable");
+    assert.doesNotMatch(JSON.stringify(terminal?.payload), /SECRET_INTERNAL|hidden-path|Pulse shim|\/tmp/i);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function testProviderUnavailableFallbackSurvivesOptionalCapabilityThrow(): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "pi-sim-unavailable-capability-"));
+  try {
+    const provider = new WaveformUnavailableAfterPublicEncounterProvider();
+    await assert.rejects(
+      runProviderRuntime({
+        provider,
+        publisher: new PublicTelemetryPublisher(dir),
+        thresholds,
+        duration_s: 10,
+        dt_s: 10,
+        now: deterministicNow(),
+      }),
+      (error: unknown) => isProviderUnavailableError(error),
+    );
+
+    assert.equal(provider.encounterCalls, 1, "normal publish attempts encounter before waveform failure");
+    assert.equal(provider.waveformCalls, 1, "fallback must not re-enter throwing waveform capability");
+    assert.ok(existsSync(join(dir, "current.json")));
+    assert.ok(existsSync(join(dir, "status.json")));
+    assert.equal(existsSync(join(dir, "encounter", "current.json")), false, "fallback clears encounter written before capability failure");
+    assert.equal(existsSync(join(dir, "waveforms", "current.json")), false, "fallback writes unavailable waveform status without current");
+    const events = readEvents(dir);
+    assertEventIndexes(events);
+    assert.equal(events.at(-1)?.kind, "provider_unavailable");
+    assert.equal(events.some((event) => event.kind === "run_ended"), false);
+    assert.equal(events.at(-1)?.payload.message, "provider unavailable");
+    assert.doesNotMatch(JSON.stringify(events.at(-1)?.payload), /WAVEFORM_SECRET|transport body|hidden-path/i);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -748,6 +835,76 @@ function testLaneManifest(): void {
   assert.ok((timelineJson?.writeSemantics as string[]).includes("compat-array"));
 }
 
+function seedOptionalCurrentFiles(dir: string): void {
+  const publisher = new PublicTelemetryPublisher(dir);
+  publisher.publishEncounter({
+    schemaVersion: 1,
+    patientId: "stale-patient",
+    encounterId: "stale-encounter",
+    visibleChartAsOf: "2026-04-27T00:00:00.000Z",
+    sequence: 7,
+    simTime_s: 70,
+    wallTime: "2026-04-27T00:00:07.000Z",
+    source: "stale-source",
+    runState: "running",
+  });
+  publisher.publishAssessment(
+    {
+      schemaVersion: 1,
+      sequence: 7,
+      simTime_s: 70,
+      wallTime: "2026-04-27T00:00:07.000Z",
+      source: "stale-source",
+      runState: "running",
+      available: true,
+      lastRequestId: "stale-request",
+      lastRevealSequence: 7,
+    },
+    {
+      schemaVersion: 1,
+      requestId: "stale-request",
+      assessmentType: "focused",
+      visibility: "revealed",
+      sequence: 7,
+      simTime_s: 70,
+      wallTime: "2026-04-27T00:00:07.000Z",
+      source: "stale-source",
+      runState: "running",
+      findings: [{ id: "stale", label: "stale", value: "stale" }],
+      envelopeDigest: "stale-digest",
+    },
+  );
+  publisher.publishWaveform(
+    {
+      schemaVersion: 1,
+      sequence: 7,
+      simTime_s: 70,
+      wallTime: "2026-04-27T00:00:07.000Z",
+      source: "stale-source",
+      runState: "running",
+      available: true,
+      sourceKind: "fixture",
+      fidelity: "fixture",
+      synthetic: true,
+    },
+    {
+      schemaVersion: 1,
+      sequence: 7,
+      simTime_s: 70,
+      wallTime: "2026-04-27T00:00:07.000Z",
+      source: "stale-source",
+      runState: "running",
+      available: true,
+      sourceKind: "fixture",
+      fidelity: "fixture",
+      synthetic: true,
+      windows: {
+        ECG_LeadII: { unit: "mV", sampleRate_Hz: 125, t0_s: 69, values: [0, 1, 0] },
+      },
+    },
+  );
+}
+
 function testScenarioValidationFailures(): void {
   const dir = mkdtempSync(join(tmpdir(), "pi-sim-scenario-validation-"));
   try {
@@ -928,6 +1085,79 @@ class UnavailablePulseTransport implements PulseTransport {
   }
 }
 
+class InitUnavailableOptionalProvider implements PhysiologyProvider {
+  readonly metadata: ProviderMetadata = { name: "init unavailable optional", source: "pi-sim-unavailable-optional", fidelity: "fixture" };
+  encounterCalls = 0;
+  waveformCalls = 0;
+
+  init(): ProviderSnapshot {
+    throw new ProviderUnavailableError("SECRET_INTERNAL hidden-path /tmp/pulse-state");
+  }
+
+  advance(): ProviderSnapshot {
+    throw new ProviderUnavailableError("advance should not be called");
+  }
+
+  applyAction(): ProviderSnapshot {
+    throw new ProviderUnavailableError("action should not be called");
+  }
+
+  snapshot(): ProviderSnapshot {
+    return { t: 0, vitals: {}, events: [] };
+  }
+
+  encounterContext(): ProviderEncounterContext {
+    this.encounterCalls += 1;
+    throw new Error("encounter should not be called during provider-unavailable fallback");
+  }
+
+  waveformWindow(): ProviderWaveformWindow {
+    this.waveformCalls += 1;
+    throw new Error("waveform should not be called during provider-unavailable fallback");
+  }
+
+  assess(): ProviderAssessmentResult {
+    throw new Error("assessment should not be called during provider-unavailable fallback");
+  }
+}
+
+class WaveformUnavailableAfterPublicEncounterProvider implements PhysiologyProvider {
+  readonly metadata: ProviderMetadata = { name: "waveform unavailable after encounter", source: "pi-sim-waveform-unavailable", fidelity: "fixture" };
+  encounterCalls = 0;
+  waveformCalls = 0;
+
+  init(): ProviderSnapshot {
+    return this.snapshot();
+  }
+
+  advance(dtSeconds: number): ProviderSnapshot {
+    return { ...this.snapshot(), t: dtSeconds };
+  }
+
+  applyAction(): ProviderSnapshot {
+    return this.snapshot();
+  }
+
+  snapshot(): ProviderSnapshot {
+    return { t: 0, vitals: { hr: 80, map: 82, spo2: 98 }, events: [] };
+  }
+
+  encounterContext(): ProviderEncounterContext {
+    this.encounterCalls += 1;
+    return {
+      patientId: "patient_optional_throw",
+      encounterId: "enc_optional_throw",
+      visibleChartAsOf: "2026-04-27T00:00:00.000Z",
+      phase: "pre-failure",
+    };
+  }
+
+  waveformWindow(): ProviderWaveformWindow {
+    this.waveformCalls += 1;
+    throw new ProviderUnavailableError("WAVEFORM_SECRET transport body hidden-path");
+  }
+}
+
 function deterministicNow(): () => string {
   let sequence = 0;
   return () => `2026-04-27T00:00:${String(sequence++).padStart(2, "0")}.000Z`;
@@ -946,6 +1176,8 @@ async function main(): Promise<void> {
   testScenarioValidationFailures();
   await testPulseProviderFakeTransport();
   await testPulseRunnerUnavailable();
+  await testProviderUnavailableFallbackClearsOptionalCurrentsAndSanitizesMessage();
+  await testProviderUnavailableFallbackSurvivesOptionalCapabilityThrow();
   await testPulseRunnerFakeSuccess();
   testPulseScenarioLoading();
   testPatient002ScriptedScenarioLoading();

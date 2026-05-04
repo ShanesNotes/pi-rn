@@ -8,5 +8,5 @@
   "available": false,
   "lastRequestId": null,
   "lastRevealSequence": null,
-  "reason": "provider_does_not_supply_assessments"
+  "reason": "provider_unavailable"
 }

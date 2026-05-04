@@ -181,6 +181,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
     current: ProviderSnapshot,
     unavailableReason: WaveformAvailabilityReason = "provider_does_not_supply_waveforms",
   ): Promise<VitalFrame> => {
+    const isProviderUnavailableFallback = runState === "unavailable" && unavailableReason === "provider_unavailable";
     const wallTime = options.now?.() ?? new Date().toISOString();
     const frame = buildVitalFrame({
       snapshot: current,
@@ -204,7 +205,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
       });
     }
 
-    const encounterContext = await options.provider.encounterContext?.();
+    const encounterContext = isProviderUnavailableFallback ? undefined : await options.provider.encounterContext?.();
     const publicEncounterContext = encounterContext ? publicEncounterContextFor(encounterContext, current, metadata) : undefined;
     options.publisher.publishEncounter(publicEncounterContext);
     if (publicEncounterContext) {
@@ -237,35 +238,66 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
     }
 
     let assessmentEnvelopeToPublish: PublicAssessmentEnvelope | undefined;
-    let clearAssessmentCurrent = false;
-    for (const pending of pendingAssessments.splice(0)) {
-      appendEvent({
-        kind: "assessment_requested",
-        runState: pending.runState,
-        snapshot: pending.snapshot,
-        sequence: metadata.sequence,
-        wallTime,
-        source: metadata.source,
-        payload: assessmentRequestPayload(pending.request),
-      });
-
-      if (pending.kind === "unavailable") {
+    let clearAssessmentCurrent = isProviderUnavailableFallback;
+    if (isProviderUnavailableFallback) {
+      pendingAssessments.splice(0);
+    } else {
+      for (const pending of pendingAssessments.splice(0)) {
         appendEvent({
-          kind: "assessment_unavailable",
+          kind: "assessment_requested",
           runState: pending.runState,
           snapshot: pending.snapshot,
           sequence: metadata.sequence,
           wallTime,
           source: metadata.source,
-          payload: { ...assessmentRequestPayload(pending.request), reason: pending.reason },
+          payload: assessmentRequestPayload(pending.request),
         });
-        clearAssessmentCurrent = true;
-        continue;
-      }
 
-      if (pending.kind === "replay") {
-        const original = assessmentRecordForReplay(pending.original);
-        lastRevealSequence = original.sequence;
+        if (pending.kind === "unavailable") {
+          appendEvent({
+            kind: "assessment_unavailable",
+            runState: pending.runState,
+            snapshot: pending.snapshot,
+            sequence: metadata.sequence,
+            wallTime,
+            source: metadata.source,
+            payload: { ...assessmentRequestPayload(pending.request), reason: pending.reason },
+          });
+          clearAssessmentCurrent = true;
+          continue;
+        }
+
+        if (pending.kind === "replay") {
+          const original = assessmentRecordForReplay(pending.original);
+          lastRevealSequence = original.sequence;
+          appendEvent({
+            kind: "assessment_revealed",
+            runState: pending.runState,
+            snapshot: pending.snapshot,
+            sequence: metadata.sequence,
+            wallTime,
+            source: metadata.source,
+            payload: {
+              ...assessmentRequestPayload(pending.request),
+              replay: true,
+              replayOfSequence: original.sequence,
+              envelopeDigest: original.digest,
+            },
+          });
+          continue;
+        }
+
+        const envelope = publicAssessmentEnvelopeFor(pending.result, pending.request, metadata);
+        pending.sequence = envelope.sequence;
+        pending.digest = envelope.envelopeDigest;
+        pending.envelope = envelope;
+        assessmentEnvelopeToPublish = envelope;
+        lastRevealSequence = envelope.sequence;
+        revealedAssessments.set(pending.request.requestId, {
+          sequence: envelope.sequence,
+          digest: envelope.envelopeDigest,
+          envelope,
+        });
         appendEvent({
           kind: "assessment_revealed",
           runState: pending.runState,
@@ -273,43 +305,16 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
           sequence: metadata.sequence,
           wallTime,
           source: metadata.source,
-          payload: {
-            ...assessmentRequestPayload(pending.request),
-            replay: true,
-            replayOfSequence: original.sequence,
-            envelopeDigest: original.digest,
-          },
+          payload: assessmentRevealPayload(envelope),
         });
-        continue;
       }
-
-      const envelope = publicAssessmentEnvelopeFor(pending.result, pending.request, metadata);
-      pending.sequence = envelope.sequence;
-      pending.digest = envelope.envelopeDigest;
-      pending.envelope = envelope;
-      assessmentEnvelopeToPublish = envelope;
-      lastRevealSequence = envelope.sequence;
-      revealedAssessments.set(pending.request.requestId, {
-        sequence: envelope.sequence,
-        digest: envelope.envelopeDigest,
-        envelope,
-      });
-      appendEvent({
-        kind: "assessment_revealed",
-        runState: pending.runState,
-        snapshot: pending.snapshot,
-        sequence: metadata.sequence,
-        wallTime,
-        source: metadata.source,
-        payload: assessmentRevealPayload(envelope),
-      });
     }
 
-    const assessmentAvailable = Boolean(options.provider.assess);
+    const assessmentAvailable = !isProviderUnavailableFallback && Boolean(options.provider.assess);
     const assessmentStatus = publicAssessmentStatusFor({
       metadata,
       available: assessmentAvailable,
-      reason: assessmentAvailable ? undefined : "provider_does_not_supply_assessments",
+      reason: isProviderUnavailableFallback ? "provider_unavailable" : assessmentAvailable ? undefined : "provider_does_not_supply_assessments",
       lastRequestId: lastAssessmentRequestId,
       lastRevealSequence,
     });
@@ -320,7 +325,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
     );
 
     options.publisher.publish(frame);
-    await publishWaveformLane(options.provider, options.publisher, frame, unavailableReason);
+    await publishWaveformLane(options.provider, options.publisher, frame, unavailableReason, { forceUnavailable: isProviderUnavailableFallback });
     for (const alarm of frame.alarms) {
       appendEvent({
         kind: "alarm_observed",
@@ -406,7 +411,7 @@ export async function runProviderRuntime(options: RuntimeRunnerOptions): Promise
       sequence: frame.monitor?.sequence ?? clock.snapshot().sequence,
       wallTime: frame.wallTime,
       source: options.provider.metadata.source,
-      payload: { message: unavailable.message, terminal: true, terminalReason: "provider_unavailable" },
+      payload: { message: "provider unavailable", terminal: true, terminalReason: "provider_unavailable" },
     });
     throw unavailable;
   }
@@ -599,6 +604,7 @@ async function publishWaveformLane(
   publisher: PublicTelemetryPublisher,
   frame: VitalFrame,
   unavailableReason: WaveformAvailabilityReason,
+  options: { readonly forceUnavailable?: boolean } = {},
 ): Promise<void> {
   const sequence = frame.monitor?.sequence ?? 0;
   const source = frame.monitor?.source ?? provider.metadata.source;
@@ -606,7 +612,7 @@ async function publishWaveformLane(
   const simTime_s = frame.simTime_s ?? frame.t;
   const wallTime = frame.wallTime;
 
-  const providerWindow = await provider.waveformWindow?.();
+  const providerWindow = options.forceUnavailable ? undefined : await provider.waveformWindow?.();
   if (!providerWindow) {
     publisher.publishWaveform({
       schemaVersion: 1,
