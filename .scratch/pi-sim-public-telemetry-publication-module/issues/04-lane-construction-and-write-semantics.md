@@ -1,6 +1,6 @@
 # Map lane construction and write semantics
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent
@@ -29,3 +29,4 @@ Create a lane-by-lane publication map for how public telemetry files are constru
 - 2026-05-03: This issue is a planning/documentation slice. Source edits require separate implementation approval.
 - 2026-05-03: Default next gate after Issue 01 so lane write semantics are mapped before regression-lock design, unless Issue 01 finds an urgent regression gap.
 - 2026-05-03: Completed by adding `.scratch/pi-sim-public-telemetry-publication-module/lane-construction-and-write-semantics-map.md`. Code review approved with architectural WATCH follow-ups for Issue 02/06: provider-unavailable message privacy, optional-current force-clear vs preserve policy, selected cross-lane ordering guarantees, optional capability throw behavior during fallback, legacy monitor compatibility scope, and stale README authority wording.
+- 2026-05-04: Tracker hygiene aligned status to completed; all acceptance criteria were already checked and the lane semantics map exists.

@@ -1,6 +1,6 @@
 # PRD: pi-sim public telemetry publication Module
 
-Status: ready-for-agent
+Status: completed
 Owner: pi-sim
 Date: 2026-05-03
 
@@ -17,6 +17,14 @@ Create a planning lane for the internal `pi-sim` public telemetry publication Mo
 `Module` is a planning hypothesis in this lane, not a commitment to create a new source directory, class, function, package, or abstraction. The accepted outcome may be to keep the current runner/publisher structure if the inventory, write-semantics map, and regression-lock work do not prove that a new seam reduces risk.
 
 This PRD seeds planning only. It does not edit `pi-sim` runtime source, change JSON/JSONL schema semantics, rename lanes, create sibling adapters, or authorize chart/EHR writes.
+
+## Closeout decision
+
+Completed: 2026-05-04.
+
+The lane is closed as a planning/regression/documentation package, not as authorization to extract a new source Module. The accepted posture is the no-new-module outcome for now: keep the current `runProviderRuntime` plus `PublicTelemetryPublisher` structure, preserve runner-owned clock/sequence/event-index decisions, and consider only a narrow private publication-cycle helper later if future source work proves it reduces risk.
+
+No public ABI change is authorized by this closeout. `pi-sim/vitals/README.md` plus `pi-sim/vitals/.lanes.json` remain the public telemetry Interface authority; fixtures remain regression evidence only. No ADR was created because the durable architecture decision is to defer Module extraction rather than establish a new maintainer-facing Interface.
 
 ## Authority and constraints
 
@@ -61,7 +69,7 @@ This PRD seeds planning only. It does not edit `pi-sim` runtime source, change J
 - Any future public telemetry publication Module may own public telemetry construction and file-lane publication, but must not own scenario orchestration, provider routing, or canonical simulation clock progression.
 - Optional current lanes keep stale-file clearing semantics: encounter/current clears when unavailable, assessments/current is absent until reveal or cleared when unavailable/no request, and waveforms/current clears when unavailable/no window.
 
-## Initial issue slices
+## Completed issue slices
 
 1. `issues/01-inventory-publication-responsibilities.md` — inventory runner/provider/publisher/docs/tests ownership and hidden/public boundaries.
 2. `issues/04-lane-construction-and-write-semantics.md` — map lane construction, reset, append/atomic write, stale-clear, and failure semantics.
@@ -91,13 +99,13 @@ Default gate order: Issue 04 should normally follow Issue 01 so write semantics 
 
 ## Acceptance Criteria
 
-- [ ] This PRD exists under `.scratch/pi-sim-public-telemetry-publication-module/PRD.md`.
-- [ ] Initial issues exist under `.scratch/pi-sim-public-telemetry-publication-module/issues/`.
-- [ ] The PRD states that `pi-sim/vitals/README.md` plus `pi-sim/vitals/.lanes.json` remain the public telemetry Interface authority.
-- [ ] The PRD distinguishes hidden patient runtime Implementation from public telemetry publication output.
-- [ ] Initial issues cover inventory, regression-lock tests, internal publication Module Interface design, lane construction/write semantics, runner event/reveal subordinate work, and documentation/fixture closeout.
-- [ ] The lane does not change JSON/JSONL semantics, public lane names, sibling consumer contracts, hidden runtime code, or chart/EHR write policy during PRD creation.
-- [ ] Future source-edit verification names `npm test --prefix pi-sim`.
+- [x] This PRD exists under `.scratch/pi-sim-public-telemetry-publication-module/PRD.md`.
+- [x] Initial issues exist under `.scratch/pi-sim-public-telemetry-publication-module/issues/`.
+- [x] The PRD states that `pi-sim/vitals/README.md` plus `pi-sim/vitals/.lanes.json` remain the public telemetry Interface authority.
+- [x] The PRD distinguishes hidden patient runtime Implementation from public telemetry publication output.
+- [x] Initial issues cover inventory, regression-lock tests, internal publication Module Interface design, lane construction/write semantics, runner event/reveal subordinate work, and documentation/fixture closeout.
+- [x] The lane does not change JSON/JSONL semantics, public lane names, sibling consumer contracts, hidden runtime code, or chart/EHR write policy during PRD creation.
+- [x] Future source-edit verification names `npm test --prefix pi-sim`.
 
 ## Further Notes
 
