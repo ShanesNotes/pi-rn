@@ -46,3 +46,4 @@ Narrative context should be charted once as canonical notes, communication, fact
 - Each row includes source artifact citation, brownfield code/test citation, corpus citation, reconciliation state, canonical/derived/rendered classification, hot/warm/cold classification, v0.5 implication, mismatch input, and boundary check.
 - Issues 11-14 remain `needs-triage`.
 - Boundary: only docs under `.scratch/pi-chart-phase-a-context-digging-corpus-mining` were edited for this pack.
+- Corrective worker-4 pass confirmed the artifact exists at current HEAD and issue 08 is the only issue status in this lane marked `ready-for-human`.
