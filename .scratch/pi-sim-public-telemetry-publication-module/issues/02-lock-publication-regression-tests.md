@@ -23,6 +23,7 @@ Define and, when later approved for source edits, lock regression tests before a
 ## Blocked by
 
 - `issues/01-inventory-publication-responsibilities.md`.
+- Normally `issues/04-lane-construction-and-write-semantics.md` unless Issue 01 identifies an urgent regression gap that should be locked first.
 
 ## Comments
 

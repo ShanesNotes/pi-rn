@@ -1,6 +1,6 @@
 # PRD: pi-sim public telemetry publication Module
 
-Status: needs-triage
+Status: ready-for-agent
 Owner: pi-sim
 Date: 2026-05-03
 
@@ -13,6 +13,8 @@ Future work needs a maintainer-facing publication Module plan so agents can deep
 ## Solution
 
 Create a planning lane for the internal `pi-sim` public telemetry publication Module. The lane inventories and later designs the producer-side Module seam around public telemetry construction and file-lane publication while preserving the current public contract.
+
+`Module` is a planning hypothesis in this lane, not a commitment to create a new source directory, class, function, package, or abstraction. The accepted outcome may be to keep the current runner/publisher structure if the inventory, write-semantics map, and regression-lock work do not prove that a new seam reduces risk.
 
 This PRD seeds planning only. It does not edit `pi-sim` runtime source, change JSON/JSONL schema semantics, rename lanes, create sibling adapters, or authorize chart/EHR writes.
 
@@ -51,20 +53,24 @@ This PRD seeds planning only. It does not edit `pi-sim` runtime source, change J
 ## Implementation Decisions
 
 - This lane starts with inventory and regression-lock work, then designs an internal Module Interface only if evidence shows it improves maintainability.
+- `Module` remains a planning hypothesis until evidence shows that a new seam is safer than preserving the current runner/publisher structure.
 - Initial issues are documentation/planning/test-shape slices only. Source edits require later triage.
 - Public lane names, paths, schema versions, event kinds, event ordering guarantees, reset semantics, and preferred consumer modes are preserved during PRD creation.
 - Runner event/reveal behavior is subordinate work in this lane because it is part of public telemetry publication, not an independent consumer-facing PRD.
 - Module design must preserve runner-owned simulation clock and per-run event index ownership.
+- Any future public telemetry publication Module may own public telemetry construction and file-lane publication, but must not own scenario orchestration, provider routing, or canonical simulation clock progression.
 - Optional current lanes keep stale-file clearing semantics: encounter/current clears when unavailable, assessments/current is absent until reveal or cleared when unavailable/no request, and waveforms/current clears when unavailable/no window.
 
 ## Initial issue slices
 
 1. `issues/01-inventory-publication-responsibilities.md` — inventory runner/provider/publisher/docs/tests ownership and hidden/public boundaries.
-2. `issues/02-lock-publication-regression-tests.md` — define regression-lock coverage before any source refactor.
-3. `issues/03-design-internal-publication-module-interface.md` — propose a maintainer-facing internal Module seam without changing public ABI.
-4. `issues/04-lane-construction-and-write-semantics.md` — map lane construction, reset, append/atomic write, stale-clear, and failure semantics.
+2. `issues/04-lane-construction-and-write-semantics.md` — map lane construction, reset, append/atomic write, stale-clear, and failure semantics.
+3. `issues/02-lock-publication-regression-tests.md` — define regression-lock coverage before any source refactor.
+4. `issues/03-design-internal-publication-module-interface.md` — propose a maintainer-facing internal Module seam without changing public ABI.
 5. `issues/05-runner-event-and-assessment-reveal-subordinate-work.md` — subordinate slice for event ordering, terminal semantics, assessment request/reveal/replay/unavailable behavior, and reveal-safe output.
 6. `issues/06-docs-manifest-fixture-closeout.md` — close README/manifest/fixture/test documentation consistency after any accepted internal Module design.
+
+Default gate order: Issue 04 should normally follow Issue 01 so write semantics are mapped before regression-lock design, unless Issue 01 finds an urgent regression gap that should move Issue 02 first.
 
 ## Testing Decisions
 

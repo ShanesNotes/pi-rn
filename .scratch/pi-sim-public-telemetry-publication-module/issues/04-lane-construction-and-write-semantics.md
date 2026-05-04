@@ -27,3 +27,4 @@ Create a lane-by-lane publication map for how public telemetry files are constru
 ## Comments
 
 - 2026-05-03: This issue is a planning/documentation slice. Source edits require separate implementation approval.
+- 2026-05-03: Default next gate after Issue 01 so lane write semantics are mapped before regression-lock design, unless Issue 01 finds an urgent regression gap.
