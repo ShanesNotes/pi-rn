@@ -36,4 +36,5 @@ Validation summary:
 - Reused `.scratch/pi-chart-phase-a-context-digging-corpus-mining/mining-template.md` required row fields.
 - Used approved source-map, brownfield-crosswalk, and corpus-atlas evidence; each artifact marks weak/missing evidence as mismatch-register input.
 - Preserved canonical/derived/rendered and hot/warm/cold classifications.
+- Integrated review-probe finding that hot bedside nursing/device/oxygen context must be explicit instead of silently deferred.
 - Boundary held: docs-only under `.scratch/pi-chart-phase-a-context-digging-corpus-mining`; no source, patient, ADR, design asset, lockfile, `pi-ledger`, or `pi-sim` edits.
