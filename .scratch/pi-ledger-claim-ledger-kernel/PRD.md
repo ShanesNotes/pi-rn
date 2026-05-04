@@ -2,7 +2,7 @@
 
 Status: active
 Program status: active `pi-ledger` implementation workstream.
-Next slice status: ready-for-agent (`K11` revision admission for correction target existence)
+Next slice status: needs-triage (post-K11 architecture-deepening candidate)
 
 ## Problem Statement
 
@@ -10,7 +10,7 @@ The project needs a clean, reusable cryptographic claim-ledger kernel that is in
 
 The maintainer has decided that the ledger should be a sibling subproject, `pi-ledger`, with `pi-chart` consuming it later through an adapter. The workstream needs precise Rust-first package/document authority that lets AFK agents implement and deepen the kernel without accidentally touching `pi-chart` source, schemas, patients, package archives, lockfiles outside `pi-ledger`, or hidden simulator internals.
 
-K0-K10 proved the first kernel behaviors and introduced an explicit append-admission seam. A remaining architectural gap is that a correction Claim can be Ledger-acceptable, Append-admissible, and patient-scoped while still naming a `revises.target` that does not exist in the current patient ledger. Query currently projects trusted entries and can hide a matching target, but Query is not an append-admission authority and should not be responsible for preventing dangling correction references from entering ledger history. Before adapter work depends on correction append APIs, the kernel needs Revision admission: a narrow, explicit admission step that proves correction target existence by Claim id plus Record hash before store metadata mutates.
+K0-K11 proved the first kernel behaviors, introduced explicit append and revision admission seams, and made normal correction append prove target existence before store metadata mutates. The next architecture-deepening slice should preserve those admission authorities while choosing one narrow post-K11 seam to deepen before adapter work depends on the kernel Interface.
 
 ## Solution
 
@@ -140,6 +140,6 @@ The K11 solution is to deepen the existing admission seam rather than create a g
 
 ## Further Notes
 
-The superseded chart-local planning surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K10 are complete and committed; K11 is the next architecture-deepening slice before adapter integration.
+The superseded chart-local planning surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K11 are complete and committed; the next slice should be chosen through architecture-deepening review before adapter integration.
 
-K11 should be issued as one narrow vertical implementation ticket for revision admission. It should cite the pi-ledger context glossary and ADR 006, preserve all K0-K10 behavior, and avoid expanding into registry versioning, correction conflict policy, storage backend work, query revalidation, or chart integration.
+Post-K11 candidates should preserve the pi-ledger context glossary and ADRs 001-006, avoid expanding into registry versioning, correction conflict policy, storage backend work, query revalidation, or chart integration unless explicitly selected, and start from narrow regressions that prove a real seam/locality problem.
