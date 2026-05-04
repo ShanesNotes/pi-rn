@@ -1,4 +1,6 @@
+use crate::admission::{AdmissionError, AppendAdmissibleClaim};
 use crate::canonical::CANONICALIZATION_ID;
+use crate::claim::{ClaimError, validate_claim};
 use crate::ledger::{AppendLedger, LedgerError, StoreClock};
 use crate::predicates::{PredicateError, PredicateRegistry, phase1_registry};
 use serde_json::{Value, json};
@@ -25,8 +27,16 @@ const ACCEPTED_TIMES: [&str; 5] = [
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum FixtureError {
+    Claim(ClaimError),
     Ledger(LedgerError),
     Predicate(PredicateError),
+    Admission(AdmissionError),
+}
+
+impl From<ClaimError> for FixtureError {
+    fn from(error: ClaimError) -> Self {
+        Self::Claim(error)
+    }
 }
 
 impl From<LedgerError> for FixtureError {
@@ -38,6 +48,12 @@ impl From<LedgerError> for FixtureError {
 impl From<PredicateError> for FixtureError {
     fn from(error: PredicateError) -> Self {
         Self::Predicate(error)
+    }
+}
+
+impl From<AdmissionError> for FixtureError {
+    fn from(error: AdmissionError) -> Self {
+        Self::Admission(error)
     }
 }
 
@@ -92,14 +108,12 @@ pub fn phase1_fixture() -> Result<Phase1Fixture, FixtureError> {
     );
     let base_claims = base_shape_claims();
     for claim in &base_claims {
-        registry.validate_claim(claim)?;
-        ledger.append(claim)?;
+        append_admitted_claim(&mut ledger, &registry, claim)?;
     }
 
     let original_observation_hash = ledger.entries()[1].record_hash.clone();
     let correction_claim = correction_claim(&original_observation_hash);
-    registry.validate_claim(&correction_claim)?;
-    ledger.append(&correction_claim)?;
+    append_admitted_claim(&mut ledger, &registry, &correction_claim)?;
 
     Ok(Phase1Fixture {
         patient_id: GENERATED_PATIENT_ID.to_string(),
@@ -109,6 +123,17 @@ pub fn phase1_fixture() -> Result<Phase1Fixture, FixtureError> {
         ledger,
         registry,
     })
+}
+
+fn append_admitted_claim(
+    ledger: &mut AppendLedger,
+    registry: &PredicateRegistry,
+    claim: &Value,
+) -> Result<(), FixtureError> {
+    let validated = validate_claim(claim)?;
+    let admitted = AppendAdmissibleClaim::admit(&validated, ledger.patient_id(), registry)?;
+    ledger.append_admissible(&admitted)?;
+    Ok(())
 }
 
 fn base_shape_claims() -> Vec<Value> {
@@ -216,7 +241,7 @@ fn correction_claim(target_hash: &str) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claim::validate_claim;
+    use crate::admission::AppendAdmissibleClaim;
     use crate::query::point_read;
     use std::collections::BTreeSet;
 
@@ -242,6 +267,21 @@ mod tests {
         }
         fixture.ledger().validate().unwrap();
         assert_eq!(fixture.ledger().entries().len(), fixture.claims().len());
+    }
+
+    #[test]
+    fn t_k10_06_fixture_claims_have_an_explicit_append_admission_path() {
+        let fixture = phase1_fixture().unwrap();
+
+        for claim in fixture.claims() {
+            let validated = validate_claim(claim).unwrap();
+            let admitted =
+                AppendAdmissibleClaim::admit(&validated, fixture.patient_id(), fixture.registry())
+                    .unwrap();
+
+            assert_eq!(admitted.target_patient_id(), GENERATED_PATIENT_ID);
+            assert_eq!(admitted.patient_id(), GENERATED_PATIENT_ID);
+        }
     }
 
     #[test]

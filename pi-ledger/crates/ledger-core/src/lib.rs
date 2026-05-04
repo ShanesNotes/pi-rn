@@ -4,6 +4,7 @@
 //! through the active `.scratch/pi-ledger-claim-ledger-kernel/` TDD issues,
 //! beginning with canonicalization and record hashing.
 
+pub mod admission;
 pub mod canonical;
 pub mod claim;
 pub mod fixture;

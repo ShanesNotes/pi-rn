@@ -1,3 +1,4 @@
+use crate::admission::AppendAdmissibleClaim;
 use crate::canonical::{canonical_json, record_hash};
 use crate::claim::{ClaimError, ValidatedClaim, validate_claim};
 use crate::hash::{EntryHash, RecordHash};
@@ -170,20 +171,35 @@ impl AppendLedger {
         Ok(ledger)
     }
 
-    pub fn append(&mut self, claim: &Value) -> Result<&LedgerEntry, LedgerError> {
-        let claim = validate_claim(claim)?;
-        self.append_validated(&claim)
+    pub fn append_admissible(
+        &mut self,
+        claim: &AppendAdmissibleClaim<'_>,
+    ) -> Result<&LedgerEntry, LedgerError> {
+        if claim.target_patient_id() != self.patient_id {
+            return Err(LedgerError::PatientMismatch {
+                ledger_patient_id: self.patient_id.clone(),
+                claim_patient_id: claim.patient_id().to_string(),
+            });
+        }
+        self.append_record_without_predicate_admission(claim.raw())
     }
 
-    pub fn append_validated(
+    pub fn append_without_predicate_admission(
         &mut self,
         claim: &ValidatedClaim<'_>,
     ) -> Result<&LedgerEntry, LedgerError> {
         self.validate_claim_patient_scope(claim)?;
+        self.append_record_without_predicate_admission(claim.raw())
+    }
+
+    fn append_record_without_predicate_admission(
+        &mut self,
+        claim: &Value,
+    ) -> Result<&LedgerEntry, LedgerError> {
         let seq = self.entries.len() as u64 + 1;
         let accepted_at = self.store_clock.peek_next_accepted_at()?.to_string();
         validate_accepted_at(seq, &accepted_at)?;
-        let record_hash = record_hash(claim.raw()).map_err(LedgerError::Canonical)?;
+        let record_hash = record_hash(claim).map_err(LedgerError::Canonical)?;
         let previous_entry_hash = self.head_hash.clone();
         let previous_entry_hash_typed = parse_head_hash(self.head_hash.as_deref())?;
         let accepted = AcceptedMetadata {
@@ -192,13 +208,13 @@ impl AppendLedger {
             batch_id: batch_id_for_seq(seq),
         };
         let entry_hash = compute_entry_hash(
-            claim.raw(),
+            claim,
             &record_hash,
             previous_entry_hash_typed.as_ref(),
             &accepted,
         )?;
         let entry = LedgerEntry {
-            record: claim.raw().clone(),
+            record: claim.clone(),
             record_hash: record_hash.into_string(),
             previous_entry_hash,
             entry_hash: entry_hash.into_string(),
@@ -455,7 +471,11 @@ fn compute_entry_hash_from_parts(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::admission::{AdmissionError, AppendAdmissibleClaim};
     use crate::canonical::{CANONICALIZATION_ID, record_hash};
+    use crate::predicates::{
+        ObjectFieldType, PredicateDefinition, PredicateError, PredicateRegistry, phase1_registry,
+    };
     use serde_json::{Value, json};
 
     #[test]
@@ -463,7 +483,7 @@ mod tests {
         let claim = minimal_observation_claim();
         let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
 
-        let entry = ledger.append(&claim).unwrap();
+        let entry = append_admitted_for_test(&mut ledger, &claim);
 
         assert_eq!(entry.accepted.accepted_at, "2026-05-03T12:00:06Z");
         assert_eq!(entry.accepted.seq, 1);
@@ -481,12 +501,12 @@ mod tests {
     #[test]
     fn t_k3_02_sequence_is_monotonic_and_previous_hash_links_to_prior_entry() {
         let mut ledger = test_ledger(["2026-05-03T12:00:06Z", "2026-05-03T12:00:07Z"]);
-        let first_hash = ledger
-            .append(&minimal_observation_claim())
-            .unwrap()
+        let first_claim = minimal_observation_claim();
+        let first_hash = append_admitted_for_test(&mut ledger, &first_claim)
             .entry_hash
             .clone();
-        let second = ledger.append(&second_observation_claim()).unwrap();
+        let second_claim = second_observation_claim();
+        let second = append_admitted_for_test(&mut ledger, &second_claim);
 
         assert_eq!(second.accepted.accepted_at, "2026-05-03T12:00:07Z");
         assert_eq!(second.accepted.seq, 2);
@@ -495,44 +515,49 @@ mod tests {
     }
 
     #[test]
-    fn append_accepts_only_claims_that_pass_k1_validation() {
+    fn append_admission_starts_from_the_k1_validated_claim_boundary() {
         let mut invalid_claim = minimal_observation_claim();
         invalid_claim["shape"] = json!("relation");
-        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let ledger = test_ledger(["2026-05-03T12:00:06Z"]);
 
         assert!(matches!(
-            ledger.append(&invalid_claim),
-            Err(LedgerError::Claim(_))
+            validate_claim(&invalid_claim),
+            Err(ClaimError::UnsupportedShape(shape)) if shape == "relation"
         ));
         assert!(ledger.entries().is_empty());
         assert_eq!(ledger.head_hash(), None);
     }
 
     #[test]
-    fn append_rejects_caller_supplied_k3_metadata_on_claim_input() {
+    fn claim_validation_rejects_caller_supplied_k3_metadata_before_admission() {
         for field in ["accepted_at", "seq", "batch_id"] {
             let mut claim = minimal_observation_claim();
             claim["time"][field] = json!("caller-supplied");
-            let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+            let ledger = test_ledger(["2026-05-03T12:00:06Z"]);
 
-            assert!(matches!(ledger.append(&claim), Err(LedgerError::Claim(_))));
+            assert!(matches!(
+                validate_claim(&claim),
+                Err(ClaimError::K3OwnedTimeMetadata(_))
+            ));
             assert!(ledger.entries().is_empty());
         }
     }
 
     #[test]
-    fn append_rejects_claims_outside_the_patient_scoped_ledger() {
+    fn admission_rejects_claims_outside_the_patient_scoped_ledger() {
         let mut claim = minimal_observation_claim();
         claim["subject"]["patientId"] = json!("patient_other");
-        let mut ledger = AppendLedger::new(
+        let validated = validate_claim(&claim).unwrap();
+        let registry = phase1_registry().unwrap();
+        let ledger = AppendLedger::new(
             "patient_kernel",
             StoreClock::deterministic(["2026-05-03T12:00:06Z"]),
         );
 
         assert_eq!(
-            ledger.append(&claim).unwrap_err(),
-            LedgerError::PatientMismatch {
-                ledger_patient_id: "patient_kernel".to_string(),
+            AppendAdmissibleClaim::admit(&validated, ledger.patient_id(), &registry).unwrap_err(),
+            AdmissionError::PatientMismatch {
+                target_patient_id: "patient_kernel".to_string(),
                 claim_patient_id: "patient_other".to_string(),
             }
         );
@@ -545,7 +570,9 @@ mod tests {
         let claim = minimal_observation_claim();
         let validated = validate_claim(&claim).unwrap();
 
-        let entry = ledger.append_validated(&validated).unwrap();
+        let entry = ledger
+            .append_without_predicate_admission(&validated)
+            .unwrap();
 
         assert_eq!(entry.record["id"], "claim-v0-5-001");
         assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
@@ -560,7 +587,9 @@ mod tests {
         let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
 
         assert_eq!(
-            ledger.append_validated(&validated).unwrap_err(),
+            ledger
+                .append_without_predicate_admission(&validated)
+                .unwrap_err(),
             LedgerError::PatientMismatch {
                 ledger_patient_id: "patient_kernel".to_string(),
                 claim_patient_id: "patient_other".to_string(),
@@ -570,11 +599,134 @@ mod tests {
     }
 
     #[test]
-    fn append_reports_exhausted_store_clock_without_mutating_ledger() {
-        let mut ledger = test_ledger([] as [&str; 0]);
+    fn t_k10_01_admission_rejects_unregistered_predicate_that_explicit_bypass_can_append() {
+        let mut claim = minimal_observation_claim();
+        claim["predicate"] = json!("unregistered.synthetic");
+        let validated = validate_claim(&claim).unwrap();
+        let registry = phase1_registry().unwrap();
 
         assert_eq!(
-            ledger.append(&minimal_observation_claim()).unwrap_err(),
+            AppendAdmissibleClaim::admit(&validated, "patient_kernel", &registry).unwrap_err(),
+            AdmissionError::Predicate(PredicateError::UnregisteredPredicate(
+                "unregistered.synthetic".to_string()
+            ))
+        );
+
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let entry = ledger
+            .append_without_predicate_admission(&validated)
+            .unwrap();
+
+        assert_eq!(entry.record["predicate"], "unregistered.synthetic");
+        assert_eq!(ledger.entries().len(), 1);
+    }
+
+    #[test]
+    fn t_k10_02_admission_rejects_patient_mismatch_before_store_clock_mutation() {
+        let registry = phase1_registry().unwrap();
+        let mut cross_patient_claim = minimal_observation_claim();
+        cross_patient_claim["subject"]["patientId"] = json!("patient_other");
+        let cross_patient = validate_claim(&cross_patient_claim).unwrap();
+
+        assert_eq!(
+            AppendAdmissibleClaim::admit(&cross_patient, "patient_kernel", &registry).unwrap_err(),
+            AdmissionError::PatientMismatch {
+                target_patient_id: "patient_kernel".to_string(),
+                claim_patient_id: "patient_other".to_string(),
+            }
+        );
+
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let claim = minimal_observation_claim();
+        let admitted = admit_for_test(&claim);
+        let entry = ledger.append_admissible(&admitted).unwrap();
+
+        assert_eq!(entry.accepted.accepted_at, "2026-05-03T12:00:06Z");
+        assert_eq!(entry.accepted.seq, 1);
+    }
+
+    #[test]
+    fn t_k10_03_admission_wraps_predicate_shape_and_object_policy_failures() {
+        let registry = phase1_registry().unwrap();
+        let mut shape_mismatch_claim = minimal_observation_claim();
+        shape_mismatch_claim["shape"] = json!("context");
+        let shape_mismatch = validate_claim(&shape_mismatch_claim).unwrap();
+
+        assert_eq!(
+            AppendAdmissibleClaim::admit(&shape_mismatch, "patient_kernel", &registry).unwrap_err(),
+            AdmissionError::Predicate(PredicateError::ShapeMismatch {
+                predicate_id: "vital.sign".to_string(),
+                expected_shape: "observation".to_string(),
+                actual_shape: "context".to_string(),
+            })
+        );
+
+        let mut invalid_object_claim = minimal_observation_claim();
+        invalid_object_claim["object"]["value"] = json!("eighty-eight");
+        let invalid_object = validate_claim(&invalid_object_claim).unwrap();
+
+        assert_eq!(
+            AppendAdmissibleClaim::admit(&invalid_object, "patient_kernel", &registry).unwrap_err(),
+            AdmissionError::Predicate(PredicateError::InvalidObjectField {
+                predicate_id: "vital.sign".to_string(),
+                field: "value".to_string(),
+                expected: ObjectFieldType::Number,
+            })
+        );
+    }
+
+    #[test]
+    fn t_k10_04_append_admissible_preserves_k3_metadata_hash_and_head_behavior() {
+        let claim = minimal_observation_claim();
+        let admitted = admit_for_test(&claim);
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+
+        let entry = ledger.append_admissible(&admitted).unwrap();
+
+        assert_eq!(entry.accepted.accepted_at, "2026-05-03T12:00:06Z");
+        assert_eq!(entry.accepted.seq, 1);
+        assert_eq!(entry.accepted.batch_id, "batch-000000000001");
+        assert_eq!(entry.record_kind, "claim");
+        assert_eq!(entry.entry_version, 1);
+        assert_eq!(entry.previous_entry_hash, None);
+        assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
+        assert!(is_sha256_hash(&entry.record_hash));
+        assert!(is_sha256_hash(&entry.entry_hash));
+        let entry_hash = entry.entry_hash.clone();
+        assert_eq!(ledger.head_hash(), Some(entry_hash.as_str()));
+    }
+
+    #[test]
+    fn t_k10_05_snapshot_reread_remains_registry_independent() {
+        let claim = minimal_observation_claim();
+        let admitted = admit_for_test(&claim);
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        ledger.append_admissible(&admitted).unwrap();
+        let snapshot = ledger.snapshot();
+        let empty_registry = PredicateRegistry::load(Vec::<PredicateDefinition>::new()).unwrap();
+        let stored_record = snapshot.entries[0].record.clone();
+        let stored_claim = validate_claim(&stored_record).unwrap();
+
+        assert!(matches!(
+            AppendAdmissibleClaim::admit(&stored_claim, "patient_kernel", &empty_registry),
+            Err(AdmissionError::Predicate(
+                PredicateError::UnregisteredPredicate(predicate)
+            )) if predicate == "vital.sign"
+        ));
+
+        let reread = AppendLedger::from_snapshot(snapshot).unwrap();
+        assert_eq!(reread.entries().len(), 1);
+        assert_eq!(reread.entries()[0].record["predicate"], "vital.sign");
+    }
+
+    #[test]
+    fn append_reports_exhausted_store_clock_without_mutating_ledger() {
+        let mut ledger = test_ledger([] as [&str; 0]);
+        let claim = minimal_observation_claim();
+        let admitted = admit_for_test(&claim);
+
+        assert_eq!(
+            ledger.append_admissible(&admitted).unwrap_err(),
             LedgerError::StoreClockExhausted
         );
         assert!(ledger.entries().is_empty());
@@ -583,9 +735,11 @@ mod tests {
     #[test]
     fn t_k7_02_append_rejects_non_canonical_store_accepted_time_without_mutating_ledger() {
         let mut ledger = test_ledger(["2026-05-03T12:00:06+00:00", "2026-05-03T12:00:06Z"]);
+        let claim = minimal_observation_claim();
+        let admitted = admit_for_test(&claim);
 
         assert_eq!(
-            ledger.append(&minimal_observation_claim()).unwrap_err(),
+            ledger.append_admissible(&admitted).unwrap_err(),
             LedgerError::InvalidAcceptedTime {
                 seq: 1,
                 value: "2026-05-03T12:00:06+00:00".to_string(),
@@ -594,7 +748,7 @@ mod tests {
         assert!(ledger.entries().is_empty());
         assert_eq!(ledger.head_hash(), None);
         assert!(matches!(
-            ledger.append(&minimal_observation_claim()),
+            ledger.append_admissible(&admitted),
             Err(LedgerError::InvalidAcceptedTime { seq: 1, .. })
         ));
         assert!(ledger.entries().is_empty());
@@ -845,8 +999,10 @@ mod tests {
 
     fn two_entry_ledger() -> AppendLedger {
         let mut ledger = test_ledger(["2026-05-03T12:00:06Z", "2026-05-03T12:00:07Z"]);
-        ledger.append(&minimal_observation_claim()).unwrap();
-        ledger.append(&second_observation_claim()).unwrap();
+        let first_claim = minimal_observation_claim();
+        append_admitted_for_test(&mut ledger, &first_claim);
+        let second_claim = second_observation_claim();
+        append_admitted_for_test(&mut ledger, &second_claim);
         ledger
     }
 
@@ -856,6 +1012,20 @@ mod tests {
         S: Into<String>,
     {
         AppendLedger::new("patient_kernel", StoreClock::deterministic(accepted_times))
+    }
+
+    fn admit_for_test(claim: &Value) -> AppendAdmissibleClaim<'_> {
+        let validated = validate_claim(claim).unwrap();
+        let registry = phase1_registry().unwrap();
+        AppendAdmissibleClaim::admit(&validated, "patient_kernel", &registry).unwrap()
+    }
+
+    fn append_admitted_for_test<'ledger>(
+        ledger: &'ledger mut AppendLedger,
+        claim: &Value,
+    ) -> &'ledger LedgerEntry {
+        let admitted = admit_for_test(claim);
+        ledger.append_admissible(&admitted).unwrap()
     }
 
     fn minimal_observation_claim() -> Value {
