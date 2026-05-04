@@ -1,6 +1,6 @@
 # Orders, MAR, med rec, I&O, LDA, and open-loop substrate pack
 
-Status: ready-for-agent
+Status: ready-for-human
 Type: AFK
 
 ## Parent
