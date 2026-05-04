@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use crate::hash::RecordHash;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
@@ -8,15 +9,10 @@ pub const CANONICALIZATION_ID: &str = "jcs-rfc8785-pi-chart-v1";
 const IJSON_MAX_SAFE_INTEGER: i64 = 9_007_199_254_740_991;
 const IJSON_MIN_SAFE_INTEGER: i64 = -IJSON_MAX_SAFE_INTEGER;
 
-pub fn record_hash(value: &Value) -> Result<String, String> {
+pub fn record_hash(value: &Value) -> Result<RecordHash, String> {
     let canonical = canonical_json_for_record_hash(value)?;
     let digest = Sha256::digest(canonical.as_bytes());
-    let mut hash = String::with_capacity("sha256:".len() + 64);
-    hash.push_str("sha256:");
-    for byte in digest {
-        hash.push_str(&format!("{byte:02x}"));
-    }
-    Ok(hash)
+    Ok(RecordHash::from_sha256_digest(digest))
 }
 
 pub fn canonical_json(value: &Value) -> Result<String, String> {
@@ -314,11 +310,26 @@ mod tests {
         let hash = record_hash(&claim).unwrap();
 
         assert_eq!(
-            hash,
+            hash.as_str(),
             "sha256:bec0a77fc23f6ca919e6922c2e2ff7d498d38b367048a5ff5f8e7968f6c01a27"
         );
         assert_eq!(record_hash(&claim).unwrap(), hash);
     }
+
+    #[test]
+    fn t_k8_02_record_hash_returns_typed_record_hash_with_existing_golden_vector() {
+        let claim = minimal_observation_claim();
+
+        let hash = record_hash(&claim).unwrap();
+
+        assert_record_hash_type(&hash);
+        assert_eq!(
+            hash.as_str(),
+            "sha256:bec0a77fc23f6ca919e6922c2e2ff7d498d38b367048a5ff5f8e7968f6c01a27"
+        );
+    }
+
+    fn assert_record_hash_type(_: &crate::hash::RecordHash) {}
 
     #[test]
     fn record_hash_excludes_integrity_hash_and_signature_self_fields() {
@@ -430,7 +441,7 @@ mod tests {
         different_id["id"] = serde_json::json!("claim-v0-5-002");
 
         assert_eq!(claim["id"], "claim-v0-5-001");
-        assert_ne!(hash, "claim-v0-5-001");
+        assert_ne!(hash.as_str(), "claim-v0-5-001");
         assert_ne!(record_hash(&different_id).unwrap(), hash);
     }
 

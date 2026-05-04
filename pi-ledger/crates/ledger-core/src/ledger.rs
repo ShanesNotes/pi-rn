@@ -1,5 +1,6 @@
 use crate::canonical::{canonical_json, record_hash};
 use crate::claim::{ClaimError, validate_claim};
+use crate::hash::{EntryHash, RecordHash};
 use crate::time::CanonicalTimestamp;
 
 use serde_json::{Value, json};
@@ -12,6 +13,19 @@ pub const RECORD_KIND_CLAIM: &str = "claim";
 pub enum LedgerError {
     Claim(ClaimError),
     Canonical(String),
+    InvalidRecordHash {
+        seq: u64,
+        field: &'static str,
+        value: String,
+    },
+    InvalidEntryHash {
+        seq: u64,
+        field: &'static str,
+        value: String,
+    },
+    InvalidHeadHash {
+        value: String,
+    },
     SequenceMismatch {
         expected: u64,
         actual: u64,
@@ -165,6 +179,7 @@ impl AppendLedger {
         validate_accepted_at(seq, &accepted_at)?;
         let record_hash = record_hash(claim).map_err(LedgerError::Canonical)?;
         let previous_entry_hash = self.head_hash.clone();
+        let previous_entry_hash_typed = parse_head_hash(self.head_hash.as_deref())?;
         let accepted = AcceptedMetadata {
             accepted_at,
             seq,
@@ -173,14 +188,14 @@ impl AppendLedger {
         let entry_hash = compute_entry_hash(
             claim,
             &record_hash,
-            previous_entry_hash.as_deref(),
+            previous_entry_hash_typed.as_ref(),
             &accepted,
         )?;
         let entry = LedgerEntry {
             record: claim.clone(),
-            record_hash,
+            record_hash: record_hash.into_string(),
             previous_entry_hash,
-            entry_hash,
+            entry_hash: entry_hash.into_string(),
             record_kind: RECORD_KIND_CLAIM.to_string(),
             entry_version: ENTRY_VERSION,
             accepted,
@@ -214,22 +229,22 @@ impl AppendLedger {
 
     pub fn recompute_hashes(&self) -> Result<Vec<RecomputedEntryHashes>, LedgerError> {
         let mut hashes = Vec::with_capacity(self.entries.len());
-        let mut previous_entry_hash: Option<String> = None;
+        let mut previous_entry_hash: Option<EntryHash> = None;
         for entry in &self.entries {
             let recomputed_record_hash =
                 record_hash(&entry.record).map_err(LedgerError::Canonical)?;
             let recomputed_entry_hash = compute_entry_hash_from_parts(
                 &entry.record,
                 &recomputed_record_hash,
-                previous_entry_hash.as_deref(),
+                previous_entry_hash.as_ref(),
                 &entry.accepted,
                 &entry.record_kind,
                 entry.entry_version,
             )?;
             hashes.push(RecomputedEntryHashes {
                 seq: entry.accepted.seq,
-                record_hash: recomputed_record_hash,
-                entry_hash: recomputed_entry_hash.clone(),
+                record_hash: recomputed_record_hash.into_string(),
+                entry_hash: recomputed_entry_hash.as_str().to_string(),
             });
             previous_entry_hash = Some(recomputed_entry_hash);
         }
@@ -237,7 +252,7 @@ impl AppendLedger {
     }
 
     pub fn validate(&self) -> Result<(), LedgerError> {
-        let mut previous_entry_hash: Option<String> = None;
+        let mut previous_entry_hash: Option<EntryHash> = None;
         for (index, entry) in self.entries.iter().enumerate() {
             validate_claim(&entry.record)?;
             self.validate_claim_patient_scope(&entry.record)?;
@@ -269,35 +284,52 @@ impl AppendLedger {
                     actual: entry.accepted.batch_id.clone(),
                 });
             }
-            if entry.previous_entry_hash != previous_entry_hash {
+            let actual_previous_entry_hash = parse_optional_entry_hash(
+                entry.accepted.seq,
+                "previous_entry_hash",
+                entry.previous_entry_hash.as_deref(),
+            )?;
+            if actual_previous_entry_hash != previous_entry_hash {
                 return Err(LedgerError::PreviousEntryHashMismatch {
                     seq: entry.accepted.seq,
-                    expected: previous_entry_hash,
-                    actual: entry.previous_entry_hash.clone(),
+                    expected: optional_entry_hash_string(&previous_entry_hash),
+                    actual: optional_entry_hash_string(&actual_previous_entry_hash),
                 });
             }
             let expected_record_hash =
                 record_hash(&entry.record).map_err(LedgerError::Canonical)?;
-            if entry.record_hash != expected_record_hash {
+            let actual_record_hash =
+                parse_record_hash(entry.accepted.seq, "record_hash", &entry.record_hash)?;
+            if actual_record_hash != expected_record_hash {
                 return Err(LedgerError::RecordHashMismatch {
                     seq: entry.accepted.seq,
-                    expected: expected_record_hash,
-                    actual: entry.record_hash.clone(),
+                    expected: expected_record_hash.as_str().to_string(),
+                    actual: actual_record_hash.into_string(),
                 });
             }
-            let expected_entry_hash = compute_entry_hash_for_entry(entry)?;
-            if entry.entry_hash != expected_entry_hash {
+            let actual_entry_hash =
+                parse_entry_hash(entry.accepted.seq, "entry_hash", &entry.entry_hash)?;
+            let expected_entry_hash = compute_entry_hash_from_parts(
+                &entry.record,
+                &expected_record_hash,
+                actual_previous_entry_hash.as_ref(),
+                &entry.accepted,
+                &entry.record_kind,
+                entry.entry_version,
+            )?;
+            if actual_entry_hash != expected_entry_hash {
                 return Err(LedgerError::EntryHashMismatch {
                     seq: entry.accepted.seq,
-                    expected: expected_entry_hash,
-                    actual: entry.entry_hash.clone(),
+                    expected: expected_entry_hash.into_string(),
+                    actual: actual_entry_hash.into_string(),
                 });
             }
-            previous_entry_hash = Some(entry.entry_hash.clone());
+            previous_entry_hash = Some(actual_entry_hash);
         }
-        if self.head_hash != previous_entry_hash {
+        let actual_head_hash = parse_head_hash(self.head_hash.as_deref())?;
+        if actual_head_hash != previous_entry_hash {
             return Err(LedgerError::HeadHashMismatch {
-                expected: previous_entry_hash,
+                expected: optional_entry_hash_string(&previous_entry_hash),
                 actual: self.head_hash.clone(),
             });
         }
@@ -336,12 +368,56 @@ fn validate_accepted_at(seq: u64, value: &str) -> Result<(), LedgerError> {
     Ok(())
 }
 
+fn parse_record_hash(
+    seq: u64,
+    field: &'static str,
+    value: &str,
+) -> Result<RecordHash, LedgerError> {
+    RecordHash::parse(value).map_err(|_| LedgerError::InvalidRecordHash {
+        seq,
+        field,
+        value: value.to_string(),
+    })
+}
+
+fn parse_entry_hash(seq: u64, field: &'static str, value: &str) -> Result<EntryHash, LedgerError> {
+    EntryHash::parse(value).map_err(|_| LedgerError::InvalidEntryHash {
+        seq,
+        field,
+        value: value.to_string(),
+    })
+}
+
+fn parse_optional_entry_hash(
+    seq: u64,
+    field: &'static str,
+    value: Option<&str>,
+) -> Result<Option<EntryHash>, LedgerError> {
+    value
+        .map(|hash| parse_entry_hash(seq, field, hash))
+        .transpose()
+}
+
+fn parse_head_hash(value: Option<&str>) -> Result<Option<EntryHash>, LedgerError> {
+    value
+        .map(|hash| {
+            EntryHash::parse(hash).map_err(|_| LedgerError::InvalidHeadHash {
+                value: hash.to_string(),
+            })
+        })
+        .transpose()
+}
+
+fn optional_entry_hash_string(value: &Option<EntryHash>) -> Option<String> {
+    value.as_ref().map(|hash| hash.as_str().to_string())
+}
+
 fn compute_entry_hash(
     record: &Value,
-    record_hash: &str,
-    previous_entry_hash: Option<&str>,
+    record_hash: &RecordHash,
+    previous_entry_hash: Option<&EntryHash>,
     accepted: &AcceptedMetadata,
-) -> Result<String, LedgerError> {
+) -> Result<EntryHash, LedgerError> {
     compute_entry_hash_from_parts(
         record,
         record_hash,
@@ -352,25 +428,15 @@ fn compute_entry_hash(
     )
 }
 
-fn compute_entry_hash_for_entry(entry: &LedgerEntry) -> Result<String, LedgerError> {
-    compute_entry_hash_from_parts(
-        &entry.record,
-        &entry.record_hash,
-        entry.previous_entry_hash.as_deref(),
-        &entry.accepted,
-        &entry.record_kind,
-        entry.entry_version,
-    )
-}
-
 fn compute_entry_hash_from_parts(
     record: &Value,
-    record_hash: &str,
-    previous_entry_hash: Option<&str>,
+    record_hash: &RecordHash,
+    previous_entry_hash: Option<&EntryHash>,
     accepted: &AcceptedMetadata,
     record_kind: &str,
     entry_version: u32,
-) -> Result<String, LedgerError> {
+) -> Result<EntryHash, LedgerError> {
+    let previous_entry_hash = previous_entry_hash.map(EntryHash::as_str);
     let payload = json!({
         "accepted": {
             "accepted_at": accepted.accepted_at,
@@ -380,17 +446,12 @@ fn compute_entry_hash_from_parts(
         "entry_version": entry_version,
         "previous_entry_hash": previous_entry_hash,
         "record": record,
-        "record_hash": record_hash,
+        "record_hash": record_hash.as_str(),
         "record_kind": record_kind,
     });
     let canonical = canonical_json(&payload).map_err(LedgerError::Canonical)?;
     let digest = Sha256::digest(canonical.as_bytes());
-    let mut hash = String::with_capacity("sha256:".len() + 64);
-    hash.push_str("sha256:");
-    for byte in digest {
-        hash.push_str(&format!("{byte:02x}"));
-    }
-    Ok(hash)
+    Ok(EntryHash::from_sha256_digest(digest))
 }
 
 #[cfg(test)]
@@ -412,7 +473,7 @@ mod tests {
         assert_eq!(entry.record_kind, "claim");
         assert_eq!(entry.entry_version, 1);
         assert_eq!(entry.previous_entry_hash, None);
-        assert_eq!(entry.record_hash, record_hash(&claim).unwrap());
+        assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
         assert!(is_sha256_hash(&entry.record_hash));
         assert!(is_sha256_hash(&entry.entry_hash));
         let entry_hash = entry.entry_hash.clone();
@@ -605,6 +666,74 @@ mod tests {
     }
 
     #[test]
+    fn t_k8_04_validation_rejects_malformed_hash_strings_at_typed_boundaries() {
+        let mut invalid_record_hash = two_entry_ledger().snapshot();
+        invalid_record_hash.entries[0].record_hash =
+            "sha256:0123456789abcdef0123456789ABCDEF0123456789abcdef0123456789abcdef".to_string();
+        assert_eq!(
+            AppendLedger::from_snapshot(invalid_record_hash).unwrap_err(),
+            LedgerError::InvalidRecordHash {
+                seq: 1,
+                field: "record_hash",
+                value: "sha256:0123456789abcdef0123456789ABCDEF0123456789abcdef0123456789abcdef"
+                    .to_string(),
+            }
+        );
+
+        let mut invalid_previous_entry_hash = two_entry_ledger().snapshot();
+        invalid_previous_entry_hash.entries[1].previous_entry_hash =
+            Some("sha256:short".to_string());
+        assert_eq!(
+            AppendLedger::from_snapshot(invalid_previous_entry_hash).unwrap_err(),
+            LedgerError::InvalidEntryHash {
+                seq: 2,
+                field: "previous_entry_hash",
+                value: "sha256:short".to_string(),
+            }
+        );
+
+        let mut invalid_entry_hash = two_entry_ledger().snapshot();
+        invalid_entry_hash.entries[0].entry_hash =
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_string();
+        assert_eq!(
+            AppendLedger::from_snapshot(invalid_entry_hash).unwrap_err(),
+            LedgerError::InvalidEntryHash {
+                seq: 1,
+                field: "entry_hash",
+                value: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                    .to_string(),
+            }
+        );
+
+        let mut invalid_head_hash = two_entry_ledger().snapshot();
+        invalid_head_hash.head_hash = Some(
+            "sha256:0123456789abcdef0123456789abcdeg0123456789abcdef0123456789abcdef".to_string(),
+        );
+        assert_eq!(
+            AppendLedger::from_snapshot(invalid_head_hash).unwrap_err(),
+            LedgerError::InvalidHeadHash {
+                value: "sha256:0123456789abcdef0123456789abcdeg0123456789abcdef0123456789abcdef"
+                    .to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn t_k8_04_recomputed_hashes_round_trip_through_distinct_typed_hashes() {
+        let ledger = two_entry_ledger();
+
+        let recomputed = ledger.recompute_hashes().unwrap();
+
+        for hashes in recomputed {
+            let record_hash = crate::hash::RecordHash::parse(&hashes.record_hash).unwrap();
+            let entry_hash = crate::hash::EntryHash::parse(&hashes.entry_hash).unwrap();
+
+            assert_eq!(record_hash.as_str(), hashes.record_hash.as_str());
+            assert_eq!(entry_hash.as_str(), hashes.entry_hash.as_str());
+        }
+    }
+
+    #[test]
     fn t_rebuild_01_rereading_ledger_is_deterministic() {
         let snapshot = two_entry_ledger().snapshot();
 
@@ -683,13 +812,7 @@ mod tests {
     }
 
     fn is_sha256_hash(hash: &str) -> bool {
-        let Some(hex) = hash.strip_prefix("sha256:") else {
-            return false;
-        };
-        hex.len() == 64
-            && hex
-                .bytes()
-                .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+        crate::hash::EntryHash::parse(hash).is_ok()
     }
 
     fn two_entry_ledger() -> AppendLedger {

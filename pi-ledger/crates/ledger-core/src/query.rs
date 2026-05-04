@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use crate::hash::RecordHash;
 use crate::ledger::LedgerEntry;
 use crate::time::{CanonicalTimestamp, TimeError, ValidTimeExpression};
 
@@ -48,7 +49,12 @@ pub fn point_read<'a>(
         .collect();
     let entries = candidates
         .into_iter()
-        .filter(|entry| !hidden_targets.contains(&(claim_id(entry), entry.record_hash.clone())))
+        .filter(|entry| {
+            let Ok(record_hash) = RecordHash::parse(&entry.record_hash) else {
+                return true;
+            };
+            !hidden_targets.contains(&(claim_id(entry), record_hash))
+        })
         .collect();
     Ok(PointReadView { entries })
 }
@@ -100,14 +106,14 @@ fn invalid_valid_time_value(error: TimeError) -> String {
     }
 }
 
-fn revision_target(entry: &LedgerEntry) -> Option<(String, String)> {
+fn revision_target(entry: &LedgerEntry) -> Option<(String, RecordHash)> {
     let revises = entry.record.get("revises")?.as_object()?;
     if revises.get("mode")?.as_str()? != "corrects" {
         return None;
     }
     let target = revises.get("target")?.as_object()?;
     let id = target.get("id")?.as_str()?.to_string();
-    let hash = target.get("hash")?.as_str()?.to_string();
+    let hash = RecordHash::parse(target.get("hash")?.as_str()?).ok()?;
     Some((id, hash))
 }
 
@@ -370,6 +376,29 @@ mod tests {
     fn correction_hiding_requires_corrects_mode() {
         let mut snapshot = correction_ledger().snapshot();
         snapshot.entries[1].record["revises"]["mode"] = json!("amends");
+
+        let view = point_read(
+            &snapshot.entries,
+            "2026-05-03T12:30:00Z",
+            "2026-05-03T13:30:00Z",
+        )
+        .unwrap();
+
+        assert_eq!(
+            claim_ids(view.entries()),
+            vec![
+                "claim-hr-original".to_string(),
+                "claim-hr-correction".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn t_k8_05_correction_hiding_requires_typed_record_hash_targets() {
+        let mut snapshot = correction_ledger().snapshot();
+        snapshot.entries[0].record_hash = "sha256:not-a-valid-record-hash".to_string();
+        snapshot.entries[1].record["revises"]["target"]["hash"] =
+            json!("sha256:not-a-valid-record-hash");
 
         let view = point_read(
             &snapshot.entries,

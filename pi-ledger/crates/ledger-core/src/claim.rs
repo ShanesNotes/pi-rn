@@ -1,4 +1,5 @@
 use crate::canonical::canonical_json;
+use crate::hash::RecordHash;
 use crate::time::{CanonicalTimestamp, ValidTimeExpression};
 
 use serde_json::Value;
@@ -44,33 +45,6 @@ impl ClaimShape {
             "act" => Ok(Self::Act),
             unsupported => Err(ClaimError::UnsupportedShape(unsupported.to_string())),
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RecordHash<'a>(&'a str);
-
-impl<'a> RecordHash<'a> {
-    pub fn parse(value: &'a str) -> Result<Self, ClaimError> {
-        Self::parse_from_field(value, "record_hash")
-    }
-
-    pub fn as_str(&self) -> &'a str {
-        self.0
-    }
-
-    fn parse_from_field(value: &'a str, field: &'static str) -> Result<Self, ClaimError> {
-        let Some(hex) = value.strip_prefix("sha256:") else {
-            return Err(ClaimError::InvalidRecordHash(field));
-        };
-        if hex.len() != 64
-            || !hex
-                .bytes()
-                .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
-        {
-            return Err(ClaimError::InvalidRecordHash(field));
-        }
-        Ok(Self(value))
     }
 }
 
@@ -179,7 +153,7 @@ fn validate_revises(value: &Value) -> Result<(), ClaimError> {
         .get("hash")
         .and_then(Value::as_str)
         .ok_or(ClaimError::MissingField("revises.target.hash"))?;
-    RecordHash::parse_from_field(hash, "revises.target.hash")?;
+    RecordHash::parse(hash).map_err(|_| ClaimError::InvalidRecordHash("revises.target.hash"))?;
     Ok(())
 }
 
@@ -478,6 +452,38 @@ mod tests {
             validate_claim(&correction).unwrap_err(),
             ClaimError::InvalidRecordHash("revises.target.hash")
         );
+    }
+
+    #[test]
+    fn t_k8_03_claim_correction_target_hash_uses_shared_record_hash_rule() {
+        let shared_hash = crate::hash::RecordHash::parse(
+            "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .unwrap();
+        let mut correction = minimal_observation_claim();
+        correction["revises"] = json!({
+            "mode": "corrects",
+            "target": {
+                "id": "claim-v0-5-000",
+                "hash": shared_hash.as_str()
+            }
+        });
+
+        validate_claim(&correction).unwrap();
+
+        for invalid_hash in [
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "sha256:0123456789abcdef",
+            "sha256:0123456789abcdef0123456789ABCDEF0123456789abcdef0123456789abcdef",
+            "sha256:0123456789abcdef0123456789abcdeg0123456789abcdef0123456789abcdef",
+        ] {
+            correction["revises"]["target"]["hash"] = json!(invalid_hash);
+
+            assert_eq!(
+                validate_claim(&correction).unwrap_err(),
+                ClaimError::InvalidRecordHash("revises.target.hash")
+            );
+        }
     }
 
     #[test]
