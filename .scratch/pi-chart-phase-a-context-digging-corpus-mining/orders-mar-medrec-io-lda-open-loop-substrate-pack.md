@@ -80,4 +80,11 @@ Authority stance: source artifacts express clinical/function intent; brownfield 
 
 ## Verification record
 
-- Pending final command closeout in worker handoff: structural row check, `git diff --check`, `git status --short`, and package verification where applicable.
+- Structural row check: `python3 - <<PY ...` — PASS, 10 recommendation rows with 13 columns each and valid reconciliation states.
+- Status check: `grep -n ^Status: issues/07 ... issues/{11,12,13,14}-*.md` — PASS, issue 07 is `ready-for-human`; issues 11-14 remain `needs-triage`.
+- Whitespace/lint equivalent: `git diff --check` — PASS.
+- Typecheck: `cd pi-chart && npm run typecheck` — PASS.
+- Tests: `cd pi-chart && npm test` — PASS, 389/389 tests.
+- Typecheck: `cd pi-sim && npm run typecheck` — PASS.
+- Tests: `cd pi-sim && npm test` — PASS, runtime, scripted scenario validation, and public contract reader checks passed.
+- Git status before final amend: expected docs-only changes under `.scratch/pi-chart-phase-a-context-digging-corpus-mining/` plus prior auto-checkpoint commit to amend with Lore trailers.
