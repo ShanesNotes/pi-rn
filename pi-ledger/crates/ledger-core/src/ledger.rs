@@ -1,4 +1,4 @@
-use crate::admission::AppendAdmissibleClaim;
+use crate::admission::{AppendAdmissibleClaim, RevisionAdmissibleClaim};
 use crate::canonical::{canonical_json, record_hash};
 use crate::claim::{ClaimError, ValidatedClaim, validate_claim};
 use crate::hash::{EntryHash, RecordHash};
@@ -62,6 +62,9 @@ pub enum LedgerError {
     PatientMismatch {
         ledger_patient_id: String,
         claim_patient_id: String,
+    },
+    RevisionAdmissionRequired {
+        claim_id: String,
     },
     StoreClockExhausted,
     InvalidAcceptedTime {
@@ -181,18 +184,36 @@ impl AppendLedger {
                 claim_patient_id: claim.patient_id().to_string(),
             });
         }
-        self.append_record_without_predicate_admission(claim.raw())
+        if claim.revision_target().is_some() {
+            return Err(LedgerError::RevisionAdmissionRequired {
+                claim_id: claim.id().to_string(),
+            });
+        }
+        self.append_record_without_predicate_or_revision_admission(claim.raw())
     }
 
-    pub fn append_without_predicate_admission(
+    pub fn append_revision_admissible(
+        &mut self,
+        claim: &RevisionAdmissibleClaim<'_>,
+    ) -> Result<&LedgerEntry, LedgerError> {
+        if claim.target_patient_id() != self.patient_id {
+            return Err(LedgerError::PatientMismatch {
+                ledger_patient_id: self.patient_id.clone(),
+                claim_patient_id: claim.patient_id().to_string(),
+            });
+        }
+        self.append_record_without_predicate_or_revision_admission(claim.raw())
+    }
+
+    pub fn append_without_predicate_or_revision_admission(
         &mut self,
         claim: &ValidatedClaim<'_>,
     ) -> Result<&LedgerEntry, LedgerError> {
         self.validate_claim_patient_scope(claim)?;
-        self.append_record_without_predicate_admission(claim.raw())
+        self.append_record_without_predicate_or_revision_admission(claim.raw())
     }
 
-    fn append_record_without_predicate_admission(
+    fn append_record_without_predicate_or_revision_admission(
         &mut self,
         claim: &Value,
     ) -> Result<&LedgerEntry, LedgerError> {
@@ -471,7 +492,7 @@ fn compute_entry_hash_from_parts(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admission::{AdmissionError, AppendAdmissibleClaim};
+    use crate::admission::{AdmissionError, AppendAdmissibleClaim, RevisionAdmissibleClaim};
     use crate::canonical::{CANONICALIZATION_ID, record_hash};
     use crate::predicates::{
         ObjectFieldType, PredicateDefinition, PredicateError, PredicateRegistry, phase1_registry,
@@ -565,13 +586,13 @@ mod tests {
     }
 
     #[test]
-    fn t_k9_02_append_validated_claim_uses_claim_field_authority_for_patient_scope() {
+    fn t_k9_02_bypass_append_uses_claim_field_authority_for_patient_scope() {
         let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
         let claim = minimal_observation_claim();
         let validated = validate_claim(&claim).unwrap();
 
         let entry = ledger
-            .append_without_predicate_admission(&validated)
+            .append_without_predicate_or_revision_admission(&validated)
             .unwrap();
 
         assert_eq!(entry.record["id"], "claim-v0-5-001");
@@ -580,7 +601,7 @@ mod tests {
     }
 
     #[test]
-    fn t_k9_02_append_validated_claim_rejects_cross_patient_without_raw_patient_pointer_reread() {
+    fn t_k9_02_bypass_append_rejects_cross_patient_without_raw_patient_pointer_reread() {
         let mut claim = minimal_observation_claim();
         claim["subject"]["patientId"] = json!("patient_other");
         let validated = validate_claim(&claim).unwrap();
@@ -588,7 +609,7 @@ mod tests {
 
         assert_eq!(
             ledger
-                .append_without_predicate_admission(&validated)
+                .append_without_predicate_or_revision_admission(&validated)
                 .unwrap_err(),
             LedgerError::PatientMismatch {
                 ledger_patient_id: "patient_kernel".to_string(),
@@ -614,7 +635,7 @@ mod tests {
 
         let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
         let entry = ledger
-            .append_without_predicate_admission(&validated)
+            .append_without_predicate_or_revision_admission(&validated)
             .unwrap();
 
         assert_eq!(entry.record["predicate"], "unregistered.synthetic");
@@ -717,6 +738,178 @@ mod tests {
         let reread = AppendLedger::from_snapshot(snapshot).unwrap();
         assert_eq!(reread.entries().len(), 1);
         assert_eq!(reread.entries()[0].record["predicate"], "vital.sign");
+    }
+
+    #[test]
+    fn t_k11_01_dangling_correction_requires_revision_admission_before_append() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let target_hash = synthetic_record_hash('a');
+        let correction = correction_claim("claim-missing", target_hash.as_str());
+        let admitted = admit_for_test(&correction);
+
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, ledger.entries()).unwrap_err(),
+            AdmissionError::CorrectionTargetNotFound {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+                target_id: "claim-missing".to_string(),
+                target_hash,
+            }
+        );
+        assert_eq!(
+            ledger.append_admissible(&admitted).unwrap_err(),
+            LedgerError::RevisionAdmissionRequired {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+            }
+        );
+        assert!(ledger.entries().is_empty());
+        assert_eq!(ledger.head_hash(), None);
+
+        let entry = append_admitted_for_test(&mut ledger, &minimal_observation_claim());
+        assert_eq!(entry.accepted.accepted_at, "2026-05-03T12:00:06Z");
+        assert_eq!(entry.accepted.seq, 1);
+    }
+
+    #[test]
+    fn t_k11_02_right_target_id_with_wrong_record_hash_is_rejected_before_clock_mutation() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z", "2026-05-03T12:00:07Z"]);
+        let base_claim = minimal_observation_claim();
+        append_admitted_for_test(&mut ledger, &base_claim);
+        let wrong_hash = synthetic_record_hash('f');
+        let correction = correction_claim("claim-v0-5-001", wrong_hash.as_str());
+        let admitted = admit_for_test(&correction);
+
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, ledger.entries()).unwrap_err(),
+            AdmissionError::CorrectionTargetNotFound {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+                target_id: "claim-v0-5-001".to_string(),
+                target_hash: wrong_hash,
+            }
+        );
+        assert_eq!(
+            ledger.append_admissible(&admitted).unwrap_err(),
+            LedgerError::RevisionAdmissionRequired {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+            }
+        );
+
+        let second_claim = second_observation_claim();
+        let second = append_admitted_for_test(&mut ledger, &second_claim);
+        assert_eq!(second.accepted.accepted_at, "2026-05-03T12:00:07Z");
+        assert_eq!(second.accepted.seq, 2);
+    }
+
+    #[test]
+    fn t_k11_03_revision_admission_rejects_base_claims_and_base_append_still_succeeds() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let base_claim = minimal_observation_claim();
+        let admitted = admit_for_test(&base_claim);
+
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, ledger.entries()).unwrap_err(),
+            AdmissionError::ExpectedCorrectionClaim {
+                claim_id: "claim-v0-5-001".to_string(),
+            }
+        );
+
+        let entry = ledger.append_admissible(&admitted).unwrap();
+        assert_eq!(entry.record["id"], "claim-v0-5-001");
+        assert_eq!(entry.accepted.seq, 1);
+    }
+
+    #[test]
+    fn t_k11_04_revision_admitted_correction_appends_with_k3_metadata_and_links() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z", "2026-05-03T12:00:07Z"]);
+        let base_claim = minimal_observation_claim();
+        let base_entry = append_admitted_for_test(&mut ledger, &base_claim);
+        let target_record_hash = base_entry.record_hash.clone();
+        let base_entry_hash = base_entry.entry_hash.clone();
+        let correction = correction_claim("claim-v0-5-001", &target_record_hash);
+        let admitted = admit_for_test(&correction);
+
+        assert_eq!(
+            ledger.append_admissible(&admitted).unwrap_err(),
+            LedgerError::RevisionAdmissionRequired {
+                claim_id: "claim-v0-5-001-correction".to_string(),
+            }
+        );
+        let revision_admitted =
+            RevisionAdmissibleClaim::admit(&admitted, ledger.entries()).unwrap();
+
+        let correction_entry = ledger
+            .append_revision_admissible(&revision_admitted)
+            .unwrap();
+
+        assert_eq!(correction_entry.record["id"], "claim-v0-5-001-correction");
+        assert_eq!(
+            correction_entry.accepted.accepted_at,
+            "2026-05-03T12:00:07Z"
+        );
+        assert_eq!(correction_entry.accepted.seq, 2);
+        assert_eq!(correction_entry.accepted.batch_id, "batch-000000000002");
+        assert_eq!(correction_entry.previous_entry_hash, Some(base_entry_hash));
+        assert_eq!(
+            correction_entry.record_hash,
+            record_hash(&correction).unwrap().as_str()
+        );
+        let correction_entry_hash = correction_entry.entry_hash.clone();
+        assert_eq!(ledger.head_hash(), Some(correction_entry_hash.as_str()));
+    }
+
+    #[test]
+    fn t_k11_05_revision_admission_rejects_corrupt_target_hash_storage() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let base_claim = minimal_observation_claim();
+        let target_hash = append_admitted_for_test(&mut ledger, &base_claim)
+            .record_hash
+            .clone();
+        let correction = correction_claim("claim-v0-5-001", &target_hash);
+        let admitted = admit_for_test(&correction);
+
+        let mut malformed_entries = ledger.snapshot().entries;
+        malformed_entries[0].record_hash = "sha256:not-a-record-hash".to_string();
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, &malformed_entries).unwrap_err(),
+            AdmissionError::MalformedStoredTargetRecordHash {
+                seq: 1,
+                claim_id: "claim-v0-5-001".to_string(),
+                value: "sha256:not-a-record-hash".to_string(),
+            }
+        );
+
+        let mut mismatched_entries = ledger.snapshot().entries;
+        let wrong_stored_hash = synthetic_record_hash('f');
+        mismatched_entries[0].record_hash = wrong_stored_hash.as_str().to_string();
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, &mismatched_entries).unwrap_err(),
+            AdmissionError::StoredTargetRecordHashMismatch {
+                seq: 1,
+                claim_id: "claim-v0-5-001".to_string(),
+                stored: wrong_stored_hash,
+                recomputed: RecordHash::parse(&target_hash).unwrap(),
+            }
+        );
+    }
+
+    #[test]
+    fn t_k11_06_revision_admission_validates_target_records_before_matching() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let base_claim = minimal_observation_claim();
+        let target_hash = append_admitted_for_test(&mut ledger, &base_claim)
+            .record_hash
+            .clone();
+        let correction = correction_claim("claim-v0-5-001", &target_hash);
+        let admitted = admit_for_test(&correction);
+        let mut entries = ledger.snapshot().entries;
+        entries[0].record["shape"] = json!("relation");
+
+        assert_eq!(
+            RevisionAdmissibleClaim::admit(&admitted, &entries).unwrap_err(),
+            AdmissionError::InvalidTargetClaim {
+                seq: 1,
+                error: ClaimError::UnsupportedShape("relation".to_string()),
+            }
+        );
     }
 
     #[test]
@@ -1026,6 +1219,27 @@ mod tests {
     ) -> &'ledger LedgerEntry {
         let admitted = admit_for_test(claim);
         ledger.append_admissible(&admitted).unwrap()
+    }
+
+    fn synthetic_record_hash(hex_digit: char) -> RecordHash {
+        let hex = std::iter::repeat_n(hex_digit, 64).collect::<String>();
+        RecordHash::parse(format!("sha256:{hex}")).unwrap()
+    }
+
+    fn correction_claim(target_id: &str, target_hash: &str) -> Value {
+        let mut claim = minimal_observation_claim();
+        claim["id"] = json!("claim-v0-5-001-correction");
+        claim["object"]["value"] = json!(90);
+        claim["time"]["valid"]["instant"] = json!("2026-05-03T12:02:00Z");
+        claim["time"]["recorded_at"] = json!("2026-05-03T12:02:05Z");
+        claim["revises"] = json!({
+            "mode": "corrects",
+            "target": {
+                "id": target_id,
+                "hash": target_hash
+            }
+        });
+        claim
     }
 
     fn minimal_observation_claim() -> Value {

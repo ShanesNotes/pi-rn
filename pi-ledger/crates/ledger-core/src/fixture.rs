@@ -1,4 +1,4 @@
-use crate::admission::{AdmissionError, AppendAdmissibleClaim};
+use crate::admission::{AdmissionError, AppendAdmissibleClaim, RevisionAdmissibleClaim};
 use crate::canonical::CANONICALIZATION_ID;
 use crate::claim::{ClaimError, validate_claim};
 use crate::ledger::{AppendLedger, LedgerError, StoreClock};
@@ -113,7 +113,7 @@ pub fn phase1_fixture() -> Result<Phase1Fixture, FixtureError> {
 
     let original_observation_hash = ledger.entries()[1].record_hash.clone();
     let correction_claim = correction_claim(&original_observation_hash);
-    append_admitted_claim(&mut ledger, &registry, &correction_claim)?;
+    append_revision_admitted_claim(&mut ledger, &registry, &correction_claim)?;
 
     Ok(Phase1Fixture {
         patient_id: GENERATED_PATIENT_ID.to_string(),
@@ -133,6 +133,18 @@ fn append_admitted_claim(
     let validated = validate_claim(claim)?;
     let admitted = AppendAdmissibleClaim::admit(&validated, ledger.patient_id(), registry)?;
     ledger.append_admissible(&admitted)?;
+    Ok(())
+}
+
+fn append_revision_admitted_claim(
+    ledger: &mut AppendLedger,
+    registry: &PredicateRegistry,
+    claim: &Value,
+) -> Result<(), FixtureError> {
+    let validated = validate_claim(claim)?;
+    let append_admitted = AppendAdmissibleClaim::admit(&validated, ledger.patient_id(), registry)?;
+    let revision_admitted = RevisionAdmissibleClaim::admit(&append_admitted, ledger.entries())?;
+    ledger.append_revision_admissible(&revision_admitted)?;
     Ok(())
 }
 
@@ -241,7 +253,7 @@ fn correction_claim(target_hash: &str) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::admission::AppendAdmissibleClaim;
+    use crate::admission::{AppendAdmissibleClaim, RevisionAdmissibleClaim};
     use crate::query::point_read;
     use std::collections::BTreeSet;
 
@@ -282,6 +294,28 @@ mod tests {
             assert_eq!(admitted.target_patient_id(), GENERATED_PATIENT_ID);
             assert_eq!(admitted.patient_id(), GENERATED_PATIENT_ID);
         }
+    }
+
+    #[test]
+    fn t_k11_07_fixture_correction_has_an_explicit_revision_admission_path() {
+        let fixture = phase1_fixture().unwrap();
+        let validated = validate_claim(fixture.correction_claim()).unwrap();
+        let append_admitted =
+            AppendAdmissibleClaim::admit(&validated, fixture.patient_id(), fixture.registry())
+                .unwrap();
+        let base_entries = &fixture.ledger().entries()[..fixture.base_claims().len()];
+
+        let revision_admitted =
+            RevisionAdmissibleClaim::admit(&append_admitted, base_entries).unwrap();
+
+        assert_eq!(
+            revision_admitted.id(),
+            "claim-generated-observation-correction"
+        );
+        assert_eq!(
+            revision_admitted.revision_target().id(),
+            "claim-generated-observation-original"
+        );
     }
 
     #[test]

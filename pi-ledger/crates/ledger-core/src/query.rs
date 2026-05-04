@@ -192,7 +192,10 @@ mod tests {
     #[test]
     fn t_k5_01_valid_at_filters_valid_intervals_at_the_requested_point() {
         let mut ledger = test_ledger(["2026-05-03T12:00:10Z"]);
-        append_without_predicate_admission_for_query_test(&mut ledger, &encounter_context_claim());
+        append_without_predicate_or_revision_admission_for_query_test(
+            &mut ledger,
+            &encounter_context_claim(),
+        );
 
         let during_encounter = point_read(
             ledger.entries(),
@@ -261,7 +264,7 @@ mod tests {
     #[test]
     fn rejects_non_canonical_claim_valid_timestamps() {
         let mut instant_ledger = test_ledger(["2026-05-03T12:00:10Z"]);
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut instant_ledger,
             &observation_claim("claim-offset-valid", 88, "2026-05-03T12:00:00Z"),
         );
@@ -284,7 +287,10 @@ mod tests {
         let mut interval_ledger = test_ledger(["2026-05-03T12:00:10Z"]);
         let mut interval_claim = encounter_context_claim();
         interval_claim["id"] = json!("claim-bad-interval");
-        append_without_predicate_admission_for_query_test(&mut interval_ledger, &interval_claim);
+        append_without_predicate_or_revision_admission_for_query_test(
+            &mut interval_ledger,
+            &interval_claim,
+        );
         let mut interval_entries = interval_ledger.snapshot().entries;
         interval_entries[0].record["time"]["valid"]["interval"]["end"] =
             json!("2026-05-03T13:00:00+00:00");
@@ -306,7 +312,7 @@ mod tests {
     #[test]
     fn rejects_non_canonical_accepted_times() {
         let mut ledger = test_ledger(["2026-05-03T12:00:10Z"]);
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &observation_claim("claim-bad-accepted", 88, "2026-05-03T12:00:00Z"),
         );
@@ -325,11 +331,11 @@ mod tests {
     #[test]
     fn t_k5_02_normal_future_accepted_claim_is_invisible_at_known_at() {
         let mut ledger = test_ledger(["2026-05-03T12:00:10Z", "2026-05-03T13:00:10Z"]);
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &observation_claim("claim-known-now", 88, "2026-05-03T12:00:00Z"),
         );
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &observation_claim("claim-known-later", 89, "2026-05-03T12:05:00Z"),
         );
@@ -353,7 +359,7 @@ mod tests {
         let mut claim =
             observation_claim("claim-recorded-before-known", 88, "2026-05-03T12:00:00Z");
         claim["time"]["recorded_at"] = json!("2026-05-03T11:00:00Z");
-        append_without_predicate_admission_for_query_test(&mut ledger, &claim);
+        append_without_predicate_or_revision_admission_for_query_test(&mut ledger, &claim);
 
         let before_acceptance = point_read(
             ledger.entries(),
@@ -494,11 +500,11 @@ mod tests {
 
     fn two_observation_ledger() -> AppendLedger {
         let mut ledger = test_ledger(["2026-05-03T12:00:10Z", "2026-05-03T13:00:10Z"]);
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &observation_claim("claim-hr-1", 88, "2026-05-03T12:00:00Z"),
         );
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &observation_claim("claim-hr-2", 90, "2026-05-03T13:00:00Z"),
         );
@@ -507,13 +513,13 @@ mod tests {
 
     fn correction_ledger() -> AppendLedger {
         let mut ledger = test_ledger(["2026-05-03T12:00:10Z", "2026-05-03T13:00:10Z"]);
-        let original_hash = append_without_predicate_admission_for_query_test(
+        let original_hash = append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &observation_claim("claim-hr-original", 88, "2026-05-03T12:00:00Z"),
         )
         .record_hash
         .clone();
-        append_without_predicate_admission_for_query_test(
+        append_without_predicate_or_revision_admission_for_query_test(
             &mut ledger,
             &correction_claim(
                 "claim-hr-correction",
@@ -534,13 +540,13 @@ mod tests {
         AppendLedger::new("patient_kernel", StoreClock::deterministic(accepted_times))
     }
 
-    fn append_without_predicate_admission_for_query_test<'ledger>(
+    fn append_without_predicate_or_revision_admission_for_query_test<'ledger>(
         ledger: &'ledger mut AppendLedger,
         claim: &Value,
     ) -> &'ledger LedgerEntry {
         let validated = validate_claim(claim).unwrap();
         ledger
-            .append_without_predicate_admission(&validated)
+            .append_without_predicate_or_revision_admission(&validated)
             .unwrap()
     }
 
