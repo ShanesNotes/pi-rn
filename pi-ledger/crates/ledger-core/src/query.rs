@@ -6,10 +6,26 @@ use crate::time::{CanonicalTimestamp, TimeError, ValidTimeExpression};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum QueryError {
-    InvalidQueryTime { field: &'static str, value: String },
-    MissingValidTime { claim_id: String },
-    InvalidValidTime { claim_id: String, value: String },
-    InvalidAcceptedTime { claim_id: String, value: String },
+    InvalidQueryTime {
+        field: &'static str,
+        value: String,
+    },
+    MissingValidTime {
+        claim_id: String,
+    },
+    InvalidValidTime {
+        claim_id: String,
+        value: String,
+    },
+    InvalidAcceptedTime {
+        claim_id: String,
+        value: String,
+    },
+    InvalidRecordHash {
+        claim_id: String,
+        field: &'static str,
+        value: String,
+    },
 }
 
 #[derive(Debug, PartialEq)]
@@ -43,19 +59,19 @@ pub fn point_read<'a>(
         }
     }
 
-    let hidden_targets: BTreeSet<_> = candidates
-        .iter()
-        .filter_map(|entry| revision_target(entry))
-        .collect();
-    let entries = candidates
-        .into_iter()
-        .filter(|entry| {
-            let Ok(record_hash) = RecordHash::parse(&entry.record_hash) else {
-                return true;
-            };
-            !hidden_targets.contains(&(claim_id(entry), record_hash))
-        })
-        .collect();
+    let mut hidden_targets = BTreeSet::new();
+    for entry in &candidates {
+        if let Some(target) = revision_target(entry)? {
+            hidden_targets.insert(target);
+        }
+    }
+    let mut entries = Vec::new();
+    for entry in candidates {
+        let key = (claim_id(entry), entry_record_hash(entry)?);
+        if !hidden_targets.contains(&key) {
+            entries.push(entry);
+        }
+    }
     Ok(PointReadView { entries })
 }
 
@@ -106,15 +122,40 @@ fn invalid_valid_time_value(error: TimeError) -> String {
     }
 }
 
-fn revision_target(entry: &LedgerEntry) -> Option<(String, RecordHash)> {
-    let revises = entry.record.get("revises")?.as_object()?;
-    if revises.get("mode")?.as_str()? != "corrects" {
-        return None;
+fn revision_target(entry: &LedgerEntry) -> Result<Option<(String, RecordHash)>, QueryError> {
+    let Some(revises) = entry
+        .record
+        .get("revises")
+        .and_then(serde_json::Value::as_object)
+    else {
+        return Ok(None);
+    };
+    if revises.get("mode").and_then(serde_json::Value::as_str) != Some("corrects") {
+        return Ok(None);
     }
-    let target = revises.get("target")?.as_object()?;
-    let id = target.get("id")?.as_str()?.to_string();
-    let hash = RecordHash::parse(target.get("hash")?.as_str()?).ok()?;
-    Some((id, hash))
+    let Some(target) = revises.get("target").and_then(serde_json::Value::as_object) else {
+        return Ok(None);
+    };
+    let Some(id) = target.get("id").and_then(serde_json::Value::as_str) else {
+        return Ok(None);
+    };
+    let Some(hash) = target.get("hash").and_then(serde_json::Value::as_str) else {
+        return Ok(None);
+    };
+    let hash = RecordHash::parse(hash).map_err(|_| QueryError::InvalidRecordHash {
+        claim_id: claim_id(entry),
+        field: "revises.target.hash",
+        value: hash.to_string(),
+    })?;
+    Ok(Some((id.to_string(), hash)))
+}
+
+fn entry_record_hash(entry: &LedgerEntry) -> Result<RecordHash, QueryError> {
+    RecordHash::parse(&entry.record_hash).map_err(|_| QueryError::InvalidRecordHash {
+        claim_id: claim_id(entry),
+        field: "record_hash",
+        value: entry.record_hash.clone(),
+    })
 }
 
 fn claim_id(entry: &LedgerEntry) -> String {
@@ -396,23 +437,41 @@ mod tests {
     #[test]
     fn t_k8_05_correction_hiding_requires_typed_record_hash_targets() {
         let mut snapshot = correction_ledger().snapshot();
-        snapshot.entries[0].record_hash = "sha256:not-a-valid-record-hash".to_string();
         snapshot.entries[1].record["revises"]["target"]["hash"] =
             json!("sha256:not-a-valid-record-hash");
 
-        let view = point_read(
-            &snapshot.entries,
-            "2026-05-03T12:30:00Z",
-            "2026-05-03T13:30:00Z",
-        )
-        .unwrap();
+        assert_eq!(
+            point_read(
+                &snapshot.entries,
+                "2026-05-03T12:30:00Z",
+                "2026-05-03T13:30:00Z",
+            )
+            .unwrap_err(),
+            QueryError::InvalidRecordHash {
+                claim_id: "claim-hr-correction".to_string(),
+                field: "revises.target.hash",
+                value: "sha256:not-a-valid-record-hash".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_visible_entry_record_hash_during_correction_hiding() {
+        let mut snapshot = correction_ledger().snapshot();
+        snapshot.entries[0].record_hash = "sha256:not-a-valid-record-hash".to_string();
 
         assert_eq!(
-            claim_ids(view.entries()),
-            vec![
-                "claim-hr-original".to_string(),
-                "claim-hr-correction".to_string()
-            ]
+            point_read(
+                &snapshot.entries,
+                "2026-05-03T12:30:00Z",
+                "2026-05-03T13:30:00Z",
+            )
+            .unwrap_err(),
+            QueryError::InvalidRecordHash {
+                claim_id: "claim-hr-original".to_string(),
+                field: "record_hash",
+                value: "sha256:not-a-valid-record-hash".to_string(),
+            }
         );
     }
 

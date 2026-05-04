@@ -16,6 +16,7 @@
 - **Canonicalization**: deterministic JSON-compatible byte representation used for cryptographic hashes.
 - **Canonical UTC timestamp**: kernel timestamp string in `YYYY-MM-DDTHH:MM:SSZ` form.
 - **Record hash**: SHA-256 proof of canonical claim content; never the only claim identity.
+- **Entry hash**: SHA-256 proof of a ledger entry envelope, including accepted metadata, previous-entry link, record kind/version, record content, and Record hash; used for append-chain integrity and head validation, not as Claim identity.
 - **Append ledger**: patient-scoped ordered record of accepted claims with sequence, accepted time, previous-entry hash, and head validation.
 - **Valid time**: when the claim applies clinically.
 - **Valid time expression**: Claim time expression that is exactly one canonical UTC instant or one canonical UTC interval with `start <= end`.
@@ -27,6 +28,8 @@
 ## Invariants
 
 - Stable claim identity uses both claim id and content hash.
+- Record hash and Entry hash are distinct identity values: correction links target claim id plus Record hash, while append-chain links and ledger head validation use Entry hash.
+- Kernel hash strings use `sha256:<64 lowercase hex>` form, and hash parsing/formatting should be owned by a shared kernel hash rule rather than duplicated in Claim, Ledger, or Query code.
 - Canonicalization and hash output must be deterministic across implementations.
 - Append-only clinical truth: correction creates a new claim and does not erase the prior claim.
 - Store-assigned accepted time, sequence, and batch identity are not caller authority.

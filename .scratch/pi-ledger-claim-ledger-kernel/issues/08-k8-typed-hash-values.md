@@ -73,10 +73,12 @@ git status --short
 - Baseline before K8 source edits: `cd pi-ledger && cargo test --workspace` — PASS, 86 tests.
 - Red evidence: `cd pi-ledger && cargo test -p ledger-core t_k8 -- --nocapture` initially failed before implementation because `canonical::record_hash` still returned `String` instead of `RecordHash`, and `LedgerError` had no typed invalid-hash boundary errors (`InvalidRecordHash`, `InvalidEntryHash`, `InvalidHeadHash`).
 - Green focused evidence: `cd pi-ledger && cargo test -p ledger-core t_k8 -- --nocapture` — PASS, 9 tests after the core K8 implementation.
-- Added query coverage: `query::tests::t_k8_05_correction_hiding_requires_typed_record_hash_targets` proves correction hiding does not compare malformed raw hash strings.
+- Added query coverage: `query::tests::t_k8_05_correction_hiding_requires_typed_record_hash_targets` proves correction hiding rejects malformed correction target hash strings instead of comparing them as raw strings.
+- Post-implementation cleanup: removed a query correction-hiding fallback that silently kept entries visible when their stored `record_hash` was malformed; `query::tests::rejects_invalid_visible_entry_record_hash_during_correction_hiding` now proves corrupted entry record hashes fail explicitly.
+- Cleanup focused evidence: `cd pi-ledger && cargo test -p ledger-core query::tests -- --nocapture` — PASS, 13 tests.
 - Final checks:
   - `cd pi-ledger && cargo fmt --all -- --check` — PASS.
-  - `cd pi-ledger && cargo test --workspace` — PASS, 96 tests.
+  - `cd pi-ledger && cargo test --workspace` — PASS, 97 tests.
   - `cd pi-ledger && cargo clippy --workspace --all-targets -- -D warnings` — PASS.
   - `git diff --check` — PASS.
   - `git status --short` — checked before commit; only K8 files staged, with unrelated dirty/untracked files preserved.
