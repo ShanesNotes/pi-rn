@@ -1,5 +1,5 @@
 use crate::canonical::{canonical_json, record_hash};
-use crate::claim::{ClaimError, validate_claim};
+use crate::claim::{ClaimError, ValidatedClaim, validate_claim};
 use crate::hash::{EntryHash, RecordHash};
 use crate::time::CanonicalTimestamp;
 
@@ -172,12 +172,19 @@ impl AppendLedger {
     }
 
     pub fn append(&mut self, claim: &Value) -> Result<&LedgerEntry, LedgerError> {
-        validate_claim(claim)?;
+        let claim = validate_claim(claim)?;
+        self.append_validated(&claim)
+    }
+
+    pub fn append_validated(
+        &mut self,
+        claim: &ValidatedClaim<'_>,
+    ) -> Result<&LedgerEntry, LedgerError> {
         self.validate_claim_patient_scope(claim)?;
         let seq = self.entries.len() as u64 + 1;
         let accepted_at = self.store_clock.peek_next_accepted_at()?.to_string();
         validate_accepted_at(seq, &accepted_at)?;
-        let record_hash = record_hash(claim).map_err(LedgerError::Canonical)?;
+        let record_hash = record_hash(claim.raw()).map_err(LedgerError::Canonical)?;
         let previous_entry_hash = self.head_hash.clone();
         let previous_entry_hash_typed = parse_head_hash(self.head_hash.as_deref())?;
         let accepted = AcceptedMetadata {
@@ -186,13 +193,13 @@ impl AppendLedger {
             batch_id: batch_id_for_seq(seq),
         };
         let entry_hash = compute_entry_hash(
-            claim,
+            claim.raw(),
             &record_hash,
             previous_entry_hash_typed.as_ref(),
             &accepted,
         )?;
         let entry = LedgerEntry {
-            record: claim.clone(),
+            record: claim.raw().clone(),
             record_hash: record_hash.into_string(),
             previous_entry_hash,
             entry_hash: entry_hash.into_string(),
@@ -254,8 +261,8 @@ impl AppendLedger {
     pub fn validate(&self) -> Result<(), LedgerError> {
         let mut previous_entry_hash: Option<EntryHash> = None;
         for (index, entry) in self.entries.iter().enumerate() {
-            validate_claim(&entry.record)?;
-            self.validate_claim_patient_scope(&entry.record)?;
+            let claim = validate_claim(&entry.record)?;
+            self.validate_claim_patient_scope(&claim)?;
             let expected_seq = index as u64 + 1;
             if entry.record_kind != RECORD_KIND_CLAIM {
                 return Err(LedgerError::UnsupportedRecordKind {
@@ -336,24 +343,16 @@ impl AppendLedger {
         Ok(())
     }
 
-    fn validate_claim_patient_scope(&self, claim: &Value) -> Result<(), LedgerError> {
-        let claim_patient_id = claim_patient_id(claim)?;
-        if claim_patient_id == self.patient_id {
+    fn validate_claim_patient_scope(&self, claim: &ValidatedClaim<'_>) -> Result<(), LedgerError> {
+        if claim.patient_id() == self.patient_id {
             Ok(())
         } else {
             Err(LedgerError::PatientMismatch {
                 ledger_patient_id: self.patient_id.clone(),
-                claim_patient_id: claim_patient_id.to_string(),
+                claim_patient_id: claim.patient_id().to_string(),
             })
         }
     }
-}
-
-fn claim_patient_id(claim: &Value) -> Result<&str, LedgerError> {
-    claim
-        .pointer("/subject/patientId")
-        .and_then(Value::as_str)
-        .ok_or(LedgerError::MissingClaimPatientId)
 }
 
 fn batch_id_for_seq(seq: u64) -> String {
@@ -533,6 +532,36 @@ mod tests {
 
         assert_eq!(
             ledger.append(&claim).unwrap_err(),
+            LedgerError::PatientMismatch {
+                ledger_patient_id: "patient_kernel".to_string(),
+                claim_patient_id: "patient_other".to_string(),
+            }
+        );
+        assert!(ledger.entries().is_empty());
+    }
+
+    #[test]
+    fn t_k9_02_append_validated_claim_uses_claim_field_authority_for_patient_scope() {
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+        let claim = minimal_observation_claim();
+        let validated = validate_claim(&claim).unwrap();
+
+        let entry = ledger.append_validated(&validated).unwrap();
+
+        assert_eq!(entry.record["id"], "claim-v0-5-001");
+        assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
+        assert_eq!(ledger.entries().len(), 1);
+    }
+
+    #[test]
+    fn t_k9_02_append_validated_claim_rejects_cross_patient_without_raw_patient_pointer_reread() {
+        let mut claim = minimal_observation_claim();
+        claim["subject"]["patientId"] = json!("patient_other");
+        let validated = validate_claim(&claim).unwrap();
+        let mut ledger = test_ledger(["2026-05-03T12:00:06Z"]);
+
+        assert_eq!(
+            ledger.append_validated(&validated).unwrap_err(),
             LedgerError::PatientMismatch {
                 ledger_patient_id: "patient_kernel".to_string(),
                 claim_patient_id: "patient_other".to_string(),

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::claim::{ClaimError, validate_claim as validate_kernel_claim};
+use crate::claim::{ClaimError, ValidatedClaim, validate_claim as validate_kernel_claim};
 use serde_json::Value;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -137,19 +137,20 @@ impl PredicateRegistry {
     }
 
     pub fn validate_claim(&self, claim: &Value) -> Result<(), PredicateError> {
-        validate_kernel_claim(claim)?;
-        let predicate_id = claim
-            .get("predicate")
-            .and_then(Value::as_str)
-            .ok_or(PredicateError::Claim(ClaimError::InvalidField("predicate")))?;
+        let claim = validate_kernel_claim(claim)?;
+        self.validate_validated_claim(&claim)
+    }
+
+    pub fn validate_validated_claim(
+        &self,
+        claim: &ValidatedClaim<'_>,
+    ) -> Result<(), PredicateError> {
+        let predicate_id = claim.predicate();
         let definition = self
             .definitions
             .get(predicate_id)
             .ok_or_else(|| PredicateError::UnregisteredPredicate(predicate_id.to_string()))?;
-        let actual_shape = claim
-            .get("shape")
-            .and_then(Value::as_str)
-            .ok_or(PredicateError::Claim(ClaimError::InvalidField("shape")))?;
+        let actual_shape = claim.shape().as_str();
         if actual_shape != definition.shape {
             return Err(PredicateError::ShapeMismatch {
                 predicate_id: predicate_id.to_string(),
@@ -157,7 +158,7 @@ impl PredicateRegistry {
                 actual_shape: actual_shape.to_string(),
             });
         }
-        validate_object(predicate_id, definition, claim.get("object"))
+        validate_object(predicate_id, definition, claim.object())
     }
 }
 
@@ -201,14 +202,13 @@ fn is_supported_shape(shape: &str) -> bool {
 fn validate_object(
     predicate_id: &str,
     definition: &PredicateDefinition,
-    object: Option<&Value>,
+    object: &Value,
 ) -> Result<(), PredicateError> {
-    let object =
-        object
-            .and_then(Value::as_object)
-            .ok_or_else(|| PredicateError::ExpectedObject {
-                predicate_id: predicate_id.to_string(),
-            })?;
+    let object = object
+        .as_object()
+        .ok_or_else(|| PredicateError::ExpectedObject {
+            predicate_id: predicate_id.to_string(),
+        })?;
     match &definition.object_rule {
         ObjectRule::AnyObject => Ok(()),
         ObjectRule::RequiredFields(fields) => {
@@ -306,6 +306,32 @@ mod tests {
         assert_eq!(
             registry.validate_claim(&claim).unwrap_err(),
             PredicateError::UnregisteredPredicate("unregistered.synthetic".to_string())
+        );
+    }
+
+    #[test]
+    fn t_k9_03_registry_validates_already_validated_claim_through_claim_field_authority() {
+        let registry = phase1_registry().unwrap();
+        let claim = minimal_observation_claim();
+        let validated = validate_kernel_claim(&claim).unwrap();
+
+        registry.validate_validated_claim(&validated).unwrap();
+    }
+
+    #[test]
+    fn t_k9_03_registry_uses_validated_claim_predicate_shape_and_object_accessors() {
+        let registry = phase1_registry().unwrap();
+        let mut claim = minimal_observation_claim();
+        claim["object"]["value"] = json!("eighty-eight");
+        let validated = validate_kernel_claim(&claim).unwrap();
+
+        assert_eq!(
+            registry.validate_validated_claim(&validated).unwrap_err(),
+            PredicateError::InvalidObjectField {
+                predicate_id: "vital.sign".to_string(),
+                field: "value".to_string(),
+                expected: ObjectFieldType::Number,
+            }
         );
     }
 

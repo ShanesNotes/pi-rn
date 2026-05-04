@@ -46,6 +46,31 @@ impl ClaimShape {
             unsupported => Err(ClaimError::UnsupportedShape(unsupported.to_string())),
         }
     }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Context => "context",
+            Self::Observation => "observation",
+            Self::Interpretation => "interpretation",
+            Self::Act => "act",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevisionTarget<'a> {
+    id: &'a str,
+    hash: RecordHash,
+}
+
+impl<'a> RevisionTarget<'a> {
+    pub fn id(&self) -> &'a str {
+        self.id
+    }
+
+    pub fn hash(&self) -> &RecordHash {
+        &self.hash
+    }
 }
 
 #[derive(Debug)]
@@ -53,6 +78,12 @@ pub struct ValidatedClaim<'a> {
     raw: &'a Value,
     id: &'a str,
     shape: ClaimShape,
+    predicate: &'a str,
+    patient_id: &'a str,
+    object: &'a Value,
+    valid_time: ValidTimeExpression,
+    recorded_at: CanonicalTimestamp,
+    revision_target: Option<RevisionTarget<'a>>,
 }
 
 impl<'a> ValidatedClaim<'a> {
@@ -66,6 +97,30 @@ impl<'a> ValidatedClaim<'a> {
 
     pub fn shape(&self) -> ClaimShape {
         self.shape
+    }
+
+    pub fn predicate(&self) -> &'a str {
+        self.predicate
+    }
+
+    pub fn patient_id(&self) -> &'a str {
+        self.patient_id
+    }
+
+    pub fn object(&self) -> &'a Value {
+        self.object
+    }
+
+    pub fn valid_time(&self) -> &ValidTimeExpression {
+        &self.valid_time
+    }
+
+    pub fn recorded_at(&self) -> &CanonicalTimestamp {
+        &self.recorded_at
+    }
+
+    pub fn revision_target(&self) -> Option<&RevisionTarget<'a>> {
+        self.revision_target.as_ref()
     }
 }
 
@@ -86,24 +141,45 @@ pub fn validate_claim(value: &Value) -> Result<ValidatedClaim<'_>, ClaimError> {
         .and_then(Value::as_str)
         .ok_or(ClaimError::InvalidField("shape"))?;
     let shape = ClaimShape::parse(shape)?;
+    let predicate = object
+        .get("predicate")
+        .and_then(Value::as_str)
+        .ok_or(ClaimError::InvalidField("predicate"))?;
+    let subject = object
+        .get("subject")
+        .and_then(Value::as_object)
+        .ok_or(ClaimError::InvalidField("subject"))?;
+    let patient_id = subject
+        .get("patientId")
+        .and_then(Value::as_str)
+        .ok_or(ClaimError::InvalidField("subject.patientId"))?;
+    let object_value = object
+        .get("object")
+        .ok_or(ClaimError::MissingField("object"))?;
     let time = object
         .get("time")
         .and_then(Value::as_object)
         .ok_or(ClaimError::InvalidField("time"))?;
-    validate_time(time)?;
-    if let Some(revises) = object.get("revises") {
-        validate_revises(revises)?;
-    }
+    let (valid_time, recorded_at) = validate_time(time)?;
+    let revision_target = object.get("revises").map(validate_revises).transpose()?;
     canonical_json(value).map_err(ClaimError::Canonical)?;
 
     Ok(ValidatedClaim {
         raw: value,
         id,
         shape,
+        predicate,
+        patient_id,
+        object: object_value,
+        valid_time,
+        recorded_at,
+        revision_target,
     })
 }
 
-fn validate_time(time: &serde_json::Map<String, Value>) -> Result<(), ClaimError> {
+fn validate_time(
+    time: &serde_json::Map<String, Value>,
+) -> Result<(ValidTimeExpression, CanonicalTimestamp), ClaimError> {
     for field in time.keys() {
         match field.as_str() {
             "valid" | "recorded_at" => {}
@@ -123,13 +199,14 @@ fn validate_time(time: &serde_json::Map<String, Value>) -> Result<(), ClaimError
         .as_str()
         .ok_or(ClaimError::InvalidField("time.recorded_at"))?;
 
-    ValidTimeExpression::parse(valid).map_err(|_| ClaimError::InvalidField("time.valid"))?;
-    CanonicalTimestamp::parse(recorded_at)
+    let valid_time =
+        ValidTimeExpression::parse(valid).map_err(|_| ClaimError::InvalidField("time.valid"))?;
+    let recorded_at = CanonicalTimestamp::parse(recorded_at)
         .map_err(|_| ClaimError::InvalidField("time.recorded_at"))?;
-    Ok(())
+    Ok((valid_time, recorded_at))
 }
 
-fn validate_revises(value: &Value) -> Result<(), ClaimError> {
+fn validate_revises(value: &Value) -> Result<RevisionTarget<'_>, ClaimError> {
     let revises = value
         .as_object()
         .ok_or(ClaimError::InvalidField("revises"))?;
@@ -145,7 +222,7 @@ fn validate_revises(value: &Value) -> Result<(), ClaimError> {
         .get("target")
         .and_then(Value::as_object)
         .ok_or(ClaimError::MissingField("revises.target"))?;
-    target
+    let id = target
         .get("id")
         .and_then(Value::as_str)
         .ok_or(ClaimError::MissingField("revises.target.id"))?;
@@ -153,8 +230,9 @@ fn validate_revises(value: &Value) -> Result<(), ClaimError> {
         .get("hash")
         .and_then(Value::as_str)
         .ok_or(ClaimError::MissingField("revises.target.hash"))?;
-    RecordHash::parse(hash).map_err(|_| ClaimError::InvalidRecordHash("revises.target.hash"))?;
-    Ok(())
+    let hash = RecordHash::parse(hash)
+        .map_err(|_| ClaimError::InvalidRecordHash("revises.target.hash"))?;
+    Ok(RevisionTarget { id, hash })
 }
 
 #[cfg(test)]
@@ -485,6 +563,52 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn t_k9_01_validated_claim_exposes_captured_field_authority_accessors() {
+        let target_hash = crate::hash::RecordHash::parse(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+        .unwrap();
+        let mut correction = minimal_observation_claim();
+        correction["revises"] = json!({
+            "mode": "corrects",
+            "target": {
+                "id": "claim-v0-5-000",
+                "hash": target_hash.as_str()
+            }
+        });
+
+        let validated = validate_claim(&correction).unwrap();
+
+        assert_eq!(validated.raw(), &correction);
+        assert_eq!(validated.id(), "claim-v0-5-001");
+        assert_eq!(validated.shape(), ClaimShape::Observation);
+        assert_eq!(validated.predicate(), "vital.sign");
+        assert_eq!(validated.patient_id(), "patient_kernel");
+        assert_eq!(
+            validated.valid_time(),
+            &ValidTimeExpression::parse(&json!({
+                "instant": "2026-05-03T12:00:00Z"
+            }))
+            .unwrap()
+        );
+        assert_eq!(validated.recorded_at().as_str(), "2026-05-03T12:00:05Z");
+        let revision_target = validated.revision_target().unwrap();
+        assert_eq!(revision_target.id(), "claim-v0-5-000");
+        assert_record_hash(revision_target.hash());
+        assert_eq!(revision_target.hash(), &target_hash);
+    }
+
+    #[test]
+    fn t_k9_01_validated_claim_revision_target_is_absent_for_base_claims() {
+        let claim = minimal_observation_claim();
+        let validated = validate_claim(&claim).unwrap();
+
+        assert_eq!(validated.revision_target(), None);
+    }
+
+    fn assert_record_hash(_: &crate::hash::RecordHash) {}
 
     #[test]
     fn validated_claim_must_be_canonicalizable_and_hashable() {
