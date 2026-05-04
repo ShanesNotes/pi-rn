@@ -2,7 +2,7 @@
 
 Status: active
 Program status: active `pi-ledger` implementation workstream.
-Next slice status: needs-triage (`K10` append admission seam)
+Next slice status: ready-for-agent (`K11` revision admission for correction target existence)
 
 ## Problem Statement
 
@@ -10,7 +10,7 @@ The project needs a clean, reusable cryptographic claim-ledger kernel that is in
 
 The maintainer has decided that the ledger should be a sibling subproject, `pi-ledger`, with `pi-chart` consuming it later through an adapter. The workstream needs precise Rust-first package/document authority that lets AFK agents implement and deepen the kernel without accidentally touching `pi-chart` source, schemas, patients, package archives, lockfiles outside `pi-ledger`, or hidden simulator internals.
 
-K0-K9 proved the first kernel behaviors, but the current append path still has an architectural gap: a Claim can be structurally valid, canonicalizable, hashable, and patient-scoped while still bypassing predicate-registry policy if callers use the append ledger directly. Before adapter work depends on append APIs, the kernel needs an explicit append-admission seam that makes predicate-aware entry into a patient ledger the preferred path and makes any bypass impossible to miss.
+K0-K10 proved the first kernel behaviors and introduced an explicit append-admission seam. A remaining architectural gap is that a correction Claim can be Ledger-acceptable, Append-admissible, and patient-scoped while still naming a `revises.target` that does not exist in the current patient ledger. Query currently projects trusted entries and can hide a matching target, but Query is not an append-admission authority and should not be responsible for preventing dangling correction references from entering ledger history. Before adapter work depends on correction append APIs, the kernel needs Revision admission: a narrow, explicit admission step that proves correction target existence by Claim id plus Record hash before store metadata mutates.
 
 ## Solution
 
@@ -29,8 +29,9 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 - K8: typed Record hash and Entry hash values in a shared kernel hash Module.
 - K9: Validated Claim field accessors as the kernel authority for Claim id, predicate, patient, time, and revision-link extraction.
 - K10: append admission as the explicit seam that proves a Validated Claim is eligible for a specific patient ledger after patient-scope and predicate-registry checks pass.
+- K11: revision admission as the explicit seam that proves an Append-admissible correction Claim targets existing same-patient ledger content by Claim id plus Record hash before append.
 
-The K10 solution is to introduce an append-admissible value and admission error boundary. Claim validation remains responsible for the Ledger-acceptable Claim contract. Predicate registry remains responsible for predicate/object policy. Append ledger remains responsible for patient-local ordering, store-assigned known-time metadata, record hashes, entry hashes, previous-entry links, and head validation. The new admission seam composes those authorities before append, without making the append ledger silently own predicate policy.
+The K11 solution is to deepen the existing admission seam rather than create a general correction graph engine. Claim validation remains responsible for the Ledger-acceptable Claim contract. Predicate registry remains responsible for predicate/object policy. Append admission remains responsible for patient-scope and predicate-policy composition. Revision admission composes an already Append-admissible correction Claim with the current patient ledger entry surface and returns a Revision-admissible value only when the correction target exists and the stored target Record hash matches the recomputed Record hash. Append ledger remains responsible for patient-local ordering, store-assigned known-time metadata, record hashes, entry hashes, previous-entry links, and head validation.
 
 `pi-chart` integration is deferred to a later adapter workstream after the kernel Interface is proven. Existing chart-local claim-ledger work, if present, is evidence only.
 
@@ -51,15 +52,25 @@ The K10 solution is to introduce an append-admissible value and admission error 
 13. As a future adapter author, I want a Claim to be admitted for append only after predicate policy passes, so that adapters cannot accidentally persist hashable but predicate-invalid clinical records.
 14. As a patient-safety reviewer, I want append admission to check target patient scope before store metadata is assigned, so that cross-patient records cannot enter a patient ledger.
 15. As a predicate-policy maintainer, I want the Predicate registry to stay outside the Append ledger, so that ontology policy can evolve without turning storage/chain code into a policy container.
-16. As an append-ledger maintainer, I want to accept an append-admissible value instead of raw JSON on the preferred path, so that the API makes predicate admission hard to bypass.
-17. As a future storage adapter author, I want any lower-level append bypass to be explicitly named as not enforcing predicate admission, so that unsafe seams are obvious in code review.
+16. As an append-ledger maintainer, I want to accept an append-admissible value instead of raw JSON on the base-claim preferred path, so that the API makes predicate admission hard to bypass.
+17. As a future storage adapter author, I want any lower-level append bypass to be explicitly named as not enforcing omitted admission checks, so that unsafe seams are obvious in code review.
 18. As a future registry-versioning author, I want snapshot re-read validation to remain chain-integrity-only for now, so that old ledgers do not become unreadable because current predicate policy changed.
 19. As a correction-policy author, I want K10 to avoid correction target existence and conflict semantics, so that predicate-aware admission does not become an accidental correction graph engine.
-20. As a fixture maintainer, I want deterministic fixture generation to use the same admission path as normal append tests, so that examples do not teach bypass patterns.
-21. As a query maintainer, I want point reads to keep their trusted-entry boundary, so that K10 does not force unrelated query revalidation work.
-22. As an AFK coding agent, I want a narrow K10 issue with exact module ownership and out-of-scope guardrails, so that implementation can be completed without touching adapters, storage backends, or brownfield chart code.
-23. As a reviewer, I want admission failures to preserve whether predicate policy failed or patient scope mismatched, so that callers and tests do not match brittle strings or flatten errors into the wrong module.
-24. As a kernel maintainer, I want append admission to be a deep module with a small interface, so that patient-scope and predicate-policy composition is testable without changing Claim, Predicate, or Ledger authority.
+20. As a correction-policy author, I want K11 to prove correction target existence before append, so that dangling correction references cannot enter normal ledger history.
+21. As a patient-safety reviewer, I want correction targets to be same-patient accepted entries, so that one patient ledger cannot revise content from another patient ledger.
+22. As a correction-link author, I want Revision admission to match target Claim id plus typed Record hash, so that a correction cannot point at the right id with the wrong clinical content.
+23. As a ledger-integrity reviewer, I want Revision admission to recompute the target Record hash, so that corrupt stored target hashes cannot become trusted revision anchors.
+24. As a ledger-integrity reviewer, I want Revision admission to reject stored/recomputed target hash mismatches, so that accepted target proof depends on canonical record content, not only stored metadata.
+25. As an append-ledger maintainer, I want base Claims to continue using Append admission without Revision admission, so that the base-claim path stays simple and explicit.
+26. As an append-ledger maintainer, I want correction Claims to require a Revision-admissible value on the normal path, so that append APIs encode the extra correction-target proof.
+27. As a fixture maintainer, I want deterministic fixture generation to use Append admission for base Claims and Revision admission for the correction Claim, so that examples teach the safe path.
+28. As a query maintainer, I want point reads to keep their trusted-entry boundary, so that revision-target admission does not turn Query into a chain/head validator.
+29. As a future storage adapter author, I want Revision admission to consume the current ledger/snapshot entry surface, so that target proof can work with in-memory and future persistence backends.
+30. As a future storage adapter author, I want Revision admission to assume a current validated entry surface rather than own whole-chain validation, so that chain/head validation remains a Ledger responsibility.
+31. As a future correction-conflict author, I want K11 to prove existence only, so that replacement policy, visibility policy, and graph-wide semantics can be designed separately.
+32. As an AFK coding agent, I want a narrow K11 issue with exact acceptance criteria and bypass inventory requirements, so that implementation can be completed without touching adapters, storage backends, or brownfield chart code.
+33. As a reviewer, I want admission failures to preserve whether predicate policy, patient scope, target absence, malformed stored target hash, or target hash mismatch failed, so that tests do not match brittle strings or flatten errors into the wrong module.
+34. As a kernel maintainer, I want Revision admission to be a deep module extension with a small interface, so that correction-target existence is testable without changing Query or making Ledger own predicate policy.
 
 ## Implementation Decisions
 
@@ -71,16 +82,25 @@ The K10 solution is to introduce an append-admissible value and admission error 
 - Record hash and Entry hash are distinct kernel identity values recorded by ADR 003; a dedicated hash Module owns shared `sha256:<64 lowercase hex>` parsing/formatting.
 - Validated Claim field extraction is recorded by ADR 004; Claim, Ledger, Predicate, and append-time paths should consume validated accessors instead of raw JSON field reads where validation has already occurred.
 - Append admission is recorded by ADR 005; it separates predicate policy from append-chain storage.
+- Revision admission is recorded by ADR 006; it proves correction target existence before normal append without becoming a general correction graph engine.
 - A Ledger-acceptable Claim means structurally valid, canonicalizable, and hashable.
 - An Append-admissible Claim means a Validated Claim that is eligible to enter a specific patient-scoped ledger after patient-scope and predicate-registry checks pass.
-- The admission Module should own the Append-admissible value and admission error boundary.
-- Admission should consume a Validated Claim, a target patient id, and a Predicate registry. It should not consume raw JSON and should not make the Append ledger own the registry.
-- Admission success should be represented as a value that the preferred append API consumes, not only as a boolean side check.
-- Admission errors should wrap predicate failures and own patient-scope mismatch. They should not flatten all failures into Ledger errors.
-- The preferred append API should accept an Append-admissible Claim. Any lower-level bypass seam must be explicitly named as not enforcing predicate admission.
-- Fixture and normal append tests should use the admission path so the codebase does not teach predicate bypass.
+- A Revision-admissible Claim means an Append-admissible correction Claim whose revision target matches an already accepted entry in the same patient ledger by Claim id and Record hash.
+- The admission Module should own both Append-admissible and Revision-admissible values plus admission error boundaries.
+- Append admission should consume a Validated Claim, a target patient id, and a Predicate registry. It should not consume raw JSON and should not make the Append ledger own the registry.
+- Revision admission should consume an Append-admissible correction Claim and the current patient ledger entry surface supplied by the caller.
+- Revision admission should prove target identity by validating target candidate records as Ledger-acceptable Claims, parsing stored target Record hashes, recomputing target Record hashes from target record content, requiring stored/recomputed hash equality, and matching the correction's target Claim id plus Record hash.
+- Revision admission should not own whole-chain or head validation. Callers should supply entries from the current patient ledger or a validated snapshot; snapshot re-read/head validation remains a Ledger concern.
+- Admission success should be represented as values that preferred append APIs consume, not only as boolean side checks.
+- Admission errors should wrap predicate failures and own patient-scope mismatch, target absence, malformed stored target hash, and target hash mismatch cases. They should not flatten all failures into Ledger errors.
+- The preferred append API for base Claims should accept an Append-admissible Claim.
+- The preferred append API for correction Claims should accept a Revision-admissible Claim.
+- Append admission alone should not silently append Claims that carry a revision target.
+- Any lower-level bypass seam must be explicitly named as not enforcing the omitted predicate and/or revision admission checks.
+- Fixture and normal append tests should use the safe admission paths so the codebase does not teach bypass patterns.
 - Snapshot re-read validation remains a chain-integrity check. Predicate re-audit against a registry is deferred until registry versioning exists.
-- K10 admission covers patient scope plus predicate policy only. Correction target existence, correction conflicts, and broader replacement policy are separate future work.
+- Query remains a trusted-entry projection and should not own correction target admission.
+- K11 covers correction target existence only. Correction conflicts, replacement policy, clinical visibility requirements, graph-wide correction semantics, and registry-versioned re-audit are separate future work.
 - Phase 1 does not implement FHIR/openEHR/CAS/blockchain/signatures/key management/external anchoring.
 - Phase 1 does not migrate current chart patient data or implement chart adapters.
 
@@ -89,15 +109,19 @@ The K10 solution is to introduce an append-admissible value and admission error 
 - Use Rust tests through `cargo test --workspace`.
 - Keep tests behavior-first and public-interface oriented.
 - K0+K2 should produce deterministic golden vectors for canonical JSON and hash output.
-- Architecture-deepening issues should start with narrow failing regressions that prove the current seam is stringly, duplicated, bypassable, or inconsistent before refactoring.
+- Architecture-deepening issues should start with narrow failing regressions that prove the current seam is stringly, duplicated, bypassable, dangling, or inconsistent before refactoring.
 - K7/K8/K9 tests should preserve prior K0-K6 behavior while adding module-local tests for value parsing/rejection/accessors and cross-module integration tests for Claim, Ledger, Predicate, and Query consumption.
 - K10 tests should prove admission accepts only Validated Claims whose patient scope matches the target ledger and whose predicate/object policy passes the registry.
-- K10 tests should prove admission rejects patient mismatch with an admission-owned error and predicate failures with wrapped Predicate errors.
 - K10 tests should prove the preferred append path consumes an append-admissible value and preserves K3 metadata, record-hash, entry-hash, previous-link, and head behavior.
-- K10 tests should prove ordinary fixture generation and representative append examples use the admission path rather than a raw or merely validated append bypass.
-- K10 tests should prove any remaining lower-level append bypass is explicitly named as not enforcing predicate admission.
-- K10 tests should prove snapshot re-read validation remains independent from the current Predicate registry.
-- K10 tests should preserve K5 point-read behavior and avoid turning query into a full Claim revalidation path.
+- K10 tests should prove snapshot re-read validation remains independent from the current Predicate registry and preserve K5 point-read behavior.
+- K11 tests should prove dangling correction targets are rejected before append and before store-clock mutation.
+- K11 tests should prove a target with the right Claim id but wrong Record hash is rejected.
+- K11 tests should prove malformed stored target hashes and stored/recomputed target hash mismatches are rejected during Revision admission.
+- K11 tests should prove base Claims still append through Append admission without requiring Revision admission.
+- K11 tests should prove correction Claims cannot append through the normal Append-admissible path and must use the Revision-admissible path.
+- K11 tests should prove the deterministic fixture uses Append admission for base Claims and Revision admission for its correction Claim.
+- K11 tests should prove Query remains a trusted-entry projection and does not become the owner of revision-target admission.
+- K11 tests should inventory every remaining lower-level bypass call site and prove bypass names loudly state omitted admission checks.
 - Run `cargo fmt --all -- --check`, `cargo test --workspace`, and `cargo clippy --workspace --all-targets -- -D warnings` for closeout.
 - Do not use current chart patient fixtures, schemas, or `EventEnvelope` tests as implementation authority.
 
@@ -108,12 +132,14 @@ The K10 solution is to introduce an append-admissible value and admission error 
 - Brownfield event-envelope compatibility mappers.
 - Relation claims, `inputs[]`, full predicate tiers, range queries, ContextPacket, access plane, runtime, orchestrator, direct agent writes, production backend selection, signatures, key management, CAS/blockchain anchoring, adapter timestamp normalization, and separate external repository extraction.
 - Predicate registry versioning or historical predicate-policy re-audit during snapshot re-read.
-- Correction target existence checks, correction conflict handling, replacement policy, or broader correction graph semantics.
+- Correction conflict handling, replacement policy, clinical visibility requirements, graph-wide correction semantics, or “latest correction wins” rules.
+- Requiring the target Claim to be visible at a query `knownAt`; K11 proves accepted target existence only.
 - Raw JSON validate-and-admit convenience helpers until an adapter proves the need.
 - Making the Append ledger silently own or construct a Predicate registry.
+- Making Query validate correction target existence, ledger chain/head, or predicate policy.
 
 ## Further Notes
 
-The superseded chart-local planning surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K9 are complete and committed; K10 is the next architecture-deepening slice before adapter integration.
+The superseded chart-local planning surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K10 are complete and committed; K11 is the next architecture-deepening slice before adapter integration.
 
-K10 should be issued as a narrow implementation ticket for the append-admission seam. It should cite the pi-ledger context glossary and ADR 005, preserve all K0-K9 behavior, and avoid expanding into registry versioning, correction graph policy, storage backend work, or chart integration.
+K11 should be issued as one narrow vertical implementation ticket for revision admission. It should cite the pi-ledger context glossary and ADR 006, preserve all K0-K10 behavior, and avoid expanding into registry versioning, correction conflict policy, storage backend work, query revalidation, or chart integration.
