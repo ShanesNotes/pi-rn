@@ -1,6 +1,6 @@
 # Three-layer reconciliation and mismatch register
 
-Status: ready-for-agent
+Status: ready-for-human
 Type: AFK
 
 ## Parent
@@ -13,13 +13,13 @@ Assemble the three-layer reconciliation register that decides, for every meaning
 
 ## Acceptance criteria
 
-- [ ] Register rows compare source intent, brownfield behavior, patient corpus need, caveats, and v0.5 implication.
-- [ ] Every row has one of: `adopt`, `revise`, `defer`, `reject`, or `open-question`.
-- [ ] No recommendation can be marked `adopt` without source citation plus code/test citation or explicit `not-covered` plus corpus citation or explicit `not-covered`.
-- [ ] Captures conflicts where brownfield code diverges from Phase A intent, patient corpus diverges from source planning, or source artifacts propose broader scope than v0.5 should carry.
-- [ ] Explicitly protects pi-ledger kernel scope, hidden pi-sim boundary, no patient migration, no vector/backend commitment, no direct agent accepted-writes, and no EHR clone framing.
-- [ ] Produces a concise list of open questions that truly need maintainer/HITL decision before final substrate recommendation.
-- [ ] Does not edit source, patients, ADRs, or implementation files.
+- [x] Register rows compare source intent, brownfield behavior, patient corpus need, caveats, and v0.5 implication.
+- [x] Every row has one of: `adopt`, `revise`, `defer`, `reject`, or `open-question`.
+- [x] No recommendation can be marked `adopt` without source citation plus code/test citation or explicit `not-covered` plus corpus citation or explicit `not-covered`.
+- [x] Captures conflicts where brownfield code diverges from Phase A intent, patient corpus diverges from source planning, or source artifacts propose broader scope than v0.5 should carry.
+- [x] Explicitly protects pi-ledger kernel scope, hidden pi-sim boundary, no patient migration, no vector/backend commitment, no direct agent accepted-writes, and no EHR clone framing.
+- [x] Produces a concise list of open questions that truly need maintainer/HITL decision before final substrate recommendation.
+- [x] Does not edit source, patients, ADRs, or implementation files.
 
 ## Blocked by
 
@@ -34,3 +34,4 @@ Assemble the three-layer reconciliation register that decides, for every meaning
 ## Comments
 
 - 2026-05-04: Maintainer approved issue 11 hot/warm/cold context-access model; issue 12 is unblocked for AFK reconciliation. Issues 13-14 remain gated.
+- 2026-05-04: Created `.scratch/pi-chart-phase-a-context-digging-corpus-mining/three-layer-reconciliation-and-mismatch-register.md`; acceptance criteria checked; issues 13-14 remain `needs-triage`.
