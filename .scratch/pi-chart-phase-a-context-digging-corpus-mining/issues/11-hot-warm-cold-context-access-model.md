@@ -1,6 +1,6 @@
 # Hot/warm/cold context access model
 
-Status: needs-triage
+Status: ready-for-agent
 Type: AFK
 
 ## Parent
@@ -29,3 +29,6 @@ Create the v0.5 context-access model for clinician-style chart digging. Classify
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/08-notes-narrative-history-prior-encounters-handoff-substrate-pack.md`
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/09-review-attestation-authorship-lifecycle-accountability-substrate-pack.md`
 - `.scratch/pi-chart-phase-a-context-digging-corpus-mining/issues/10-rendered-chart-digging-and-prototype-design-evidence-pass.md`
+## Comments
+
+- 2026-05-04: Maintainer approved issues 05-10 substrate-pack outputs; this issue is unblocked for AFK synthesis.
