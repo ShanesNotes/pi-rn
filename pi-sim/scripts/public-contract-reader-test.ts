@@ -37,6 +37,18 @@ const HIDDEN_FIXTURE_KEYS = [
   "findingMarker",
 ];
 
+// Build path-denylist entries from fragments so this reader can self-audit
+// that it does not contain the hidden/sibling import paths as literals.
+const FORBIDDEN_FIXTURE_TEXT = [
+  ...HIDDEN_FIXTURE_KEYS,
+  ["scripts", "runtime"].join("/"),
+  ["scripts", "types"].join("/"),
+  ["..", "pi-chart"].join("/"),
+  ["..", "pi-monitor"].join("/"),
+  ["..", "pi-agent"].join("/"),
+  ["pul", "se"].join("") + "/",
+];
+
 const PUBLIC_ASSESSMENT_KEYS = new Set([
   "schemaVersion",
   "requestId",
@@ -64,6 +76,7 @@ assertScriptedDemoContract();
 assertScriptedAlarmContract();
 assertProviderUnavailableContract();
 assertLiveDemoWaveformContract();
+assertWaveformFixtureLabels();
 assertFixtureDenylist();
 
 console.log("public contract reader checks passed");
@@ -242,6 +255,30 @@ function assertLiveDemoWaveformContract(): void {
   assertWaveformWindow(objectField(windows, "Pleth"), "Pleth");
 }
 
+function assertWaveformFixtureLabels(): void {
+  for (const fixture of Object.values(CASES)) {
+    const currentPath = join(fixture.dir, "waveforms", "current.json");
+    if (!existsSync(currentPath)) continue;
+    const current = readJson(currentPath);
+    const windows = objectField(current, "windows");
+    const hasSamples = Object.values(windows).some((candidate) => {
+      if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) return false;
+      const values = (candidate as JsonObject).values;
+      return Array.isArray(values) && values.length > 0;
+    });
+    if (!hasSamples) continue;
+
+    assert.equal(typeof current.sourceKind, "string", `${fixture.name} waveform current sourceKind label`);
+    assert.equal(typeof current.fidelity, "string", `${fixture.name} waveform current fidelity label`);
+    assert.equal(typeof current.synthetic, "boolean", `${fixture.name} waveform current synthetic label`);
+
+    const status = readJson(join(fixture.dir, "waveforms", "status.json"));
+    assert.equal(status.sourceKind, current.sourceKind, `${fixture.name} waveform status/current sourceKind match`);
+    assert.equal(status.fidelity, current.fidelity, `${fixture.name} waveform status/current fidelity match`);
+    assert.equal(status.synthetic, current.synthetic, `${fixture.name} waveform status/current synthetic match`);
+  }
+}
+
 function assertFixtureDenylist(): void {
   const textPaths = [
     ...fixtureFiles(CASES.demo.dir),
@@ -251,8 +288,8 @@ function assertFixtureDenylist(): void {
   ];
   for (const path of textPaths) {
     const text = readFileSync(path, "utf8");
-    for (const hiddenKey of HIDDEN_FIXTURE_KEYS) {
-      assert.equal(text.includes(hiddenKey), false, `${relative(ROOT, path)} must not include hidden key ${hiddenKey}`);
+    for (const hiddenText of FORBIDDEN_FIXTURE_TEXT) {
+      assert.equal(text.includes(hiddenText), false, `${relative(ROOT, path)} must not include hidden/internal text ${hiddenText}`);
     }
   }
 }

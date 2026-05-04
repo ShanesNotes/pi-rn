@@ -4,7 +4,7 @@ Public telemetry boundary for the hidden `pi-sim` patient runtime. Current publi
 
 ## Architecture status
 
-Current authority: `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` and `.omx/plans/plan-pi-sim-architecture-rebase-patient-runtime.md`. `current.json` is the backward-compatible scalar/latest-frame boundary. The optional `monitor` extension carries display metadata for `../pi-monitor`; it is display-only and not chart/EHR truth. Public event and waveform lanes are additive files beside the scalar contract, not hidden imports into provider internals.
+Public Interface authority is this README plus `.lanes.json`. Active producer-planning work belongs under `.scratch/<feature>/PRD.md` and `.scratch/<feature>/issues/*.md` per `docs/adr/004-planning-surface-and-public-contract-authority.md`; older `.omx/plans/*` artifacts are runtime/planning history, not current ABI authority. `docs/adr/003-pi-sim-patient-runtime-provider-architecture.md` remains provider-architecture context. `current.json` is the backward-compatible scalar/latest-frame boundary. The optional `monitor` extension carries display metadata for `../pi-monitor`; it is display-only and not chart/EHR truth. Public event and waveform lanes are additive files beside the scalar contract, not hidden imports into provider internals.
 
 ## Files
 
@@ -28,7 +28,7 @@ waveforms/current.json latest waveform window only when a provider supplies one
 
 ## Public contract fixtures
 
-Tracked consumer examples live under `vitals/fixtures/public-contract/`. They are golden examples for downstream readers, not a second ABI authority. The public contract remains this README plus `.lanes.json`; runtime producer tests remain the source-freshness gate.
+Tracked consumer examples live under `vitals/fixtures/public-contract/`. They are golden examples for downstream readers, not a second ABI authority. The fixture README is provenance and refresh guidance only. The public contract remains this README plus `.lanes.json`; runtime producer tests remain the source-freshness gate. Consumer-style checks read the fixture files and public lane manifest only; they must not import hidden runtime/provider code or sibling project source.
 
 Current fixture cases:
 
@@ -78,7 +78,7 @@ npm run sim:run:pulse:stable
 npm run sim:run:pulse:stable -- --out-dir .omx/evidence/pi-sim-m2-pulse-provider/pulse-stable/vitals --duration 60 --dt 10 --no-pacing
 ```
 
-The Pulse runtime uses `vitals/scenarios/pulse_stable_observation.json` by default. That scenario is deliberately low-acuity continuous observation and emits scalar vitals only. The current Pulse shim path does not supply waveform samples, so `waveforms/status.json` reports `available: false` and no `waveforms/current.json` is preserved. If the Pulse shim is unavailable, the command exits non-zero and writes `runState: "unavailable"` plus a `provider_unavailable` event to the selected output directory rather than leaving a stale successful frame.
+The Pulse runtime uses `vitals/scenarios/pulse_stable_observation.json` by default. That scenario is deliberately low-acuity continuous observation and emits scalar vitals only. The current Pulse shim path does not supply waveform samples, so `waveforms/status.json` reports `available: false` and no `waveforms/current.json` is preserved. If the Pulse shim is unavailable, the command exits non-zero and writes `runState: "unavailable"` plus a terminal `provider_unavailable` event to the selected output directory rather than leaving a stale successful frame. Provider-unavailable fallback also clears stale optional current files and publishes unavailable assessment/waveform status with `reason: "provider_unavailable"`; it does not emit a terminal `run_ended`.
 
 ### Legacy Pulse monitor compatibility
 
@@ -96,7 +96,7 @@ Env knobs:
 - `PULSE_SHIM=http://localhost:8765` — override shim URL
 - `BED="ICU 7"` — header label
 
-Ctrl-C exits cleanly. `monitor:pulse` remains a compatibility/discoverability alias for this legacy interactive path while new provider work routes through `sim:run:pulse:*`. `current.json` is the primary latest-frame public telemetry boundary for pi-agent, pi-monitor, and future adapters. Provider-runtime consumers that need durable offsets should prefer `timeline.jsonl`; `timeline.json` remains a compatibility array and is rewritten as a whole file.
+Ctrl-C exits cleanly. `monitor:pulse` remains a compatibility/discoverability alias for this legacy interactive path while new provider work routes through `sim:run:pulse:*`. The legacy interactive monitor path is compatibility-scoped to the scalar latest-frame and compatibility timeline surfaces; provider-runtime JSONL, event, encounter, assessment, and waveform lane semantics are owned by the shared provider runtime and publisher. `current.json` is the primary latest-frame public telemetry boundary for pi-agent, pi-monitor, and future adapters. Provider-runtime consumers that need durable offsets should prefer `timeline.jsonl`; `timeline.json` remains a compatibility array and is rewritten as a whole file.
 
 ## Schema — `current.json`
 
@@ -214,7 +214,7 @@ Terminal semantics:
 
 ## Schema — `assessments/status.json` and `assessments/current.json`
 
-`assessments/status.json` is the latest capability and request/reveal status. It is written even when assessment support is absent. Before a request, status can report `available: true` while `assessments/current.json` remains absent. If assessment support is unavailable, stale `assessments/current.json` is removed and status carries `reason: "provider_does_not_supply_assessments"`.
+`assessments/status.json` is the latest capability and request/reveal status. It is written even when assessment support is absent. Before a request, status can report `available: true` while `assessments/current.json` remains absent. If assessment support is unavailable, stale `assessments/current.json` is removed and status carries `reason: "provider_does_not_supply_assessments"`. Provider-unavailable fallback also removes stale `assessments/current.json` and writes status with `reason: "provider_unavailable"`.
 
 ```json
 {
@@ -275,7 +275,7 @@ Terminal semantics:
 }
 ```
 
-`waveforms/current.json` exists only when a provider supplies a waveform window. If a later frame has no waveform or the provider is unavailable, the publisher removes stale `waveforms/current.json` and updates status. Consumers must never treat an old waveform file as current without checking matching `sequence`/`simTime_s`/`source`/`runState` in status.
+`waveforms/current.json` exists only when a provider supplies a waveform window. If a later frame has no waveform or the provider is unavailable, the publisher removes stale `waveforms/current.json` and updates status. Provider-unavailable fallback writes `reason: "provider_unavailable"`; capability-absent providers use `reason: "provider_does_not_supply_waveforms"`. Consumers must never treat an old waveform file as current without checking matching `sequence`/`simTime_s`/`source`/`runState` in status.
 
 Fixture/demo waveform windows are allowed only for contract tests and demos. They must be explicitly labeled and are not production clinical truth:
 
@@ -320,4 +320,4 @@ Supported Pulse action types: `hemorrhage`, `hemorrhage_stop`, `fluid_bolus`, `n
 
 ## Agent boundary
 
-pi-agent reads `current.json` (and may read `scenarios/*.json` for context). It never reads `../scripts/` or `../pulse/`.
+`pi-agent`, `pi-chart`, and `pi-monitor` may read only explicitly exposed public telemetry lanes or approved adapters built from those lanes. They must not read `scenarios/*.json`, provider source, Pulse internals, scripted action schedules, hidden findings, scoring keys, or future simulation truth. `scenarios/*.json` is documented here for `pi-sim` maintainers as hidden provider input, not as sibling-consumer context. Chart truth still requires clinician/user validation; monitor telemetry may prefill or stage observed past values, but the simulator script remains hidden from the agent.
