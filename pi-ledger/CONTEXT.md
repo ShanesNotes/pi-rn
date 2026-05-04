@@ -18,6 +18,7 @@
 - **Revision-admissible Claim**: Append-admissible correction Claim whose revision target matches an already accepted entry in the same patient ledger by Claim id and Record hash.
 - **Append admission**: explicit kernel decision step that proves a Validated Claim is eligible for a patient ledger before the Append ledger assigns known-time metadata and hashes a new entry.
 - **Revision admission**: explicit kernel decision step that proves an Append-admissible correction Claim targets existing ledger content before append.
+- **Admission bypass**: test-only append path that omits Append admission and/or Revision admission for trusted kernel-internal construction or negative tests.
 - **Admission module**: kernel seam that combines Validated Claim, patient-ledger scope, Predicate registry policy, and correction-target existence without making Append ledger, Predicate registry, or Query own those admission decisions.
 - **Canonicalization**: deterministic JSON-compatible byte representation used for cryptographic hashes.
 - **Canonical UTC timestamp**: kernel timestamp string in `YYYY-MM-DDTHH:MM:SSZ` form.
@@ -51,6 +52,7 @@
 - Revision admission proves target identity by validating the target entry record as a Ledger-acceptable Claim, parsing and recomputing its Record hash, then matching the correction target by Claim id plus Record hash.
 - Revision admission does not own whole-chain/head validation; it assumes target entries come from the current ledger/snapshot surface supplied by the caller.
 - Revision admission proves correction target existence only; conflict policy, replacement policy, clinical visibility requirements, and graph-wide correction semantics remain separate.
+- Admission bypasses are not part of the public adapter-facing append Interface; post-K11 architecture-deepening should remove lower-level bypass append methods from public crate consumers and keep bypass append support only as `#[cfg(test)] pub(crate)` Append ledger support before chart adapter work depends on the kernel Interface.
 - Lower-level test/trusted-entry bypasses may exist only with loud names that state omitted predicate and/or revision admission checks, and normal fixtures/examples should not teach those bypasses.
 - The deterministic fixture is a happy-path kernel example: base Claims should append through Append admission, and correction Claims should append through Revision admission against current ledger entries.
 - Query remains a trusted-entry projection and should not become the owner of revision-target admission; query tests may use loud bypass helpers only to construct point-read fixtures or corrupt snapshots.

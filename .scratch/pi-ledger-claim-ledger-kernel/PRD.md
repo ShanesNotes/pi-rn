@@ -2,7 +2,7 @@
 
 Status: active
 Program status: active `pi-ledger` implementation workstream.
-Next slice status: needs-triage (post-K11 architecture-deepening candidate)
+Next slice status: ready-for-agent (`K12` public append Interface quarantines Admission bypass)
 
 ## Problem Statement
 
@@ -10,7 +10,7 @@ The project needs a clean, reusable cryptographic claim-ledger kernel that is in
 
 The maintainer has decided that the ledger should be a sibling subproject, `pi-ledger`, with `pi-chart` consuming it later through an adapter. The workstream needs precise Rust-first package/document authority that lets AFK agents implement and deepen the kernel without accidentally touching `pi-chart` source, schemas, patients, package archives, lockfiles outside `pi-ledger`, or hidden simulator internals.
 
-K0-K11 proved the first kernel behaviors, introduced explicit append and revision admission seams, and made normal correction append prove target existence before store metadata mutates. The next architecture-deepening slice should preserve those admission authorities while choosing one narrow post-K11 seam to deepen before adapter work depends on the kernel Interface.
+K0-K11 proved the first kernel behaviors, introduced explicit append and revision admission seams, and made normal correction append prove target existence before store metadata mutates. The next architecture-deepening slice is K12: preserving those admission authorities while quarantining the remaining public Admission bypass before adapter work depends on the kernel Interface.
 
 ## Solution
 
@@ -30,6 +30,7 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 - K9: Validated Claim field accessors as the kernel authority for Claim id, predicate, patient, time, and revision-link extraction.
 - K10: append admission as the explicit seam that proves a Validated Claim is eligible for a specific patient ledger after patient-scope and predicate-registry checks pass.
 - K11: revision admission as the explicit seam that proves an Append-admissible correction Claim targets existing same-patient ledger content by Claim id plus Record hash before append.
+- K12: public append Interface quarantine for Admission bypass, keeping lower-level bypass append support test-only before adapter work.
 
 The K11 solution is to deepen the existing admission seam rather than create a general correction graph engine. Claim validation remains responsible for the Ledger-acceptable Claim contract. Predicate registry remains responsible for predicate/object policy. Append admission remains responsible for patient-scope and predicate-policy composition. Revision admission composes an already Append-admissible correction Claim with the current patient ledger entry surface and returns a Revision-admissible value only when the correction target exists and the stored target Record hash matches the recomputed Record hash. Append ledger remains responsible for patient-local ordering, store-assigned known-time metadata, record hashes, entry hashes, previous-entry links, and head validation.
 
@@ -83,6 +84,7 @@ The K11 solution is to deepen the existing admission seam rather than create a g
 - Validated Claim field extraction is recorded by ADR 004; Claim, Ledger, Predicate, and append-time paths should consume validated accessors instead of raw JSON field reads where validation has already occurred.
 - Append admission is recorded by ADR 005; it separates predicate policy from append-chain storage.
 - Revision admission is recorded by ADR 006; it proves correction target existence before normal append without becoming a general correction graph engine.
+- Admission bypass quarantine is recorded by ADR 007; bypass append support is test-only and not part of the public adapter-facing Interface.
 - A Ledger-acceptable Claim means structurally valid, canonicalizable, and hashable.
 - An Append-admissible Claim means a Validated Claim that is eligible to enter a specific patient-scoped ledger after patient-scope and predicate-registry checks pass.
 - A Revision-admissible Claim means an Append-admissible correction Claim whose revision target matches an already accepted entry in the same patient ledger by Claim id and Record hash.
@@ -110,6 +112,8 @@ The K11 solution is to deepen the existing admission seam rather than create a g
 - Keep tests behavior-first and public-interface oriented.
 - K0+K2 should produce deterministic golden vectors for canonical JSON and hash output.
 - Architecture-deepening issues should start with narrow failing regressions that prove the current seam is stringly, duplicated, bypassable, dangling, or inconsistent before refactoring.
+- K12 tests should avoid new compile-fail dependencies unless already present; use a lightweight public-interface/source guard plus behavior tests that exercise only safe public append paths. Remaining bypass append support should live only as `#[cfg(test)] pub(crate)` Append ledger support.
+- K12 should not refactor Query revision-target parsing or make Query share Revision admission internals; Query remains a trusted-entry projection, and projection cleanup should be a separate candidate if selected.
 - K7/K8/K9 tests should preserve prior K0-K6 behavior while adding module-local tests for value parsing/rejection/accessors and cross-module integration tests for Claim, Ledger, Predicate, and Query consumption.
 - K10 tests should prove admission accepts only Validated Claims whose patient scope matches the target ledger and whose predicate/object policy passes the registry.
 - K10 tests should prove the preferred append path consumes an append-admissible value and preserves K3 metadata, record-hash, entry-hash, previous-link, and head behavior.
@@ -142,4 +146,4 @@ The K11 solution is to deepen the existing admission seam rather than create a g
 
 The superseded chart-local planning surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K11 are complete and committed; the next slice should be chosen through architecture-deepening review before adapter integration.
 
-Post-K11 candidates should preserve the pi-ledger context glossary and ADRs 001-006, avoid expanding into registry versioning, correction conflict policy, storage backend work, query revalidation, or chart integration unless explicitly selected, and start from narrow regressions that prove a real seam/locality problem.
+K12 should be issued as one narrow vertical implementation ticket for public append Interface governance. It should cite the pi-ledger context glossary and ADR 007, preserve all K0-K11 behavior, and avoid expanding into Query projection cleanup, registry versioning, correction conflict policy, storage backend work, query revalidation, or chart integration.
