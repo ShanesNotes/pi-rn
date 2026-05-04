@@ -37,3 +37,4 @@ Validation summary:
 - Used approved source-map, brownfield-crosswalk, and corpus-atlas evidence; each artifact marks weak/missing evidence as mismatch-register input.
 - Preserved canonical/derived/rendered and hot/warm/cold classifications.
 - Boundary held: docs-only under `.scratch/pi-chart-phase-a-context-digging-corpus-mining`; no source, patient, ADR, design asset, lockfile, `pi-ledger`, or `pi-sim` edits.
+- Corrective worker-4 closeout recreated the assigned substrate artifact at current HEAD and rechecked issues 11-14 remain `needs-triage`.
