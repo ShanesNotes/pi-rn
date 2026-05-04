@@ -24,6 +24,7 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 
 - K7: shared canonical UTC time values and valid-time expressions across Claim, Ledger, and Query.
 - K8: typed Record hash and Entry hash values in a shared kernel hash Module.
+- K9: Validated Claim field accessors as the kernel authority for Claim id, predicate, patient, time, and revision-link extraction.
 
 `pi-chart` integration is deferred to a later adapter workstream after the kernel Interface is proven. Existing `pi-chart/src/claim-ledger/` work, if present, is evidence only.
 
@@ -40,6 +41,7 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 9. As a future adapter author, I want canonical UTC time to be a kernel input invariant, so that source-system timezone normalization stays outside the cryptographic kernel.
 10. As a future correction-link author, I want Record hash to be a typed value, so that claim id plus content hash references cannot silently accept malformed hash strings.
 11. As a future storage/rebuild author, I want Entry hash to be a typed value distinct from Record hash, so that append-chain integrity and Claim content identity are not accidentally interchangeable.
+12. As a future kernel maintainer, I want Validated Claim accessors to be the field extraction authority, so that Ledger, Predicate, and append-time code do not drift by reinterpreting raw Claim JSON independently.
 
 ## Implementation Decisions
 
@@ -51,6 +53,7 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 - Record hashes are SHA-256 encoded as `sha256:<64 lowercase hex characters>`.
 - Canonical UTC timestamp handling is a kernel input invariant recorded by ADR 002; adapters normalize source timestamps before kernel entry.
 - Record hash and Entry hash are distinct kernel identity values recorded by ADR 003; a dedicated hash Module owns shared `sha256:<64 lowercase hex>` parsing/formatting.
+- Validated Claim field extraction is recorded by ADR 004; Claim, Ledger, Predicate, and append-time paths should consume validated accessors instead of raw JSON field reads where validation has already occurred.
 - K0 may introduce only narrowly justified Rust dependencies needed for canonical JSON and SHA-256 hashing, expected to be `serde`, `serde_json`, and `sha2`; any additional dependency requires issue triage.
 - Phase 1 does not implement FHIR/openEHR/CAS/blockchain/signatures/key management/external anchoring.
 - Phase 1 does not migrate current `pi-chart/patients/` data or implement `pi-chart` adapters.
@@ -61,7 +64,7 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 - Keep tests behavior-first and public-interface oriented.
 - K0+K2 should produce deterministic golden vectors for canonical JSON and hash output.
 - Architecture-deepening issues should start with narrow failing regressions that prove the current seam is stringly, duplicated, or inconsistent before refactoring.
-- K7/K8 tests should preserve prior K0-K6 behavior while adding module-local tests for value parsing/rejection and cross-module integration tests for Claim, Ledger, and Query consumption.
+- K7/K8/K9 tests should preserve prior K0-K6 behavior while adding module-local tests for value parsing/rejection/accessors and cross-module integration tests for Claim, Ledger, Predicate, and Query consumption.
 - Run `cargo fmt --all -- --check`, `cargo test --workspace`, and `cargo clippy --workspace --all-targets -- -D warnings` for closeout.
 - Do not use current `pi-chart` patient fixtures, schemas, or `EventEnvelope` tests as implementation authority.
 
@@ -75,4 +78,4 @@ After K0-K6 closeout, the workstream continues with small architecture-deepening
 
 ## Further Notes
 
-The superseded `.scratch/pi-chart-v0-5-claim-ledger-kernel/` surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K7 are complete; K8 continues the same workstream as a focused architecture-deepening issue before adapter integration.
+The superseded `.scratch/pi-chart-v0-5-claim-ledger-kernel/` surface remains lineage evidence. New AFK implementation should use this `pi-ledger` workstream. K0-K8 are complete; K9 continues the same workstream as a focused architecture-deepening issue before adapter integration.

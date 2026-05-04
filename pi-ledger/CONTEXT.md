@@ -13,6 +13,7 @@
 - **Claim ledger kernel**: reusable substrate for tamper-evident clinical claims, not a chart UI or EHR clone.
 - **Claim**: minimal clinical fact/action/context/interpretion record with stable id, predicate, subject, object, time, actor/provenance, and integrity fields.
 - **Ledger-acceptable Claim**: a Claim that satisfies the kernel's structural rules and is canonicalizable under the active canonicalization; a validated Claim must be hashable.
+- **Validated Claim**: Ledger-acceptable Claim view that is the kernel authority for extracting Claim fields after structural and canonicalizability checks pass.
 - **Canonicalization**: deterministic JSON-compatible byte representation used for cryptographic hashes.
 - **Canonical UTC timestamp**: kernel timestamp string in `YYYY-MM-DDTHH:MM:SSZ` form.
 - **Record hash**: SHA-256 proof of canonical claim content; never the only claim identity.
@@ -28,6 +29,7 @@
 ## Invariants
 
 - Stable claim identity uses both claim id and content hash.
+- Claim field extraction should go through **Validated Claim** accessors after validation; modules should not independently reinterpret Claim JSON for id, predicate, subject, time, or revision links.
 - Record hash and Entry hash are distinct identity values: correction links target claim id plus Record hash, while append-chain links and ledger head validation use Entry hash.
 - Kernel hash strings use `sha256:<64 lowercase hex>` form, and hash parsing/formatting should be owned by a shared kernel hash rule rather than duplicated in Claim, Ledger, or Query code.
 - Canonicalization and hash output must be deterministic across implementations.

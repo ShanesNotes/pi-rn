@@ -78,6 +78,10 @@ git status --short
   - `ledger.rs` appends and validates patient scope through `ValidatedClaim`; `append(&Value)` validates once and delegates to `append_validated(&ValidatedClaim)`.
   - `predicates.rs` exposes `validate_validated_claim(&ValidatedClaim)` and uses validated predicate, shape, and object accessors.
   - `query.rs` was not changed; point reads keep the trusted-entry path.
+- Post-implementation cleanup:
+  - Removed stale `LedgerError::MissingClaimPatientId`; K9 centralized patient id extraction under `ValidatedClaim`, so no ledger code constructs that raw-field error.
+  - Fallback inventory found no masking fallback slop in K9 scope; StoreClock `Default` and test-only JSON pointer checks remain grounded/pre-existing.
+- Cleanup focused evidence: `cd pi-ledger && cargo test -p ledger-core t_k9 -- --nocapture` — PASS, 6 tests.
 - Final checks:
   - `cd pi-ledger && cargo fmt --all -- --check` — PASS.
   - `cd pi-ledger && cargo test --workspace` — PASS, 103 tests.

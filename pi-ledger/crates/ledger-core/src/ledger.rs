@@ -58,7 +58,6 @@ pub enum LedgerError {
         expected: String,
         actual: String,
     },
-    MissingClaimPatientId,
     PatientMismatch {
         ledger_patient_id: String,
         claim_patient_id: String,
