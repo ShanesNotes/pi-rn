@@ -14,6 +14,9 @@
 - **Claim**: minimal clinical fact/action/context/interpretion record with stable id, predicate, subject, object, time, actor/provenance, and integrity fields.
 - **Ledger-acceptable Claim**: a Claim that satisfies the kernel's structural rules and is canonicalizable under the active canonicalization; a validated Claim must be hashable.
 - **Validated Claim**: Ledger-acceptable Claim view that is the kernel authority for extracting Claim fields after structural and canonicalizability checks pass.
+- **Append-admissible Claim**: Validated Claim that is eligible to enter a specific patient-scoped ledger after patient-scope and predicate-registry checks pass.
+- **Append admission**: explicit kernel decision step that proves a Validated Claim is eligible for a patient ledger before the Append ledger assigns known-time metadata and hashes a new entry.
+- **Admission module**: kernel seam that combines Validated Claim, patient-ledger scope, and Predicate registry policy without making either the Append ledger or Predicate registry own the whole admission decision.
 - **Canonicalization**: deterministic JSON-compatible byte representation used for cryptographic hashes.
 - **Canonical UTC timestamp**: kernel timestamp string in `YYYY-MM-DDTHH:MM:SSZ` form.
 - **Record hash**: SHA-256 proof of canonical claim content; never the only claim identity.
@@ -30,6 +33,16 @@
 
 - Stable claim identity uses both claim id and content hash.
 - Claim field extraction should go through **Validated Claim** accessors after validation; modules should not independently reinterpret Claim JSON for id, predicate, subject, time, or revision links.
+- Append admission is stricter than Claim validation: accepted ledger entries must come from **Append-admissible Claims**, while accepted time, sequence, and batch identity remain store authority.
+- Append-admission success should be represented as a value that can be passed to append-time APIs, not only as a boolean side check.
+- Append APIs should make predicate admission hard to bypass: appending an **Append-admissible Claim** is the preferred path, while any lower-level append seam must be explicitly named as not enforcing predicate admission, for example with `without_predicate_admission` in the API name.
+- Append admission consumes a **Validated Claim**; raw JSON convenience validation-and-admission helpers are deferred until an adapter proves the need.
+- Append admission depends on the target ledger patient id, not on Append ledger internals such as head, entries, or store clock.
+- Predicate-registry policy belongs at the append-admission seam; the Append ledger owns patient-local ordering, store metadata, record hashes, entry hashes, previous-entry links, and head validation.
+- Admission module owns the Append-admissible Claim value and admission errors; Ledger, Claim, and Predicate modules keep their narrower authority.
+- Admission errors should preserve narrower module ownership by wrapping predicate failures and owning patient-scope mismatch, rather than flattening all validation failures into Ledger errors.
+- Snapshot re-read validation remains a chain-integrity check; predicate-admission re-audit against a registry is separate and deferred until predicate registry versioning exists.
+- Append admission does not yet prove correction target existence or conflict policy; correction graph semantics are separate from the K10 predicate-aware admission seam.
 - Record hash and Entry hash are distinct identity values: correction links target claim id plus Record hash, while append-chain links and ledger head validation use Entry hash.
 - Kernel hash strings use `sha256:<64 lowercase hex>` form, and hash parsing/formatting should be owned by a shared kernel hash rule rather than duplicated in Claim, Ledger, or Query code.
 - Canonicalization and hash output must be deterministic across implementations.
