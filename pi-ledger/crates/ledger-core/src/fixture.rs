@@ -151,7 +151,7 @@ fn append_revision_admitted_claim(
 fn base_shape_claims() -> Vec<Value> {
     vec![
         context_claim(),
-        observation_claim("claim-generated-observation-original", 88),
+        fixture_observation_claim("claim-generated-observation-original", 88),
         interpretation_claim(),
         act_claim(),
     ]
@@ -190,7 +190,12 @@ fn context_claim() -> Value {
     })
 }
 
-fn observation_claim(id: &str, value: i64) -> Value {
+/// Builds a deterministic observation Claim for kernel tests and public examples.
+///
+/// This helper intentionally lives in the `fixture` module: it is a tiny,
+/// generated kernel example, not a production Claim builder or clinical
+/// ontology.
+pub fn fixture_observation_claim(id: &str, value: i64) -> Value {
     json!({
         "id": id,
         "shape": "observation",
@@ -204,6 +209,22 @@ fn observation_claim(id: &str, value: i64) -> Value {
         "actor": common_actor(),
         "integrity": common_integrity()
     })
+}
+
+/// Builds a deterministic correction Claim for kernel tests and public examples.
+///
+/// The returned Claim still needs normal Claim validation, Append admission, and
+/// Revision admission before it can enter an Append ledger.
+pub fn fixture_correction_claim(id: &str, value: i64, target_id: &str, target_hash: &str) -> Value {
+    let mut claim = fixture_observation_claim(id, value);
+    claim["revises"] = json!({
+        "mode": "corrects",
+        "target": {
+            "id": target_id,
+            "hash": target_hash
+        }
+    });
+    claim
 }
 
 fn interpretation_claim() -> Value {
@@ -239,15 +260,12 @@ fn act_claim() -> Value {
 }
 
 fn correction_claim(target_hash: &str) -> Value {
-    let mut claim = observation_claim("claim-generated-observation-correction", 90);
-    claim["revises"] = json!({
-        "mode": "corrects",
-        "target": {
-            "id": "claim-generated-observation-original",
-            "hash": target_hash
-        }
-    });
-    claim
+    fixture_correction_claim(
+        "claim-generated-observation-correction",
+        90,
+        "claim-generated-observation-original",
+        target_hash,
+    )
 }
 
 #[cfg(test)]
