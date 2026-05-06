@@ -1,7 +1,8 @@
 # K12 public append Interface quarantines Admission bypass
 
-Status: ready-for-agent
+Status: ready-for-human
 Type: AFK
+Resolution: implemented; merge/admin close pending human confirmation.
 
 ## Parent
 
@@ -33,23 +34,23 @@ Any lower-level bypass append support should compile only for tests and should b
 
 ## Acceptance criteria
 
-- [ ] Starts with a failing public-Interface/source guard proving `pub fn append_without_predicate_or_revision_admission` is currently exposed from production `ledger.rs`.
-- [ ] Starts with behavior coverage proving external/public append examples can append base Claims only through Append admission.
-- [ ] Starts with behavior coverage proving external/public append examples can append correction Claims only through Revision admission.
-- [ ] Does not add a compile-fail test dependency such as `trybuild` unless one already exists in the workspace.
-- [ ] Removes `AppendLedger::append_without_predicate_or_revision_admission` from the production public crate Interface.
-- [ ] Keeps the internal implementation helper used by safe append paths private to `AppendLedger` production code.
-- [ ] Preserves lower-level bypass append capability only under test compilation, as `#[cfg(test)] pub(crate)` support or an equivalently crate-private test-only method.
-- [ ] Any remaining test-only bypass name loudly states the omitted admission checks, including predicate and revision admission.
-- [ ] Existing ledger unit tests that intentionally need bypass construction use the test-only crate-private helper.
-- [ ] Query tests that intentionally need trusted-entry or corrupt-entry setup continue to work through test-only crate-private support without making Query an admission authority.
-- [ ] Normal fixtures and examples continue to use Append admission for base Claims and Revision admission for correction Claims.
-- [ ] Integration tests or public-surface tests do not call or rely on any bypass append method.
-- [ ] K12 source guard fails if a production `pub fn append_without_predicate_or_revision_admission` reappears.
-- [ ] K12 does not refactor Query revision-target parsing, share Revision admission internals with Query, or make Query validate target existence.
-- [ ] K12 does not implement correction conflict handling, replacement policy, clinical visibility requirements, graph-wide correction semantics, registry versioning/re-audit, storage backend work, chart adapters, current patient migration, or hidden simulator coupling.
-- [ ] Existing K0-K11 behavior remains green, including canonical golden vectors, chain validation/rebuild, predicate validation, point reads/correction visibility, fixture proof, canonical time, typed hashes, Validated Claim accessors, Append admission, and Revision admission.
-- [ ] Closeout records verification commands and evidence in this issue or final handoff.
+- [x] Starts with a failing public-Interface/source guard proving `pub fn append_without_predicate_or_revision_admission` is currently exposed from production `ledger.rs`.
+- [x] Starts with behavior coverage proving external/public append examples can append base Claims only through Append admission.
+- [x] Starts with behavior coverage proving external/public append examples can append correction Claims only through Revision admission.
+- [x] Does not add a compile-fail test dependency such as `trybuild` unless one already exists in the workspace.
+- [x] Removes `AppendLedger::append_without_predicate_or_revision_admission` from the production public crate Interface.
+- [x] Keeps the internal implementation helper used by safe append paths private to `AppendLedger` production code.
+- [x] Preserves lower-level bypass append capability only under test compilation, as `#[cfg(test)] pub(crate)` support or an equivalently crate-private test-only method.
+- [x] Any remaining test-only bypass name loudly states the omitted admission checks, including predicate and revision admission.
+- [x] Existing ledger unit tests that intentionally need bypass construction use the test-only crate-private helper.
+- [x] Query tests that intentionally need trusted-entry or corrupt-entry setup continue to work through test-only crate-private support without making Query an admission authority.
+- [x] Normal fixtures and examples continue to use Append admission for base Claims and Revision admission for correction Claims.
+- [x] Integration tests or public-surface tests do not call or rely on any bypass append method.
+- [x] K12 source guard fails if a production `pub fn append_without_predicate_or_revision_admission` reappears.
+- [x] K12 does not refactor Query revision-target parsing, share Revision admission internals with Query, or make Query validate target existence.
+- [x] K12 does not implement correction conflict handling, replacement policy, clinical visibility requirements, graph-wide correction semantics, registry versioning/re-audit, storage backend work, chart adapters, current patient migration, or hidden simulator coupling.
+- [x] Existing K0-K11 behavior remains green, including canonical golden vectors, chain validation/rebuild, predicate validation, point reads/correction visibility, fixture proof, canonical time, typed hashes, Validated Claim accessors, Append admission, and Revision admission.
+- [x] Closeout records verification commands and evidence in this issue or final handoff.
 
 ## Blocked by
 
@@ -87,4 +88,27 @@ git status --short
 
 ## Closeout evidence
 
-_To be filled by the implementing agent._
+- Baseline before K12 source edits: `cd pi-ledger && cargo test --workspace` — PASS, 118 tests.
+- Red basis: current production `ledger.rs` exposed `pub fn append_without_predicate_or_revision_admission`; the new `k12_public_source_guard_keeps_admission_bypass_out_of_production_interface` guard is written to fail on that production public signature.
+- Focused K12 evidence: `cd pi-ledger && cargo test -p ledger-core k12 -- --nocapture` — PASS, 3 public-interface tests.
+- Implementation evidence:
+  - Changed `AppendLedger::append_without_predicate_or_revision_admission` to `#[cfg(test)] pub(crate)` so it is available only to crate-internal tests.
+  - Kept the private production append helper available to the safe public append APIs.
+  - Added `pi-ledger/crates/ledger-core/tests/public_append_interface.rs` with a source guard and public examples for base Append admission and correction Revision admission.
+  - Updated adapter-strategy issue 02 to require K12 before consumer-contract inventory documents the post-bypass public Interface.
+- Final checks:
+  - `cd pi-ledger && cargo fmt --all -- --check` — PASS.
+  - `cd pi-ledger && cargo test --workspace` — PASS, 121 tests.
+  - `cd pi-ledger && cargo clippy --workspace --all-targets -- -D warnings` — PASS.
+  - `git diff --check` — PASS.
+  - `git status --short -- pi-ledger .scratch/pi-ledger-claim-ledger-kernel .scratch/pi-chart-pi-ledger-adapter-strategy` — checked; K12 touched `ledger.rs`, new public interface test file, this issue, and adapter issue 02 prerequisite note; pre-existing untracked `pi-ledger/docs/k0-overview.html` and `pi-ledger/docs/k2-overview.html` remain unrelated.
+- Manual confirmations:
+  - No Query revision-target parsing refactor.
+  - No Query admission authority.
+  - No correction conflict handling, replacement policy, clinical visibility requirements, graph-wide correction semantics, registry versioning/re-audit, storage backend work, chart adapters, current patient migration, or hidden simulator coupling.
+  - No compile-fail dependency added.
+- Ralph review/cleanup:
+  - Architect verification — APPROVE, no blockers.
+  - Changed-file deslop pass — no cleanup edits required; `bypass` terms are intentional K12 domain vocabulary and test `unwrap()` calls are assertion setup.
+  - Post-deslop regression re-run: `cargo fmt --all -- --check`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, and `git diff --check` — PASS.
+  - Build check: `cd pi-ledger && cargo build --workspace` — PASS.

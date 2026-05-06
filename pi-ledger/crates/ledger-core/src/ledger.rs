@@ -209,7 +209,8 @@ impl AppendLedger {
         self.append_record_without_predicate_or_revision_admission(claim.raw())
     }
 
-    pub fn append_without_predicate_or_revision_admission(
+    #[cfg(test)]
+    pub(crate) fn append_without_predicate_or_revision_admission(
         &mut self,
         claim: &ValidatedClaim<'_>,
     ) -> Result<&LedgerEntry, LedgerError> {
