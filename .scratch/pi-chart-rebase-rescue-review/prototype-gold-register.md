@@ -1,0 +1,21 @@
+# Prototype gold register
+
+Status: rescue review artifact
+
+Purpose: capture valuable prototype/mining ideas without assuming the prototype is complete, correct, or architecturally preferred.
+
+| Idea ID | Prototype source | Rescued idea | Clinical/workflow value | Evidence strength | Known flaw or uncertainty | Related risk ID | Candidate promotion |
+|---|---|---|---|---|---|---|---|
+| GOLD-001 | ADR016; deep-research memo; root context | Clinical memory substrate north star. | Keeps project aimed at patient-scoped clinical memory and clinician effectiveness, not UI clone. | strong | Needs new wording to avoid “not EHR” being read as “ignore EHR rails.” | RISK-001 | promote to future ADR |
+| GOLD-002 | ADR016; `clinical-reference/broad-ehr-skeleton.md` | Broad shallow EHR skeleton as proof surface. | Ensures the agent has enough observable clinical context across real care surfaces. | strong | Can drift into full EHR clone if not function-first. | RISK-002 | promote to PRD/issue |
+| GOLD-003 | ADR016; Phase A closeout | Chart-once/project-many documentation-burden relief. | A bedside fact can feed review, note, handoff, open-loop, and context views without duplicate prose. | strong | Derived projections may be mistaken for canonical truth. | RISK-003 | promote to future ADR |
+| GOLD-004 | `pi-chart/src/views/memoryProof.ts`; ADR016 | Deterministic memory-proof projection. | Demonstrates what happened, why, evidence, uncertainty, open loops, and handoff from existing chart memory. | moderate | Name over-promises; not memory itself and not cryptographic proof. | RISK-004 | promote to PRD/issue |
+| GOLD-005 | `pi-chart/src/views/bundle.ts`; context-bundle plans | Thin contextBundle read-side packaging. | Shows a bounded read wrapper over current projections for downstream consumers. | moderate | Not a full ContextPacket; lacks packet hash, omissions, compiler, safety floor. | RISK-005 | keep as prototype evidence |
+| GOLD-006 | v0.5 spec prep; package adoption map | TaskFrame / ContextPacket / ContextReceipt lineage. | Gives agents task-specific, replayable, evidence-linked context with omission accounting. | strong | Needs formal ADR before shape freezes. | RISK-006 | promote to future ADR |
+| GOLD-007 | `src/types.ts`; validator; ADR010/011; Phase A packs | Evidence/provenance/source/time grammar. | Lets humans and agents trace facts to source, effective time, recorded time, and transform. | strong | Brownfield shape should not be copied wholesale into ledger. | RISK-007 | promote to PRD/issue |
+| GOLD-008 | ADR017; review-attestation pack | Review, attestation, authorship, and lifecycle governance. | Clarifies whether agent/human claims were suggested, verified, rejected, deferred, or attested. | strong | Legal/signature specifics remain future scope. | RISK-008 | promote to future ADR |
+| GOLD-009 | Orders/MAR/open-loop substrate pack; shift-brain strategy | Open loops, MAR/order/result-review workflow substrate. | Makes pending, blocked, fulfilled, and follow-up work visible for safe continuity. | strong | Can become task-product sprawl or handoff tunnel vision. | RISK-009 | promote to PRD/issue |
+| GOLD-010 | hot/warm/cold model; Phase A closeout | Hot/warm/cold context access behavior. | Helps agents/clinicians get right context at right time without selecting backend prematurely. | moderate | Backend/vector/search choices deferred. | RISK-010 | promote to PRD/issue |
+| GOLD-011 | foundation decision register FDR-006; ADR017 | Agent output as proposal/review material, not accepted truth. | Preserves human clinical authority and safe review burden-offload. | strong | Requires future access/review policy. | RISK-011 | promote to future ADR |
+| GOLD-012 | rendered chart digging/prototype design pass | Rendered/prototype navigation questions. | Preserves product affordances about what clinicians want to see quickly. | moderate | Raw UI/design/API artifacts are not architecture. | RISK-012 | keep as prototype evidence |
+| GOLD-013 | patient corpus atlas; patient_002 review packet; Phase A closeout | Curated patient scenarios as clinical pressure tests. | Supplies realistic scenario pressure for context, handoff, MAR/labs/open-loop coverage. | moderate | Not kernel fixture authority; risk of overfitting to one scenario. | RISK-013 | promote to PRD/issue |
