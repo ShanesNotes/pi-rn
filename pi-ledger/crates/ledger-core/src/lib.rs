@@ -11,7 +11,9 @@
 //!
 //! The adapter-facing Interface inventory lives in
 //! `pi-ledger/docs/ledger-core-public-interface.md`; the clinician-readable
-//! proof lifecycle lives in `pi-ledger/docs/admission-proof-lifecycle.md`.
+//! proof lifecycle lives in `pi-ledger/docs/admission-proof-lifecycle.md`;
+//! the trusted history rebuild Seam lives in
+//! `pi-ledger/docs/trusted-history-rebuild-seam.md`.
 
 pub mod admission;
 pub mod canonical;

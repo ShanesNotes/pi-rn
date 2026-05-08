@@ -13,6 +13,7 @@ pi-ledger/
 ├── docs/adr/
 ├── docs/admission-proof-lifecycle.md
 ├── docs/ledger-core-public-interface.md
+├── docs/trusted-history-rebuild-seam.md
 └── crates/
     └── ledger-core/
         ├── Cargo.toml
@@ -30,6 +31,7 @@ For safe-use guidance, read:
 
 - `docs/ledger-core-public-interface.md` for the adapter-facing Interface map.
 - `docs/admission-proof-lifecycle.md` for the clinician-readable proof lifecycle.
+- `docs/trusted-history-rebuild-seam.md` for snapshot/from_snapshot rebuild boundaries.
 
 ## Commands
 

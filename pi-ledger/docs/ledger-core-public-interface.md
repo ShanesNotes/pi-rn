@@ -3,7 +3,7 @@
 Status: active adapter-readiness reference
 Related ADR: `docs/adr/008-kernel-public-interface-inventory-before-adapters.md`
 
-This page is the current safe-use map for the `ledger-core` claim-ledger kernel after K12. For a clinician-readable explanation of the proof steps, see `admission-proof-lifecycle.md`.
+This page is the current safe-use map for the `ledger-core` claim-ledger kernel after K12. For a clinician-readable explanation of the proof steps, see `admission-proof-lifecycle.md`; for snapshot rebuild boundaries, see `trusted-history-rebuild-seam.md`.
 
 Clinical summary: the kernel accepts clinical assertions into ledger history only after it can prove that the Claim is structurally valid, belongs to the target patient ledger, satisfies Predicate policy, and, for corrections, points to already accepted same-patient ledger content. New accepted ledger history should enter through those proof steps. Bypass append support is test-only and is not an Adapter contract.
 
@@ -45,7 +45,7 @@ These are the paths future Adapters may use as the intended `ledger-core` Interf
 
 ## Trusted rebuild and integrity paths
 
-These paths are public because future storage/rebuild work needs them, but they are not shortcuts for new clinical writes.
+These paths are public because future storage/rebuild work needs them, but they are not shortcuts for new clinical writes. The rebuild Seam is documented in `trusted-history-rebuild-seam.md`.
 
 | Need | Use | Boundary note |
 | --- | --- | --- |
