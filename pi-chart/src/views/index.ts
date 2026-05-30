@@ -10,12 +10,12 @@ export { evidenceChain } from "./evidenceChain.js";
 export { openLoops } from "./openLoops.js";
 export { narrative } from "./narrative.js";
 export { memoryProof } from "./memoryProof.js";
-export { contextBundle } from "./bundle.js";
+export { contextPacket } from "./contextPacket.js";
 export type {
-  ContextBundle,
-  ContextBundleParams,
+  ContextPacket,
+  ContextPacketParams,
   EvidenceContext,
-} from "./bundle.js";
+} from "./contextPacket.js";
 
 export {
   loadContext,

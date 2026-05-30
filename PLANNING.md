@@ -33,15 +33,15 @@ Purpose: make a fresh AI coding agent productive in one read-pass before touchin
 |---|---|---|---|
 | `pi-sim/` | `pi-sim/docs/adr/003-pi-sim-patient-runtime-provider-architecture.md`; `pi-sim/vitals/README.md`; `pi-sim/vitals/.lanes.json` | `pi-sim/docs/plans/007-authority-ledger-and-ai-alignment-roadmap.md` | Hidden patient runtime. Publishes public vitals lanes; do not expose provider/scenario internals to sibling consumers. |
 | `pi-monitor/` | `pi-monitor/docs/ADR-0001-rust-native-pi-monitor.md`; `pi-monitor/docs/ADR-0003-public-lane-consumer-authority.md` | `pi-monitor/docs/ADR-0003-public-lane-consumer-authority.md` | Display-only public consumer. Public JSON lanes are durable; private TCP is non-durable display transport. No chart/EHR writes. |
-| `pi-chart/` | `pi-chart/src/vitals.ts` for current vital-sample identity; broader chart direction remains sibling-owned | Future pi-chart v0.5 disposition lane | Chart/EHR truth owner. Do not depend on `pi-monitor`; telemetry adapter must specify provenance/idempotency/write policy first. |
+| `pi-chart/` | See `CONTEXT-MAP.md` subproject matrix and `pi-chart/CONTEXT.md`; `pi-chart/docs/adr/` (notably 018/019/020) is authority | Active work in `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/` | Agent-native clinical chart; no longer owns the cryptographic claim-ledger kernel (ADR 020). Do not depend on `pi-monitor`; ingest via explicit Observable charting adapters. |
 | `pi-agent/` | `pi-agent/AGENTS.md` | M7 public-read smoke artifacts classified in the ledger | Must not import or read hidden `pi-sim` source. Future reads are public vitals and chart/query APIs only. |
-| `ingest/` | Not created yet | Future `pi-rn/ingest/README.md`, PRD, and test-spec | Explicit adapter seam from public vitals to chart truth. No hidden sim imports. |
+| `ingest/` | NOT a subproject — `CONTEXT-MAP.md` defines a 5-subproject matrix (pi-sim, pi-monitor, pi-ledger, pi-chart, pi-agent) with no `ingest/`; the public-vitals→chart adapter seam lives inside `pi-chart`. | n/a | Stale historical placeholder; do not create `ingest/`. |
 
 ## Active execution posture
 
 - Current approved path: authority reconciliation first, implementation later.
 - Do not create duplicate PRD/test-spec wrappers when M5/M6/M7 artifacts are already classified execution-ready.
-- Do not start `pi-rn/ingest/` implementation until the authority ledger, public ABI lock, and chart write semantics are accepted.
+- The public-vitals→chart adapter seam is owned inside `pi-chart` (see `CONTEXT-MAP.md`); there is no separate `pi-rn/ingest/` subproject.
 
 ## Archive posture
 

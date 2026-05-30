@@ -15,7 +15,7 @@ This gate prevents the `pi-chart` ↔ `pi-ledger` adapter lane from becoming imp
 
 Adapter implementation may be promoted only after all three conditions are true:
 
-1. The `pi-ledger` K0-K6 kernel chain has completed with closeout evidence.
+1. The `pi-ledger` K0-K12 kernel chain has completed with closeout evidence (the public interface is current as of K12 per `pi-ledger/docs/ledger-core-public-interface.md`), and the remaining pre-adapter blocker — kernel-deepening issue 07 (fixture-export quarantine) in `.scratch/pi-ledger-kernel-interface-deepening/issues/` — is closed.
 2. The adapter workstream has a completed consumer-contract inventory and brownfield reconciliation note.
 3. A maintainer has selected the first Rust/TypeScript integration mechanism through the HITL mechanism-decision issue.
 
@@ -32,15 +32,17 @@ Until then, adapter issues may be used for planning, inventory, and source-autho
 | K5 minimal bitemporal read | Point-read behavior that keeps valid time and known time distinct and does not leak later accepted corrections into earlier known-time views. |
 | K6 synthetic fixture closeout | Deterministic synthetic fixture corpus, boundary checks, no current-patient migration, no hidden simulator coupling, and reusable golden evidence for adapter tests. |
 
+> **Note (2026-05-29):** the kernel has since shipped through **K12** (predicate admission, base/correction admission, snapshot/rebuild, query projection) with a frozen, test-guarded public interface — see `pi-ledger/docs/ledger-core-public-interface.md`. The K0-K6 evidence table above is the original floor; adapter promotion now also requires kernel-deepening **issue 07 (fixture-export quarantine)** to close so adapters cannot mistake `ledger_core::fixture::*` for production API.
+
 ## Adapter workstream gates
 
 | Adapter issue | Promotion meaning |
 | --- | --- |
 | 01 readiness gate | May be completed as docs-only immediately. It does not authorize product source work. |
-| 02 kernel consumer contract inventory | Waits for K0-K6 so the inventory reflects real kernel interface evidence. |
+| 02 kernel consumer contract inventory | Waits for K0-K12 so the inventory reflects real kernel interface evidence (and for kernel-deepening issue 07 fixture-export quarantine to close). |
 | 03 brownfield reconciliation | May be completed as docs-only immediately. It must not delete or edit product source. |
 | 04 integration mechanism decision | HITL; waits for kernel contract inventory. This chooses the first boundary mechanism but does not implement it. |
-| 05-09 adapter executable proofs | Stay `needs-triage` until K0-K6, issue 02, and issue 04 are complete. Promote one narrow slice at a time. |
+| 05-09 adapter executable proofs | Stay `needs-triage` until K0-K12, kernel-deepening issue 07 (fixture-export quarantine), issue 02, and issue 04 are complete. Promote one narrow slice at a time. |
 | 10 write-authority deferral | May be docs-only after issue 01. It should block implicit direct-write adoption. |
 | 11 archived package retargeting | Waits for issue 02 and issue 03. It should not create downstream implementation scope. |
 | 12 source-authority closeout | Runs after the planning/executable proof lane has enough completed evidence to avoid stale authority. |

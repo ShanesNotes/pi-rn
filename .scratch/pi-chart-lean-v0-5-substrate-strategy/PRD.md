@@ -1,6 +1,8 @@
 # PRD: pi-chart lean v0.5 substrate strategy
 
-Status: needs-triage
+> **SUPERSEDED (2026-05-29):** superseded by `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/` (the -shift-brain variant), whose PRD and 15 issues are the active, committed substrate work surface (latest commit `06acc9a Close substrate slice before adapter work`). Use that directory for active work; this file is retained as lineage only.
+
+Status: superseded (was: needs-triage)
 Program status: downstream docs-only strategy from Phase A closeout; no source implementation, patient migration, backend/index selection, vector/OpenBrain commitment, or direct agent accepted-write path authorized.
 Source closeout: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/closeout-verification-and-downstream-handoff.md`
 Primary evidence: `.scratch/pi-chart-phase-a-context-digging-corpus-mining/lean-dense-v0-5-substrate-recommendation.md`

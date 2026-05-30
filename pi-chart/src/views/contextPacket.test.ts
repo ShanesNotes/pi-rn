@@ -11,8 +11,8 @@ import { openLoops } from "./openLoops.js";
 import { narrative } from "./narrative.js";
 import { timeline } from "./timeline.js";
 import { memoryProof } from "./memoryProof.js";
-import { contextBundle } from "./bundle.js";
-import { contextBundle as exportedContextBundle } from "./index.js";
+import { contextPacket } from "./contextPacket.js";
+import { contextPacket as exportedContextPacket } from "./index.js";
 
 const AS_OF = "2026-04-18T13:00:00.000Z";
 const FROM = "2026-04-18T00:00:00.000Z";
@@ -43,7 +43,7 @@ function event(
   };
 }
 
-async function seedBundleChart() {
+async function seedPacketChart() {
   const scope = await makeEmptyPatient();
 
   await appendRawEvent(
@@ -147,61 +147,61 @@ async function seedBundleChart() {
   return scope;
 }
 
-test("contextBundle composes required sections from existing projections", async () => {
-  const scope = await seedBundleChart();
+test("contextPacket composes required sections from existing projections", async () => {
+  const scope = await seedPacketChart();
 
-  const bundle = await contextBundle({ scope, asOf: AS_OF });
+  const packet = await contextPacket({ scope, asOf: AS_OF });
   const directCurrentState = await currentState({ scope, axis: "all", asOf: AS_OF });
   const directOpenLoops = await openLoops({ scope, asOf: AS_OF });
   const directNarrative = await narrative({ scope, to: AS_OF });
   const directTimeline = await timeline({ scope, from: FROM, to: AS_OF });
   const directProof = await memoryProof({ scope, asOf: AS_OF });
 
-  assert.equal(bundle.patient_id, "patient_001");
-  assert.equal(bundle.asOf, AS_OF);
-  assert(bundle.source_view_refs.length > 0);
-  assert(bundle.open_loops.length > 0, "fixture should exercise open loops");
+  assert.equal(packet.patient_id, "patient_001");
+  assert.equal(packet.asOf, AS_OF);
+  assert(packet.source_view_refs.length > 0);
+  assert(packet.open_loops.length > 0, "fixture should exercise open loops");
   assert(
-    bundle.narrative_handoff.length > 0,
+    packet.narrative_handoff.length > 0,
     "fixture should exercise narrative handoff",
   );
   assert(
-    bundle.evidence_context.evidence.length > 0,
+    packet.evidence_context.evidence.length > 0,
     "fixture should exercise evidence context",
   );
   assert(
-    bundle.recent_timeline.length > 0,
+    packet.recent_timeline.length > 0,
     "fixture should exercise recent timeline",
   );
-  assert.deepEqual(bundle.current_state, directCurrentState);
-  assert.deepEqual(bundle.open_loops, directOpenLoops);
-  assert.deepEqual(bundle.narrative_handoff, directNarrative);
-  assert.deepEqual(bundle.recent_timeline, directTimeline);
-  assert.deepEqual(bundle.evidence_context, {
+  assert.deepEqual(packet.current_state, directCurrentState);
+  assert.deepEqual(packet.open_loops, directOpenLoops);
+  assert.deepEqual(packet.narrative_handoff, directNarrative);
+  assert.deepEqual(packet.recent_timeline, directTimeline);
+  assert.deepEqual(packet.evidence_context, {
     evidence: directProof.sections.evidence,
     uncertainty: directProof.sections.uncertainty,
     proof_refs: directProof.source_view_refs,
   });
 });
 
-test("contextBundle is exported from the views barrel", async () => {
-  assert.equal(exportedContextBundle, contextBundle);
+test("contextPacket is exported from the views barrel", async () => {
+  assert.equal(exportedContextPacket, contextPacket);
 });
 
-test("contextBundle wrapper keys and refs do not widen forbidden S5 surfaces", async () => {
-  const scope = await seedBundleChart();
-  const bundle = await contextBundle({ scope, asOf: AS_OF });
+test("contextPacket wrapper keys and refs do not widen forbidden S5 surfaces", async () => {
+  const scope = await seedPacketChart();
+  const packet = await contextPacket({ scope, asOf: AS_OF });
   const forbidden = /fingerprint|hash|identity|profile|pi[-_]?agent|pi[-_]?sim/i;
   const s5OwnedStrings = [
-    ...Object.keys(bundle),
-    ...bundle.source_view_refs,
-    ...Object.keys(bundle.evidence_context),
+    ...Object.keys(packet),
+    ...packet.source_view_refs,
+    ...Object.keys(packet.evidence_context),
   ];
 
   for (const value of s5OwnedStrings) {
     assert(
       !forbidden.test(value),
-      `${value} should not be introduced by the S5 bundle wrapper`,
+      `${value} should not be introduced by the S5 packet wrapper`,
     );
   }
 });

@@ -14,11 +14,11 @@ This memo does not accept, supersede, renumber, or implement any ADR. It only de
 
 ## 2. Problem statement
 
-`pi-chart/docs/adr/` is the only accepted repo ADR namespace. The current accepted repo sequence ends at `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md`.
+`pi-chart/docs/adr/` is the only accepted repo ADR namespace. As of 2026-05-29 the accepted repo sequence has advanced past the 018 baseline this memo was drafted against: `pi-chart/docs/adr/019-v0-5-clean-canvas-claim-ledger-kernel.md` and `pi-chart/docs/adr/020-claim-ledger-kernel-owned-by-pi-ledger.md` are both accepted, so the highest accepted repo ADR is 020 and the next free number is 021.
 
 The V0.5 package archive also contains ADR-labeled materials such as package ADR 018/019/022/023/024. Those package numbers are valuable research identifiers, but they conflict with accepted repo numbering. In particular, package-derived ADR 018 claim-ledger concepts must not be confused with accepted repo ADR 018, which is the architecture rebase decision.
 
-There is also a local sequencing conflict: accepted repo ADR 018 anticipated a future "ADR 019" for a clean-slate service/event-store spike decision, while the V0.5 conventions memo now records that the first accepted V0.5 kernel ADR should be `pi-chart/docs/adr/019-v0-5-claim-ledger-kernel.md` if approved. Because the spike ADR was only a follow-up placeholder and no `019-*` accepted ADR exists, the next accepted repo ADR number remains `019`.
+There is also a local sequencing conflict: accepted repo ADR 018 anticipated a future "ADR 019" for a clean-slate service/event-store spike decision, while the V0.5 conventions memo recorded that the first accepted V0.5 kernel ADR should be a `019-*` kernel ADR if approved. That kernel ADR has since been accepted as `pi-chart/docs/adr/019-v0-5-clean-canvas-claim-ledger-kernel.md`, followed by `020-claim-ledger-kernel-owned-by-pi-ledger.md`. The spike ADR was only a follow-up placeholder and was never reserved at 019; the next free accepted repo ADR number is now `021`.
 
 ## 3. Reconciled namespaces
 
@@ -26,7 +26,7 @@ There is also a local sequencing conflict: accepted repo ADR 018 anticipated a f
 
 - Accepted repo ADRs MUST live in `pi-chart/docs/adr/`.
 - Accepted repo ADRs MUST use the repo-local numeric sequence represented by files in `pi-chart/docs/adr/`.
-- The next accepted repo ADR number is `019` unless a new accepted ADR is created first.
+- The next free accepted repo ADR number is `021` (019 and 020 are accepted as of 2026-05-29) unless a new accepted ADR is created first.
 - Historical gaps or reservations in the repo sequence MUST NOT be backfilled or renumbered as part of V0.5.
 - Accepted repo ADR status MUST come from an accepted file in `pi-chart/docs/adr/`, not from package metadata, memo language, PRD language, or an issue backlog.
 
@@ -57,13 +57,13 @@ When a package-derived concept is ready for accepted repo ADR review:
 
 ## 5. First V0.5 kernel ADR
 
-If a V0.5 claim-ledger kernel ADR is approved, the first accepted V0.5 kernel ADR SHOULD be:
+The first accepted V0.5 kernel ADR is:
 
-`pi-chart/docs/adr/019-v0-5-claim-ledger-kernel.md`
+`pi-chart/docs/adr/019-v0-5-clean-canvas-claim-ledger-kernel.md` (now accepted)
 
 This ADR would cite package ADR 018 claim-ledger materials and the V0.5 synthesis, but it would not become "package ADR 018" and would not alter accepted repo ADR 018.
 
-The clean-slate service/event-store spike follow-up named in accepted repo ADR 018 remains valid as a future decision need, but it SHOULD take the next available repo ADR number at the time it is actually drafted and accepted. Do not reserve `019` for that placeholder after `019-v0-5-claim-ledger-kernel.md` is accepted.
+The clean-slate service/event-store spike follow-up named in accepted repo ADR 018 remains valid as a future decision need, but it SHOULD take the next available repo ADR number at the time it is actually drafted and accepted. Do not reserve a number for that placeholder; with `019-v0-5-clean-canvas-claim-ledger-kernel.md` and `020-claim-ledger-kernel-owned-by-pi-ledger.md` accepted, the spike ADR takes the next free number (021 or later) when actually drafted.
 
 ## 6. Required citation convention
 
@@ -96,8 +96,8 @@ Future V0.5 PRDs and test-specs MUST say, for example:
 | Topic | Synthesis stance | This memo stance | Reason | Approval |
 | --- | --- | --- | --- | --- |
 | Package ADR numbers | Package ADR numbers remain archival identifiers. | Same. | Prevent namespace collision. | Planning memo only. |
-| Accepted repo sequence | Repo ADR numbers continue from current `pi-chart/docs/adr/` sequence. | Same; next accepted number is `019` unless another accepted ADR lands first. | Current repo sequence ends at 018. | Planning memo only. |
-| Kernel ADR | Kernel ADR becomes `019-v0-5-claim-ledger-kernel.md` if accepted. | Same. | Matches V0.5 conventions L1. | Planning memo only. |
+| Accepted repo sequence | Repo ADR numbers continue from current `pi-chart/docs/adr/` sequence. | Same; next free number is `021` (019 and 020 accepted as of 2026-05-29). | Repo sequence now extends to accepted 020. | Planning memo only. |
+| Kernel ADR | Kernel ADR accepted as `019-v0-5-clean-canvas-claim-ledger-kernel.md`. | Same. | Matches V0.5 conventions L1. | Planning memo only. |
 | ADR 018 spike placeholder | Not explicitly resolved in synthesis. | Future clean-slate/service-event-store spike ADR uses the next available repo number when accepted. | Accepted ADR 018 contains a placeholder, not an existing ADR file or reservation. | Planning memo only. |
 
 ## 9. Acceptance checklist for future accepted ADR drafts

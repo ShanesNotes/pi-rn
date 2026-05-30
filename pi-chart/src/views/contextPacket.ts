@@ -1,4 +1,6 @@
-// contextBundle(params) — S5 read-side composition layer.
+// contextPacket(params) — S5 read-side composition layer.
+// ContextPacket: the compiled, task-scoped chart context artifact (CONTEXT.md);
+// memoryProof remains an internal evidence projection this composes.
 //
 // This is intentionally a thin, read-only wrapper over existing views. It
 // gives downstream serialized readers one bounded package without introducing
@@ -18,7 +20,7 @@ import type {
   TimelineEntry,
 } from "../types.js";
 
-export interface ContextBundleParams {
+export interface ContextPacketParams {
   scope: PatientScope;
   asOf?: string;
   encounterId?: string;
@@ -30,7 +32,7 @@ export interface EvidenceContext {
   proof_refs: string[];
 }
 
-export interface ContextBundle {
+export interface ContextPacket {
   patient_id: string;
   asOf: string;
   source_view_refs: string[];
@@ -41,9 +43,9 @@ export interface ContextBundle {
   recent_timeline: TimelineEntry[];
 }
 
-export async function contextBundle(
-  params: ContextBundleParams,
-): Promise<ContextBundle> {
+export async function contextPacket(
+  params: ContextPacketParams,
+): Promise<ContextPacket> {
   const asOfMs = await resolveAsOfMs(params.scope, params.asOf);
   const asOf = new Date(asOfMs).toISOString();
   const from = new Date(startOfUtcDay(asOfMs)).toISOString();
