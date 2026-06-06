@@ -83,7 +83,7 @@ PRD Implementation Decisions: "`links.resolves` is given a consumer or dropped."
 - **Resolution** is a *new base Claim* (not a revision): an `interpretation` (problem resolved) or `act` (e.g. order discontinued) fact that `resolves`/`addresses` the original. It is append-admissible, not revision-admissible — because nothing was wrong.
 - **`entered_in_error`** is the one status that may map to a correction/void revision; whether it is `mode:"corrects"` or a distinct void posture is part of OQ-1.
 - **Store-owned, never emit:** the kernel assigns Record hash, Entry hash, prev-link, head, `seq`, `batch_id`, `accepted_at` on append (ledger public interface step 5; PRD §2.D). The chart supplies the *target's* Record hash on a correction (read back from the kernel), but never invents its own append-chain metadata.
-- **Scale routing:** because lifecycle is per-patient append-only lineage, the shared clinical-truth service can shard/route by `subject.patientId` and serialize appends per patient ledger, while corrections remain safe across concurrent agents via the recomputing-hash recheck ("Rechecks target proof against current ledger entries before append"). This assumes the **proposed, not-yet-accepted** pi-ledger-as-service runtime — see `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (proposed).
+- **Scale routing:** because lifecycle is per-patient append-only lineage, the shared clinical-truth service can shard/route by `subject.patientId` and serialize appends per patient ledger, while corrections remain safe across concurrent entry points via the recomputing-hash recheck ("Rechecks target proof against current ledger entries before append"). This follows the **accepted north star, ADR-promoted** pi-ledger-as-service runtime — see `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (accepted north star).
 
 ## Connector parameterization
 
@@ -94,6 +94,8 @@ liveLifecycle(patientId, encounterId, asOf) -> { factId, lifecycleLabel, lineage
 ```
 
 ## Open questions for the architect (do NOT pre-answer)
+
+Co-sign/attestation modeling is resolved by Issues 03/04/10 as separate append-only `act` facts; this lifecycle slice consumes that decision for projection labels.
 
 - **OQ-1 (revise/open-question):** Does clinician **Replaced** (`supersedes`, content-replacement without wrong-claim connotation) map to a kernel `revises{mode:"corrects"}` revision, or is it a chart-internal lineage edge that emits a fresh base Claim with no kernel revision? And does `entered_in_error` map to `mode:"corrects"` or a distinct void posture? The kernel exposes only `mode:"corrects"` today; the chart must not widen the kernel. Surface for decision.
 - **OQ-2 (open-question):** **Canceled** and **Discontinued** apply to `act`/intent facts (orders/intents) and have no kernel `status` field. Are they (a) resolution-style new facts via `resolves`, (b) corrections via `revises`, or (c) a new `act` predicate (e.g. `order.discontinue`) recorded as a fresh fact addressing the original? Recommend (c) for discontinuation (it is a real new clinical act) and (a) for cancel-before-effect — but this needs architect sign-off, not a silent pick.
@@ -112,12 +114,12 @@ liveLifecycle(patientId, encounterId, asOf) -> { factId, lifecycleLabel, lineage
 - [ ] Marks store-owned append metadata (Record/Entry hash, prev-link, head, `seq`, `batch_id`, `accepted_at`) as **never-emit** by the chart.
 - [ ] Surfaces **OQ-1, OQ-2, OQ-3** as explicit open questions for the architect (no invented answers).
 - [ ] Connector example stays `(patientId, encounterId, asOf)`-parameterized with no hardcoded patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).
-- [ ] Marks shared-truth-service-dependent claims as assuming the **proposed** clinical-truth-service runtime and cites the proposal doc.
+- [ ] Marks shared-truth-service-dependent claims as assuming the **accepted** clinical-truth-service north star and cites the accepted service north-star doc.
 
 ## Blocked by
 
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/08-integrity-and-agreed-canonicalization-id.md` — the recomputing Record hash and target-hash acquisition depend on the agreed canonicalization id (`jcs-rfc8785-pi-chart-v1` ↔ kernel `canonical_json`/`record_hash`).
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicateId-projection-and-production-registry.md` — resolution facts (`interpretation`/`act`) and discontinuation acts need their predicate ids defined.
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/08-integrity-field-and-agreed-canonicalization-id.md` — the recomputing Record hash and target-hash acquisition depend on the agreed canonicalization id (`jcs-rfc8785-pi-chart-v1` ↔ kernel `canonical_json`/`record_hash`).
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicate-id-projection-and-production-registry.md` — resolution facts (`interpretation`/`act`) and discontinuation acts need their predicate ids defined.
 
 ## Related (consistency)
 

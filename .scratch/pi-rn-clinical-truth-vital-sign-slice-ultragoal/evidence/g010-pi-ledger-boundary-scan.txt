@@ -1,0 +1,1 @@
+$ ! rg -n 'pi-chart/|../pi-chart|pi-sim/|../pi-sim|patients/|showcase/' pi-ledger/crates/ledger-core/src pi-ledger/crates/clinical-truth-service/src --glob '!fixture.rs'

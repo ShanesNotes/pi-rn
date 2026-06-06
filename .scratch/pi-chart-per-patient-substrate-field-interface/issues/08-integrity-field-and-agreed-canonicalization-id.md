@@ -15,7 +15,7 @@ PRD user stories covered: 17
 - `pi-ledger/docs/ledger-core-public-interface.md` — frozen Claim target (`integrity` presence-checked; the whole Claim must canonicalize).
 - `pi-chart/src/types.ts` — current model has **no** top-level `integrity` field.
 - ADR 020 — the pi-chart TS prototype `src/claim-ledger/canonical.ts` was **deleted**; the kernel is the single canonicalization authority.
-- `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` **(proposed, not accepted)** — canonicalization/hashing "runs once, in Rust — single source of truth."
+- `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` **(accepted north star, ADR-promoted)** — canonicalization/hashing "runs once, in Rust — single source of truth."
 
 ## Scope at scale (architect mandate, 2026-05-29)
 
@@ -62,14 +62,14 @@ The canonicalization id `jcs-rfc8785-pi-chart-v1` must denote **byte-identical**
 | Record hash algorithm | `sha256` over canonical bytes → `sha256:<64hex>` | chart must produce the same digest string |
 | Unsupported input | NaN/Infinity/undefined/function rejected deterministically | chart must reject the same inputs |
 
-**Posture: open-question / not implemented.** Per ADR 020, the TS prototype was deleted because two cryptographic implementations is the duplication the kernel exists to remove. So the *agreement mechanism* is undecided: either (a) the chart never canonicalizes locally and always asks the kernel/service for hashes, or (b) a single Rust canonicalization is shared to the client (e.g. a wasm build of just the canonicalization, per the **proposed** clinical-truth service §4) so there is still one implementation. This issue **names** the agreement as a prerequisite and does **not** pick the mechanism.
+**Posture: open-question / not implemented.** Per ADR 020, the TS prototype was deleted because two cryptographic implementations is the duplication the kernel exists to remove. So the *agreement mechanism* is undecided: either (a) the chart never canonicalizes locally and always asks the kernel/service for hashes, or (b) a single Rust canonicalization is shared to the client (e.g. a wasm build of just the canonicalization, per the **accepted** clinical-truth service north star §4) so there is still one implementation. This issue **names** the agreement as a prerequisite and does **not** pick the mechanism.
 
 ## Kernel-mapping note
 
 - `integrity` → kernel **`integrity`**. The frozen kernel checks **presence**; the whole Claim must canonicalize. The contract field maps directly.
 - `integrity.hash` is effectively **store-assignable**: the kernel's Append step assigns the Record hash, and the hash is computed by `record_hash` excluding the self-fields. The chart MAY carry an optimistic hash, but the kernel's recomputed hash is authoritative — so `integrity.hash` borders the K3 store-owned boundary (cf. Issue 05's `accepted_at`/`seq`/`batch_id` never-emit list). Correction targets (Issue 09) require the **kernel** Record hash (`sha256:<64hex>`) that recomputes against the stored target.
 - **One implementation, not two:** mapping bends the chart to the frozen kernel canonicalization; the kernel is **not widened** and the chart does **not** clone canonicalization (ADR 020).
-- **Scale dependency:** "canonicalization runs once, in Rust" as the single source of truth across many concurrent clients is the **proposed** clinical-truth service posture (`clinical-truth-service-decision-proposal.md`, *proposed — not accepted*). The `integrity` field shape does not depend on acceptance; the agreement *mechanism* does.
+- **Scale dependency:** "canonicalization runs once, in Rust" as the single source of truth across many concurrent clients is the **accepted** clinical-truth service north star posture (`clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted). The `integrity` field shape does not depend on storage implementation details; the canonicalization agreement mechanism does.
 
 ## Acceptance criteria
 
@@ -78,7 +78,7 @@ The canonicalization id `jcs-rfc8785-pi-chart-v1` must denote **byte-identical**
 - [ ] Doc names `jcs-rfc8785-pi-chart-v1` and requires it to AGREE with the kernel `canonical_json`/`record_hash`, listing the concrete agreement points (key ordering, number rules, exclusion, sha256, unsupported-input rejection) and citing `canonical.rs` as the authority.
 - [ ] Doc flags canonicalization-id agreement as an **open prerequisite, not implemented**, and records that ADR 020 forbids a second TS canonicalization implementation.
 - [ ] Kernel-mapping note: `integrity` → kernel `integrity` (presence-checked); `integrity.hash` borders K3 store-owned; no kernel widening; no cloned canonicalization.
-- [ ] At-scale single-canonicalization claim is marked as assuming the **proposed** clinical-truth service and cites the proposal.
+- [ ] At-scale single-canonicalization claim is marked as assuming the **accepted** clinical-truth service north star and cites the accepted service north star.
 - [ ] Connectors stay `(patientId, encounterId, asOf)`-parameterized; no hardcoded patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).
 
 ## Blocked by
@@ -89,4 +89,4 @@ The canonicalization id `jcs-rfc8785-pi-chart-v1` must denote **byte-identical**
 
 1. **Agreement mechanism (the core open question).** Given ADR 020 forbids a second implementation, how does the chart obtain hashes that agree with `canonical.rs`? (a) always round-trip to the kernel/service for hashing; (b) share one Rust canonicalization to the client as a wasm fast-path (proposal §4); (c) other. **Not decided here.**
 2. **Is the chart allowed to emit `integrity.hash` at all?** If `integrity.hash` is store-assigned like `accepted_at`/`seq`/`batch_id` (Issue 05), should the chart field contract mark it **never-emit** (kernel assigns) or **optimistic-only** (chart may carry, kernel overwrites)? (Borders K3; surfaced.)
-3. **Canonicalization-id versioning at scale.** When the rule evolves past `...-v1` across many long-lived concurrent clients, how is the version negotiated so old and new clients still agree? (Versioned-contract concern from the proposal; surfaced, not decided.)
+3. **Canonicalization-id versioning at scale.** When the rule evolves past `...-v1` across many long-lived concurrent clients, how is the version negotiated so old and new clients still agree? (Versioned-contract concern from the accepted service north star; surfaced, not decided.)

@@ -1,0 +1,33 @@
+   Compiling ledger-core v0.1.0 (/home/ark/pi-rn/pi-ledger/crates/ledger-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.48s
+     Running unittests src/lib.rs (target/debug/deps/ledger_core-4670cfe63b3fbd77)
+
+running 13 tests
+test predicates::tests::registry_rejects_duplicate_predicate_ids ... ok
+test predicates::tests::registry_rejects_predicate_definitions_with_unsupported_shape ... ok
+test predicates::tests::clinical_truth_vital_sign_registry_is_narrow_versioned_slice_policy ... ok
+test predicates::tests::clinical_truth_vital_sign_registry_requires_encounter_id_for_first_slice ... ok
+test predicates::tests::t_k4_01_seed_registry_loads_without_duplicate_predicate_ids ... ok
+test predicates::tests::clinical_truth_vital_sign_registry_hash_is_stable_and_version_sensitive ... ok
+test predicates::tests::seed_registry_accepts_phase1_correction_fixture_without_extra_predicates ... ok
+test predicates::tests::t_k4_02_t_neg_02_claim_using_unregistered_predicate_fails_validation ... ok
+test predicates::tests::t_k4_03_claim_shape_inconsistent_with_predicate_shape_fails_validation ... ok
+test predicates::tests::t_k4_04_t_neg_03_invalid_object_for_seeded_predicate_fails_validation ... ok
+test predicates::tests::t_k9_03_registry_uses_validated_claim_predicate_shape_and_object_accessors ... ok
+test predicates::tests::t_neg_01_claim_with_fifth_shape_fails_predicate_validation ... ok
+test predicates::tests::t_k9_03_registry_validates_already_validated_claim_through_claim_field_authority ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+     Running tests/public_append_interface.rs (target/debug/deps/public_append_interface-8be4687585785ec8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/trusted_history_rebuild.rs (target/debug/deps/trusted_history_rebuild-197d1cb503f93dd5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+

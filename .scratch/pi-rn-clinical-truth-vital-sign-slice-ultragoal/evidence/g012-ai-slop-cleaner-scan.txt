@@ -1,0 +1,182 @@
+AI slop cleaner fallback/code-smell scan scope:
+CONTEXT-MAP.md
+pi-ledger/CONTEXT.md
+pi-ledger/README.md
+pi-ledger/Cargo.toml
+pi-ledger/crates/ledger-core/src/lib.rs
+pi-ledger/crates/ledger-core/src/predicates.rs
+pi-ledger/crates/ledger-core/src/conformance.rs
+pi-ledger/crates/ledger-core/src/ledger.rs
+pi-ledger/crates/ledger-core/examples/generate_clinical_truth_vectors.rs
+pi-ledger/conformance/clinical_truth/v1alpha1/vital_sign_vectors.json
+pi-ledger/crates/clinical-truth-service/src/lib.rs
+pi-ledger/crates/clinical-truth-service/Cargo.toml
+pi-ledger/docs/adr/009-clinical-truth-service.md
+pi-ledger/docs/adr/010-vital-sign-service-core-slice.md
+pi-chart/CONTEXT.md
+pi-chart/README.md
+pi-chart/docs/adr/021-clinical-truth-service-client-boundary.md
+pi-chart/docs/adr/022-vital-sign-clinical-truth-adapter-slice.md
+pi-chart/src/index.ts
+pi-chart/src/clinical-truth-contract.ts
+pi-chart/src/clinical-truth-contract.test.ts
+pi-chart/src/clinical-truth-adapter.ts
+pi-chart/src/clinical-truth-adapter.test.ts
+
+$ rg fallback-like/code smell terms
+pi-chart/src/clinical-truth-adapter.ts:151:export function createFakeClinicalTruthBackendClient(opts: {
+pi-chart/src/clinical-truth-adapter.ts:177:        service_build: opts.serviceBuild ?? "fake-clinical-truth-backend.contract-test",
+pi-ledger/crates/ledger-core/examples/generate_clinical_truth_vectors.rs:5:        .expect("clinical truth vital.sign vector generation should succeed");
+pi-ledger/crates/ledger-core/examples/generate_clinical_truth_vectors.rs:9:            .expect("clinical truth vital.sign vector suite should serialize")
+pi-chart/src/index.ts:63:  createFakeClinicalTruthBackendClient,
+pi-ledger/crates/clinical-truth-service/src/lib.rs:111:    TestModeNoFsync,
+pi-ledger/crates/clinical-truth-service/src/lib.rs:118:            Self::TestModeNoFsync => "test_mode_no_fsync",
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1570:        let service = ClinicalTruthService::vital_sign_fixture().unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1593:        let service = ClinicalTruthService::vital_sign_fixture().unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1596:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1610:        let service = ClinicalTruthService::vital_sign_fixture().unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1613:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1626:        let service = ClinicalTruthService::vital_sign_fixture().unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1655:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1688:        let service = ClinicalTruthService::vital_sign_fixture().unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1722:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1731:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1740:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1756:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1776:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1791:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1802:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1816:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1866:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1874:        assert_eq!(by_claim.unwrap().entry, appended.entry);
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1882:        assert_eq!(by_hash.unwrap().entry, appended.entry);
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1893:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1904:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1913:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1923:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1939:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1957:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1968:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1992:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:1999:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2004:        let blank = ClinicalTruthService::vital_sign_fixture().unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2035:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2036:            .with_file_wal_storage(dir.clone(), WalDurability::TestModeNoFsync)
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2037:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2042:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2053:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2059:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2061:        let snapshot = service.replay_patient_wal_snapshot(patient_ref()).unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2073:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2075:        let log = std::fs::read_to_string(&log_path).unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2081:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2082:            .with_file_wal_storage(dir.clone(), WalDurability::TestModeNoFsync)
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2083:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2085:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2091:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2102:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2103:            .with_file_wal_storage(dir.clone(), WalDurability::TestModeNoFsync)
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2104:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2106:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2112:            .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2117:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2119:        let line = std::fs::read_to_string(&log_path).unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2120:        let mut record: Value = serde_json::from_str(line.trim()).unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2125:            format!("{}\n", serde_json::to_string(&record).unwrap()),
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2127:        .unwrap();
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2206:            .unwrap()
+pi-ledger/crates/clinical-truth-service/src/lib.rs:2213:            .unwrap()
+pi-chart/docs/adr/022-vital-sign-clinical-truth-adapter-slice.md:28:- a fake contract backend for tests only;
+pi-ledger/crates/ledger-core/src/conformance.rs:281:        let suite = clinical_truth_v1alpha1_vital_sign_vectors().unwrap();
+pi-ledger/crates/ledger-core/src/conformance.rs:282:        let rendered = serde_json::to_string_pretty(&suite).unwrap();
+pi-ledger/crates/ledger-core/src/conformance.rs:311:            serde_json::to_string_pretty(&clinical_truth_v1alpha1_vital_sign_vectors().unwrap())
+pi-ledger/crates/ledger-core/src/conformance.rs:312:                .unwrap();
+pi-chart/src/clinical-truth-adapter.test.ts:9:  createFakeClinicalTruthBackendClient,
+pi-chart/src/clinical-truth-adapter.test.ts:61:  const client = createFakeClinicalTruthBackendClient({
+pi-chart/src/clinical-truth-adapter.test.ts:105:    service_build: "fake",
+pi-chart/src/clinical-truth-adapter.test.ts:117:  const client = createFakeClinicalTruthBackendClient();
+pi-ledger/README.md:5:`pi-ledger` owns deterministic canonicalization, stable claim id plus content hash identity, append-only ledger integrity, and minimal valid-time / known-time query semantics. It is not a chart UI, not an EHR clone, not a blockchain, and not a `pi-chart` brownfield compatibility layer.
+pi-ledger/README.md:32:test-only Admission bypass quarantine.
+pi-ledger/docs/adr/010-vital-sign-service-core-slice.md:31:- file/WAL prototype storage for accepted entries with explicit `Fsync` versus `TestModeNoFsync`, replay/head validation through trusted rebuild, and fail-closed corruption handling.
+pi-ledger/docs/adr/010-vital-sign-service-core-slice.md:39:- Letting snapshot validation import/write entries. Rejected because trusted rebuild is diagnostic/admin behavior, not an append bypass.
+pi-ledger/crates/ledger-core/src/predicates.rs:378:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:416:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:428:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:440:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:442:        let validated = validate_kernel_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:444:        registry.validate_validated_claim(&validated).unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:449:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:452:        let validated = validate_kernel_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:466:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:482:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:498:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:510:        registry.validate_claim(&correction).unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:516:        let registry = clinical_truth_v1alpha1_vital_sign_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:517:        let summary = clinical_truth_v1alpha1_vital_sign_registry_summary().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:559:        let registry = clinical_truth_v1alpha1_vital_sign_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:562:            .unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:565:            .unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:568:            .unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:576:        let registry = clinical_truth_v1alpha1_vital_sign_registry().unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:579:        registry.validate_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/predicates.rs:584:            .unwrap()
+pi-ledger/CONTEXT.md:21:- **Admission bypass**: test-only append path that omits Append admission and/or Revision admission for trusted kernel-internal construction or negative tests.
+pi-ledger/CONTEXT.md:41:- Append APIs should make admission policy hard to bypass: appending an **Append-admissible Claim** is the preferred path for base Claims, appending a **Revision-admissible Claim** is the preferred path for correction Claims, and any lower-level append seam must be explicitly named as not enforcing the omitted admission checks.
+pi-ledger/CONTEXT.md:55:- Admission bypasses are not part of the public adapter-facing append Interface; post-K11 architecture-deepening should remove lower-level bypass append methods from public crate consumers and keep bypass append support only as `#[cfg(test)] pub(crate)` Append ledger support before chart adapter work depends on the kernel Interface.
+pi-ledger/CONTEXT.md:56:- Lower-level test/trusted-entry bypasses may exist only with loud names that state omitted predicate and/or revision admission checks, and normal fixtures/examples should not teach those bypasses.
+pi-ledger/CONTEXT.md:58:- Query remains a trusted-entry projection and should not become the owner of revision-target admission; query tests may use loud bypass helpers only to construct point-read fixtures or corrupt snapshots.
+pi-ledger/CONTEXT.md:59:- K11 should land as one vertical issue because Revision admission, normal correction append API, fixture happy path, and bypass inventory must change together to avoid an unsafe intermediate append surface.
+pi-ledger/CONTEXT.md:82:`pi-chart` consumes `pi-ledger` through explicit adapters. `pi-chart` owns chart views, clinical workflows, draft/review UI, and any brownfield compatibility bridge. `pi-ledger` owns the cryptographic claim-ledger kernel and should not import `pi-chart` source, schemas, patient directories, or prototype artifacts.
+pi-ledger/crates/ledger-core/src/ledger.rs:527:        assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
+pi-ledger/crates/ledger-core/src/ledger.rs:583:        let validated = validate_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:584:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:601:    fn t_k9_02_bypass_append_uses_claim_field_authority_for_patient_scope() {
+pi-ledger/crates/ledger-core/src/ledger.rs:604:        let validated = validate_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:608:            .unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:611:        assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
+pi-ledger/crates/ledger-core/src/ledger.rs:616:    fn t_k9_02_bypass_append_rejects_cross_patient_without_raw_patient_pointer_reread() {
+pi-ledger/crates/ledger-core/src/ledger.rs:619:        let validated = validate_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:635:    fn t_k10_01_admission_rejects_unregistered_predicate_that_explicit_bypass_can_append() {
+pi-ledger/crates/ledger-core/src/ledger.rs:638:        let validated = validate_claim(&claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:639:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:651:            .unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:659:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:662:        let cross_patient = validate_claim(&cross_patient_claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:675:        let entry = ledger.append_admissible(&admitted).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:683:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:686:        let shape_mismatch = validate_claim(&shape_mismatch_claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:699:        let invalid_object = validate_claim(&invalid_object_claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:717:        let entry = ledger.append_admissible(&admitted).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:725:        assert_eq!(entry.record_hash, record_hash(&claim).unwrap().as_str());
+pi-ledger/crates/ledger-core/src/ledger.rs:737:        ledger.append_admissible(&admitted).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:739:        let empty_registry = PredicateRegistry::load(Vec::<PredicateDefinition>::new()).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:741:        let stored_claim = validate_claim(&stored_record).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:750:        let reread = AppendLedger::from_snapshot(snapshot).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:827:        let entry = ledger.append_admissible(&admitted).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:849:            RevisionAdmissibleClaim::admit(&admitted, ledger.entries()).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:853:            .unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:865:            record_hash(&correction).unwrap().as_str()
+pi-ledger/crates/ledger-core/src/ledger.rs:901:                recomputed: RecordHash::parse(&target_hash).unwrap(),
+pi-ledger/crates/ledger-core/src/ledger.rs:929:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:932:        let other_patient_validated = validate_claim(&other_patient_claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:935:                .unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:942:            .unwrap()
+pi-ledger/crates/ledger-core/src/ledger.rs:953:                target_hash: RecordHash::parse(&cross_patient_target_hash).unwrap(),
+pi-ledger/crates/ledger-core/src/ledger.rs:968:            RevisionAdmissibleClaim::admit(&admitted, proof_ledger.entries()).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:978:                target_hash: RecordHash::parse(&target_hash).unwrap(),
+pi-ledger/crates/ledger-core/src/ledger.rs:1028:        ledger.validate().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1174:        let recomputed = ledger.recompute_hashes().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1177:            let record_hash = crate::hash::RecordHash::parse(&hashes.record_hash).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1178:            let entry_hash = crate::hash::EntryHash::parse(&hashes.entry_hash).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1189:        let first_read = AppendLedger::from_snapshot(snapshot.clone()).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1190:        let second_read = AppendLedger::from_snapshot(snapshot).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1207:        let recomputed = ledger.recompute_hashes().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1231:        let recomputed = tampered.recompute_hashes().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1250:        let recomputed = tampered.recompute_hashes().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1259:            .map(|entry| entry.record["id"].as_str().unwrap())
+pi-ledger/crates/ledger-core/src/ledger.rs:1285:        let validated = validate_claim(claim).unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1286:        let registry = phase1_registry().unwrap();
+pi-ledger/crates/ledger-core/src/ledger.rs:1287:        AppendAdmissibleClaim::admit(&validated, "patient_kernel", &registry).unwrap()
+pi-ledger/crates/ledger-core/src/ledger.rs:1295:        ledger.append_admissible(&admitted).unwrap()
+pi-ledger/crates/ledger-core/src/ledger.rs:1300:        RecordHash::parse(format!("sha256:{hex}")).unwrap()
+pi-chart/CONTEXT.md:183:`pi-ledger` owns the reusable cryptographic claim-ledger kernel after ADR 020. `pi-chart` owns chart/EHR workflows, clinical views, adapters, and brownfield compatibility. `pi-chart` should consume `pi-ledger` through explicit adapters after the kernel interface is proven; it should not treat `pi-chart/src/claim-ledger/` as the canonical kernel home.

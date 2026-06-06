@@ -1,0 +1,10 @@
+[package]
+name = "clinical-truth-service"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ledger-core = { path = "../ledger-core" }
+serde_json = { version = "1.0", features = ["float_roundtrip"] }

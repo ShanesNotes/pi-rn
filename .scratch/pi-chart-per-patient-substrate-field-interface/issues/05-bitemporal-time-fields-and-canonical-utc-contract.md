@@ -15,7 +15,7 @@ PRD user stories covered: 1, 10, 11, 12
 - Bitemporal helper: `pi-chart/src/time.ts:117` (`eventCoversAsOf`) + supersession
 - Kernel Claim target: `pi-ledger/docs/ledger-core-public-interface.md` (`time::CanonicalTimestamp`, `time::ValidTimeExpression`; store-assigned Known time/sequence/batch id/hashes)
 - Clinician vocabulary: `.scratch/pi-chart-per-patient-substrate-field-interface/clinician-facing-terminology-map.md` (Occurred / Charted / Last charted / Effective / As of)
-- Scaling runtime (PROPOSED, not accepted): `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`
+- Scaling runtime (ACCEPTED NORTH STAR, ADR-promoted): `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`
 
 ## What to build (spec, not implementation)
 
@@ -77,7 +77,7 @@ The kernel's Append-ledger step (`AppendLedger::append_admissible` / `append_rev
 - The **bitemporal split is what makes concurrent multi-agent authorship coherent**: many agents/providers can record (`recorded_at`) corrections and observations about the same valid-time window without racing, because each fact carries its own valid time and the store assigns total order (`seq`) on accept. "Live as of t" is then a deterministic projection regardless of authoring concurrency.
 - Store-owned ordering (`seq`/`accepted_at`/head) **must** stay store-assigned precisely so that high-volume concurrent appends get one authoritative total order — a caller-supplied sequence would race. This is why the never-emit rule is load-bearing at scale, not just a tidiness rule.
 - Canonical UTC removes per-provider/per-site timezone ambiguity across a multi-provider corpus — one wall-clock language for all facts, so cross-provider ordering and `asOf` reads are unambiguous.
-- The store that assigns `seq`/`accepted_at`/head at volume is the **proposed, not-yet-accepted** shared clinical-truth service over gRPC/UDS — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (proposed). This issue assumes that proposal only for the "who assigns total order at scale" framing.
+- The store that assigns `seq`/`accepted_at`/head at volume is the **accepted north star, ADR-promoted** shared clinical-truth service (private/local gRPC/UDS first transport; append-only WAL/log first storage) — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (accepted north star). Many entry points may submit concurrently, but one patient-scoped service path assigns the authoritative order.
 
 ## Acceptance criteria
 
@@ -87,7 +87,7 @@ The kernel's Append-ledger step (`AppendLedger::append_admissible` / `append_rev
 - [ ] States non-canonical times (offset/fractional/zone) are **rejected, not normalized** by the kernel, and that normalization is the adapter's job (out of scope).
 - [ ] Lists the store-owned never-emit set (`accepted_at`/`seq`/`batch_id` + Record/Entry hash/prev-link/head) and states the chart must not emit them; affirms caller-set `id`/`recorded_at` are fine.
 - [ ] Interval rule `end >= start`; open-ended interval permitted (still-effective).
-- [ ] Scaling note: bitemporal split enables concurrent authorship; store-assigned total order required at volume; citing the proposed service as proposed.
+- [ ] Scaling note: bitemporal split enables concurrent authorship; store-assigned patient-scoped total order required at volume; citing the accepted ADR-promoted service north star.
 - [ ] States no source edit, no adapter implementation, no Rust↔TS mechanism, no kernel widening.
 
 ## Blocked by

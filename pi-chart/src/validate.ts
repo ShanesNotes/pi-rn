@@ -37,6 +37,13 @@ import {
 } from "./time.js";
 import { patientRoot } from "./types.js";
 import {
+  IMPORT_SOURCE_KINDS,
+  SOURCE_KIND_CANONICAL,
+  isAgentReviewer,
+  isClinicianFamilyReviewer,
+  isHumanReviewer,
+} from "./source-taxonomy.js";
+import {
   A1_CANONICAL_SHARED_METRICS,
   CORE_VITAL_METRICS,
   formatVitalSampleKey,
@@ -104,75 +111,6 @@ type StatusRule = {
   transitions: Readonly<Record<string, readonly string[]>>;
 };
 
-const SOURCE_KIND_CANONICAL = new Set([
-  "patient_statement",
-  "admission_intake",
-  "nurse_charted",
-  "clinician_chart_action",
-  "protocol_standing_order",
-  "manual_lab_entry",
-  "monitor_extension",
-  "poc_device",
-  "lab_analyzer",
-  "lab_interface_hl7",
-  "pacs_interface",
-  "dictation_system",
-  "pathology_lis",
-  "cardiology_reporting",
-  "endoscopy_reporting",
-  "agent_inference",
-  "agent_bedside_observation",
-  "agent_action",
-  "agent_synthesis",
-  "agent_reasoning",
-  "agent_review",
-  "synthea_import",
-  "mimic_iv_import",
-  "manual_scenario",
-]);
-
-const AGENT_REVIEWER_SOURCE_KINDS = new Set<string>([
-  "agent_inference",
-  "agent_synthesis",
-  "agent_bedside_observation",
-  "agent_action",
-  "agent_review",
-  "agent_reasoning",
-]);
-
-const HUMAN_REVIEWER_SOURCE_KINDS = new Set<string>([
-  "nurse_charted",
-  "clinician_chart_action",
-  "patient_statement",
-  "admission_intake",
-  "manual_lab_entry",
-  "dictation_system",
-]);
-
-const CLINICIAN_FAMILY_SOURCE_KINDS = new Set<string>([
-  "nurse_charted",
-  "clinician_chart_action",
-  "manual_lab_entry",
-  "dictation_system",
-]);
-
-const CLINICIAN_FAMILY_AUTHOR_ROLES = new Set<string>([
-  "rn",
-  "lpn",
-  "np",
-  "pa",
-  "md",
-  "do",
-  "hospitalist",
-  "physician",
-  "clinician",
-  "resident",
-  "fellow",
-  "pharmacist",
-  "rt",
-  "therapist",
-]);
-
 const NURSING_AUTHOR_ROLES = new Set<string>([
   "rn",
   "lpn",
@@ -211,14 +149,6 @@ const CLINICIAN_ATTESTATION_ROLES = new Set<string>([
   "verify",
   "cosign",
   "countersign",
-]);
-
-// Import-family source.kind values per DESIGN §1.1.
-// Subset of SOURCE_KIND_CANONICAL consumed by V-TRANSFORM-01.
-// manual_scenario is intentionally excluded: it is fixture provenance, not machine import provenance.
-const IMPORT_SOURCE_KINDS = new Set<string>([
-  "synthea_import",
-  "mimic_iv_import",
 ]);
 
 const DEPRECATED_SOURCE_KIND_MIGRATIONS: Readonly<Record<string, string>> = {
@@ -700,26 +630,6 @@ function hasReviewBasis(ev: any): boolean {
     (typeof ev?.data?.review?.basis === "string" && ev.data.review.basis.length > 0);
 }
 
-function isAgentReviewer(ev: any): boolean {
-  const kind = typeof ev?.source?.kind === "string" ? ev.source.kind : "";
-  const role = typeof ev?.author?.role === "string" ? ev.author.role : "";
-  return AGENT_REVIEWER_SOURCE_KINDS.has(kind) || isAgentRole(role);
-}
-
-function isHumanReviewer(ev: any): boolean {
-  const kind = typeof ev?.source?.kind === "string" ? ev.source.kind : "";
-  return HUMAN_REVIEWER_SOURCE_KINDS.has(kind) && !isAgentReviewer(ev);
-}
-
-function isClinicianFamilyReviewer(ev: any): boolean {
-  const kind = typeof ev?.source?.kind === "string" ? ev.source.kind : "";
-  const role = typeof ev?.author?.role === "string" ? ev.author.role : "";
-  return CLINICIAN_FAMILY_SOURCE_KINDS.has(kind) || CLINICIAN_FAMILY_AUTHOR_ROLES.has(role);
-}
-
-function isAgentRole(role: string): boolean {
-  return role === "agent" || role === "rn_agent" || role.endsWith("_agent");
-}
 
 function refsFromUnknown(value: unknown): string[] {
   if (!Array.isArray(value)) return [];

@@ -6,6 +6,8 @@ import {
 } from "../test-helpers/fixture.js";
 import {
   effectiveClaim,
+  activeChartEvents,
+  isActiveChartEvent,
   isSuperseded,
   loadContext,
   supersededPriors,
@@ -93,4 +95,41 @@ test("isSuperseded respects asOf — a future supersessor doesn't hide the prior
   );
   const ctx = await loadContext(scope, "2026-04-18T08:05:00-05:00");
   assert.equal(isSuperseded(ctx.byId.get("evt_a")!, ctx), false);
+});
+
+
+test("isActiveChartEvent centralizes encounter/asOf/replacement policy", async () => {
+  const scope = await makeEmptyPatient();
+  await appendRawEvent(scope, "2026-04-18", obs("evt_old", "2026-04-18T08:00:00-05:00", {
+    type: "assessment",
+    subtype: "problem",
+    encounter_id: "enc_a",
+    status: "active",
+  }));
+  await appendRawEvent(scope, "2026-04-18", obs("evt_new", "2026-04-18T09:00:00-05:00", {
+    type: "assessment",
+    subtype: "problem",
+    encounter_id: "enc_a",
+    status: "active",
+    links: { supports: [], supersedes: ["evt_old"] },
+  }));
+  await appendRawEvent(scope, "2026-04-18", obs("evt_other_encounter", "2026-04-18T09:00:00-05:00", {
+    type: "assessment",
+    subtype: "problem",
+    encounter_id: "enc_b",
+    status: "active",
+  }));
+  const ctx = await loadContext(scope, "2026-04-18T09:05:00-05:00");
+
+  assert.equal(isActiveChartEvent(ctx.byId.get("evt_old")!, ctx, {
+    encounterId: "enc_a",
+    requireEffectiveCoverage: true,
+  }), false);
+  assert.deepEqual(activeChartEvents(ctx, {
+    encounterId: "enc_a",
+    type: "assessment",
+    subtype: "problem",
+    statuses: ["active"],
+    requireEffectiveCoverage: true,
+  }).map((ev) => ev.id), ["evt_new"]);
 });

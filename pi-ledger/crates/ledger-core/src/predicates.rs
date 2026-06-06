@@ -1,12 +1,26 @@
 use std::collections::BTreeMap;
 
+use crate::canonical::canonical_json;
 use crate::claim::{ClaimError, ValidatedClaim, validate_claim as validate_kernel_claim};
-use serde_json::Value;
+use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
+
+pub const CLINICAL_TRUTH_V1ALPHA1_VITAL_SIGN_REGISTRY_VERSION: &str =
+    "clinical_truth.v1alpha1.vital_sign_fixture.2026-05-31";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ObjectFieldType {
     String,
     Number,
+}
+
+impl ObjectFieldType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::String => "string",
+            Self::Number => "number",
+        }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -101,6 +115,27 @@ pub struct PredicateRegistry {
     definitions: BTreeMap<String, PredicateDefinition>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PredicateObjectFieldSummary {
+    pub name: String,
+    pub field_type: ObjectFieldType,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PredicateSummary {
+    pub id: String,
+    pub shape: String,
+    pub required_object_fields: Vec<PredicateObjectFieldSummary>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PredicateRegistrySummary {
+    pub version: String,
+    pub content_hash: String,
+    pub predicate_count: usize,
+    pub predicates: Vec<PredicateSummary>,
+}
+
 impl PredicateRegistry {
     pub fn load<I>(definitions: I) -> Result<Self, PredicateError>
     where
@@ -134,6 +169,38 @@ impl PredicateRegistry {
 
     pub fn contains(&self, predicate_id: &str) -> bool {
         self.definitions.contains_key(predicate_id)
+    }
+
+    pub fn summary(&self, version: impl Into<String>) -> Result<PredicateRegistrySummary, String> {
+        let version = version.into();
+        let predicates = self.predicate_summaries();
+        let content_hash = registry_content_hash(&version, &predicates)?;
+        Ok(PredicateRegistrySummary {
+            version,
+            content_hash,
+            predicate_count: predicates.len(),
+            predicates,
+        })
+    }
+
+    pub fn predicate_summaries(&self) -> Vec<PredicateSummary> {
+        self.definitions
+            .values()
+            .map(|definition| PredicateSummary {
+                id: definition.id.clone(),
+                shape: definition.shape.clone(),
+                required_object_fields: match &definition.object_rule {
+                    ObjectRule::AnyObject => Vec::new(),
+                    ObjectRule::RequiredFields(fields) => fields
+                        .iter()
+                        .map(|field| PredicateObjectFieldSummary {
+                            name: field.name.clone(),
+                            field_type: field.field_type,
+                        })
+                        .collect(),
+                },
+            })
+            .collect()
     }
 
     pub fn validate_claim(&self, claim: &Value) -> Result<(), PredicateError> {
@@ -195,6 +262,31 @@ pub fn phase1_registry() -> Result<PredicateRegistry, PredicateError> {
     ])
 }
 
+/// Loads the first clinical-truth service fixture registry.
+///
+/// This registry is deliberately narrow: it authorizes only the first
+/// implementation slice's `vital.sign` observation fixture. It is executable
+/// contract evidence for the service seam, not a production clinical ontology.
+pub fn clinical_truth_v1alpha1_vital_sign_registry() -> Result<PredicateRegistry, PredicateError> {
+    PredicateRegistry::load([PredicateDefinition::new_with_required_object_fields(
+        "vital.sign",
+        "observation",
+        [
+            ("code", ObjectFieldType::String),
+            ("value", ObjectFieldType::Number),
+            ("unit", ObjectFieldType::String),
+            ("encounterId", ObjectFieldType::String),
+        ],
+    )])
+}
+
+pub fn clinical_truth_v1alpha1_vital_sign_registry_summary()
+-> Result<PredicateRegistrySummary, String> {
+    let registry =
+        clinical_truth_v1alpha1_vital_sign_registry().map_err(|error| format!("{error:?}"))?;
+    registry.summary(CLINICAL_TRUTH_V1ALPHA1_VITAL_SIGN_REGISTRY_VERSION)
+}
+
 fn is_supported_shape(shape: &str) -> bool {
     matches!(shape, "context" | "observation" | "interpretation" | "act")
 }
@@ -230,6 +322,40 @@ fn validate_object(
             Ok(())
         }
     }
+}
+
+fn registry_content_hash(version: &str, predicates: &[PredicateSummary]) -> Result<String, String> {
+    let predicates: Vec<Value> = predicates
+        .iter()
+        .map(|predicate| {
+            json!({
+                "id": predicate.id,
+                "shape": predicate.shape,
+                "required_object_fields": predicate.required_object_fields.iter().map(|field| {
+                    json!({
+                        "name": field.name,
+                        "type": field.field_type.as_str(),
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    let canonical = canonical_json(&json!({
+        "version": version,
+        "predicates": predicates,
+    }))?;
+    let digest = Sha256::digest(canonical.as_bytes());
+    Ok(format!("sha256:{}", lower_hex(&digest)))
+}
+
+fn lower_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
 }
 
 impl ObjectFieldType {
@@ -385,6 +511,87 @@ mod tests {
         assert_eq!(registry.len(), 4);
     }
 
+    #[test]
+    fn clinical_truth_vital_sign_registry_is_narrow_versioned_slice_policy() {
+        let registry = clinical_truth_v1alpha1_vital_sign_registry().unwrap();
+        let summary = clinical_truth_v1alpha1_vital_sign_registry_summary().unwrap();
+
+        assert_eq!(registry.len(), 1);
+        assert!(registry.contains("vital.sign"));
+        assert_eq!(
+            summary.version,
+            CLINICAL_TRUTH_V1ALPHA1_VITAL_SIGN_REGISTRY_VERSION
+        );
+        assert_eq!(summary.predicate_count, 1);
+        assert_eq!(
+            summary.predicates,
+            vec![PredicateSummary {
+                id: "vital.sign".to_string(),
+                shape: "observation".to_string(),
+                required_object_fields: vec![
+                    PredicateObjectFieldSummary {
+                        name: "code".to_string(),
+                        field_type: ObjectFieldType::String,
+                    },
+                    PredicateObjectFieldSummary {
+                        name: "value".to_string(),
+                        field_type: ObjectFieldType::Number,
+                    },
+                    PredicateObjectFieldSummary {
+                        name: "unit".to_string(),
+                        field_type: ObjectFieldType::String,
+                    },
+                    PredicateObjectFieldSummary {
+                        name: "encounterId".to_string(),
+                        field_type: ObjectFieldType::String,
+                    },
+                ],
+            }]
+        );
+        assert_eq!(
+            summary.content_hash,
+            "sha256:d08fd55c937cca96c02d8a0f050e157d001e1539ac280aad344fbf029a0f0b46"
+        );
+    }
+
+    #[test]
+    fn clinical_truth_vital_sign_registry_hash_is_stable_and_version_sensitive() {
+        let registry = clinical_truth_v1alpha1_vital_sign_registry().unwrap();
+        let summary = registry
+            .summary(CLINICAL_TRUTH_V1ALPHA1_VITAL_SIGN_REGISTRY_VERSION)
+            .unwrap();
+        let same_summary = registry
+            .summary(CLINICAL_TRUTH_V1ALPHA1_VITAL_SIGN_REGISTRY_VERSION)
+            .unwrap();
+        let next_version_summary = registry
+            .summary("clinical_truth.v1alpha1.vital_sign_fixture.next")
+            .unwrap();
+
+        assert_eq!(summary.content_hash, same_summary.content_hash);
+        assert_ne!(summary.content_hash, next_version_summary.content_hash);
+    }
+
+    #[test]
+    fn clinical_truth_vital_sign_registry_requires_encounter_id_for_first_slice() {
+        let registry = clinical_truth_v1alpha1_vital_sign_registry().unwrap();
+        let claim = clinical_truth_vital_sign_claim();
+
+        registry.validate_claim(&claim).unwrap();
+
+        let mut without_encounter = claim;
+        without_encounter["object"]
+            .as_object_mut()
+            .unwrap()
+            .remove("encounterId");
+        assert_eq!(
+            registry.validate_claim(&without_encounter).unwrap_err(),
+            PredicateError::MissingObjectField {
+                predicate_id: "vital.sign".to_string(),
+                field: "encounterId".to_string(),
+            }
+        );
+    }
+
     fn minimal_observation_claim() -> Value {
         json!({
             "id": "claim-v0-5-001",
@@ -399,5 +606,11 @@ mod tests {
             "actor": { "kind": "clinician", "id": "rn-1" },
             "integrity": { "canonicalization": CANONICALIZATION_ID }
         })
+    }
+
+    fn clinical_truth_vital_sign_claim() -> Value {
+        let mut claim = minimal_observation_claim();
+        claim["object"]["encounterId"] = json!("encounter_kernel");
+        claim
     }
 }

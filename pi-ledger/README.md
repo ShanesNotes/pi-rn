@@ -10,15 +10,19 @@ Reusable cryptographic claim-ledger kernel for the `pi-rn` workspace.
 pi-ledger/
 ├── Cargo.toml
 ├── CONTEXT.md
+├── conformance/clinical_truth/v1alpha1/
 ├── docs/adr/
 ├── docs/admission-proof-lifecycle.md
 ├── docs/ledger-core-public-interface.md
 ├── docs/trusted-history-rebuild-seam.md
 └── crates/
-    └── ledger-core/
+    ├── ledger-core/
+    │   ├── Cargo.toml
+    │   ├── src/
+    │   └── tests/
+    └── clinical-truth-service/
         ├── Cargo.toml
-        ├── src/
-        └── tests/
+        └── src/
 ```
 
 `ledger-core` is the first kernel crate. K0-K12 now cover canonicalization,
@@ -26,6 +30,8 @@ record hashing, minimal Claim validation, append-only ledger integrity,
 Predicate admission, bitemporal point reads, canonical UTC time, typed hashes,
 Validated Claim field authority, Append admission, Revision admission, and
 test-only Admission bypass quarantine.
+
+The first service-core slice is `clinical_truth.v1alpha1` `vital.sign`: `crates/clinical-truth-service/` exposes transport-agnostic service semantics around `ledger-core`, and `conformance/clinical_truth/v1alpha1/vital_sign_vectors.json` is generated from Rust as the cross-project contract fixture.
 
 For safe-use guidance, read:
 
@@ -40,6 +46,8 @@ Run from the repository root:
 ```bash
 cd pi-ledger && cargo fmt --all -- --check
 cd pi-ledger && cargo test --workspace
+cd pi-ledger && cargo test -p clinical-truth-service
+cd pi-ledger && cargo run --example generate_clinical_truth_vectors --quiet
 cd pi-ledger && cargo clippy --workspace --all-targets -- -D warnings
 ```
 

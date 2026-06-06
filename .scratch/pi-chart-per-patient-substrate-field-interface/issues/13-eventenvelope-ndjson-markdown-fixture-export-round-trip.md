@@ -15,7 +15,7 @@ PRD user stories covered: 1, 4, 26
 - Current field model: `pi-chart/src/types.ts` (`EventEnvelope`, `VitalSample`, `NoteFrontmatter`)
 - On-disk layout: `pi-chart/patients/<patientId>/timeline/<YYYY-MM-DD>/{events.ndjson, vitals.jsonl, notes/<HHMM>_<slug>.md, encounter_<NNN>.md}`
 - Kernel Claim target: `pi-ledger/docs/ledger-core-public-interface.md` (the contract fields these export keys must round-trip with)
-- Scaling runtime (PROPOSED, not accepted): `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`
+- Scaling runtime (ACCEPTED NORTH STAR, ADR-promoted): `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`
 
 ## What to build (spec, not implementation)
 
@@ -73,7 +73,7 @@ Verified keys (`patient_001/.../vitals.jsonl`): `sampled_at, recorded_at, sample
 | `object` (e.g. `vital.sign`) | `name`, `value`, `unit` | → typed `object` `{code,value,unit}` (Issue 04) |
 | `source` | `source{kind,ref?}` | Controlled vocab |
 | `status` / `certainty` / `revises` / `evidence` | **absent** | Vitals are second-class today (no lifecycle/supersession/certainty) — the common grammar lifts them; round-trip gap noted |
-| `quality` | `quality` | Chart-internal sample quality; map-or-defer (Issue 07) |
+| `quality` | `quality` | Chart-internal sample quality; typed as optional `vital.sign.quality:String` by Issue 04 |
 
 ### Crosswalk C — NoteFrontmatter (`notes/<HHMM>_<slug>.md`)
 
@@ -106,10 +106,10 @@ Generated UI, raw design assets, screenshots, public API shape, and prototype la
 
 ### At scale (multi-provider, multi-agent, high-volume)
 
-- The brownfield NDJSON+Markdown layout is the **fixture/export/archive** format — explicitly **not** the runtime store at scale. At volume, the per-patient append-only ledger is hosted by the **proposed, not-yet-accepted** shared clinical-truth service over gRPC/UDS (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, proposed); this export is what seeds fixtures, archives history, and gives deterministic regression evidence — the mirror of `pi-sim`'s versioned-fixtures-as-consumer-regression pattern named in that proposal.
+- The brownfield NDJSON+Markdown layout is the **fixture/export/archive** format — explicitly **not** the runtime store at scale. At volume, the per-patient append-only ledger is hosted by the **accepted north star, ADR-promoted** shared clinical-truth service (private/local gRPC/UDS first transport; append-only WAL/log first storage) (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted); this export is what seeds fixtures, archives history, and gives deterministic regression evidence — the mirror of `pi-sim`'s versioned-fixtures-as-consumer-regression pattern named in the accepted service north-star doc.
 - The per-day / per-patient directory partition (`patients/<patientId>/timeline/<YYYY-MM-DD>/`) keeps the export shardable by patient and day even at high volume, so fixtures stay grabbable per-patient without loading a whole corpus — consistent with `subject.patientId` as shard key (Issue 01).
 - Round-trippability is the conformance guarantee that lets the format be archive/seed without becoming a second source of truth — every field must survive export ↔ contract so the export never silently diverges from the kernel-facing contract under multi-provider volume.
-- This issue **does not** select the runtime store, transport, or backend (Out of Scope); it cites the service only as the proposed at-scale home and keeps the export as fixture/archive per ADR 018.
+- This issue **does not** implement the runtime store or select the backend framework (Out of Scope); it cites the service only as the accepted at-scale home and keeps the export as fixture/archive per ADR 018.
 
 ## Acceptance criteria
 
@@ -119,7 +119,7 @@ Generated UI, raw design assets, screenshots, public API shape, and prototype la
 - [ ] Asserts round-trippability export ↔ contract for `patient_001` regression and `patient_002`/`enc_p002_001` demo.
 - [ ] Connectors stay `(patientId, encounterId, asOf)`-parameterized; no hardcoded patient.
 - [ ] States ADR 018 points 5–7 boundary: generated UI / design assets / prototype / report visuals are not substrate authority (report visuals are evidence).
-- [ ] Scaling note: export is fixture/archive, not the at-scale store; cites the proposed clinical-truth service as proposed; per-patient/per-day partition keeps fixtures shardable.
+- [ ] Scaling note: export is fixture/archive, not the at-scale store; cites the accepted clinical-truth service north star with ADR-promoted; per-patient/per-day partition keeps fixtures shardable.
 - [ ] States no source edit, no fixture migration, no brownfield rewrite, no kernel widening.
 
 ## Blocked by

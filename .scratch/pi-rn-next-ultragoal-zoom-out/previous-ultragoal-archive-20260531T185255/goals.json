@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "createdAt": "2026-05-31T01:27:34.689Z",
+  "updatedAt": "2026-05-31T16:09:53Z",
+  "briefPath": ".omx/ultragoal/brief.md",
+  "goalsPath": ".omx/ultragoal/goals.json",
+  "ledgerPath": ".omx/ultragoal/ledger.jsonl",
+  "codexGoalMode": "aggregate",
+  "goals": [
+    {
+      "id": "G001-reconcile-handoff-and-baseline",
+      "title": "Reconcile handoff and baseline",
+      "objective": "Verify the confirmed handoff point, branch/remote state, dirty/untracked state, recent commits, and baseline test results; refresh stale reconciliation language where issue files already changed; write a concise current-state audit artifact under .scratch/pi-rn-reentry-audit-28052026/.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T01:27:34.689Z",
+      "updatedAt": "2026-05-31T01:30:03.736Z",
+      "startedAt": "2026-05-31T01:27:46.690Z",
+      "completedAt": "2026-05-31T01:30:03.736Z",
+      "evidence": "Handoff anchored to 89bd625/196c819 on reentry-substrate-field-spec; stale RECONCILIATION hard findings refreshed; current-state audit written at .scratch/pi-rn-reentry-audit-28052026/ULTRAGOAL-CURRENT-STATE.md; verification passed: pi-chart npm run typecheck, pi-chart npm test 30/30, pi-ledger cargo test 128/128."
+    },
+    {
+      "id": "G002-resolve-field-spec-decisions-with-gr",
+      "title": "Resolve field-spec decisions with grill-with-docs auto",
+      "objective": "Run grill-with-docs --auto over issues 02, 03, 04, 06, 07, 08, 09, 10, and 15 one repo-grounded decision at a time; use the Claude validator path when available; patch field issue docs, RECONCILIATION.md, and relevant context docs as decisions stabilize; escalate only ungrounded or ADR-reversing decisions.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T01:27:34.689Z",
+      "updatedAt": "2026-05-31T15:58:10Z",
+      "startedAt": "2026-05-31T01:30:12.374Z",
+      "steeringEvidence": "G002's original blocker was Claude-validator auto mode unavailable. The user explicitly pivoted from grill-with-docs --auto to human grill-with-docs, and D001-D005 resolved the field-spec decisions with doc patches and ledger annotations. Do not retry the old auto-validator path. Resolved by completion checkpoint on 2026-05-31; stale blocked steering flag cleared so completed story no longer blocks aggregate completion.",
+      "steeringRationale": "Supersede the failed auto-mode path with accepted human-grill decisions before /goal resume so the resumed goal does not loop on the stale Claude blocker.",
+      "completedAt": "2026-05-31T15:50:51.737Z",
+      "evidence": "Superseded failed grill-with-docs --auto path by explicit human grill-with-docs session. D001-D005 resolved field-spec decisions: context_segment shape/predicate, report/note fact authority, review/attestation factShape=act, standardized review/attestation predicates, and evidence-edge target linkage. Docs patched across field PRD/issues and RECONCILIATION.md; ledger annotations recorded."
+    },
+    {
+      "id": "G003-resolve-truth-service-decisions-with",
+      "title": "Resolve truth-service decisions with grill-with-docs auto",
+      "objective": "Run grill-with-docs --auto over transport, storage engine, concurrency model, and ADR promotion; promote accepted architecture into pi-ledger ADR 009 and pi-chart ADR 021 only if validation supports acceptance; otherwise preserve proposed status with a precise blocker.",
+      "status": "complete",
+      "attempt": 2,
+      "createdAt": "2026-05-31T01:27:34.689Z",
+      "updatedAt": "2026-05-31T15:50:39.310Z",
+      "startedAt": "2026-05-31T15:50:23.809Z",
+      "completedAt": "2026-05-31T15:50:39.310Z",
+      "evidence": "Superseded failed grill-with-docs --auto path by explicit human grill-with-docs session plus user instruction to assume low-level technical recommendations. D006-D012 resolved truth-service decisions: accepted shared private/internal clinical-truth service north star, many entry points with one patient-scoped append order, app/backend mediation, private/internal exposure, gRPC/UDS first transport, per-patient append-only WAL/log first storage, and ADR promotion. Created pi-ledger ADR 009 and pi-chart ADR 021; stale proposed/pending wording grep passed."
+    },
+    {
+      "id": "G004-produce-implementation-ready-plan",
+      "title": "Produce implementation-ready plan",
+      "objective": "Convert settled decisions into a sequenced implementation plan: pi-chart-internal field/test work before seam work, explicit test strategy, boundary guardrails, and no pi-chart to pi-ledger implementation until the contract and ADRs are stable.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T01:27:34.689Z",
+      "updatedAt": "2026-05-31T14:03:06.811Z",
+      "startedAt": "2026-05-31T14:01:26.325Z",
+      "completedAt": "2026-05-31T14:03:06.811Z",
+      "evidence": "Implementation-ready plan written at .scratch/pi-rn-reentry-audit-28052026/IMPLEMENTATION-READY-PLAN.md. It records G002/G003 Claude-validator blockers, prevents seam work, sequences only safe pi-chart-internal spec cleanup, defines test/verification strategy, and recommends G005 as docs/spec cleanup only."
+    },
+    {
+      "id": "G005-execute-safe-local-slice-if-availabl",
+      "title": "Execute safe local slice if available",
+      "objective": "Implement only the narrow safe local slice that remains after decision resolution, favoring pi-chart-internal contract/test cleanup; keep diffs reversible and verify with targeted tests, typecheck, and relevant Rust tests.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T01:27:34.689Z",
+      "updatedAt": "2026-05-31T14:04:26.391Z",
+      "startedAt": "2026-05-31T14:03:12.985Z",
+      "completedAt": "2026-05-31T14:04:26.391Z",
+      "evidence": "Executed safe local docs/spec cleanup only. Updated field issue docs 02,04,07,09,12,13 to close minor stale reconciliation items: review-axis ownership, cross-encounter owner pointer, transform PRD ownership, co-sign lifecycle pointer, suggestion promotion evidence edge wording, and VitalSample.quality owner pointer. Verification: targeted grep checks passed for issue 12 stale links.supports absence, issue 13 stale quality Issue 07 owner absence, issue 07 transform PRD ownership presence, issue 02/04/09 cross-reference presence. No source/runtime files changed; app/Rust tests not rerun because changes are markdown-only."
+    },
+    {
+      "id": "G006-final-verification-and-review-gate",
+      "title": "Final verification and review gate",
+      "objective": "Run post-edit verification, ai-slop-cleaner on changed files or no-op report, rerun verification, then independent code-review and architect review; only mark the aggregate goal complete if the review gate is clean, otherwise record durable blockers.",
+      "status": "complete",
+      "attempt": 2,
+      "createdAt": "2026-05-31T01:27:34.689Z",
+      "updatedAt": "2026-05-31T16:09:09.931Z",
+      "startedAt": "2026-05-31T15:58:23.679Z",
+      "evidence": "Final G006 gate clean. Verification passed: stale reviewer-finding scans, scoped markdown link check, ultragoal JSON/JSONL parse, git diff --check, pi-chart npm run typecheck, pi-chart npm test 389/389, pi-ledger cargo test 128/128. AI slop cleaner passed/no-op for docs/ADR/spec scope. Independent code-reviewer lane APPROVE with no blocking code/spec/security findings; independent architect lane CLEAR with no unresolved architecture blocker. Final gate artifact: .scratch/pi-rn-reentry-audit-28052026/FINAL-REVIEW-GATE.md.",
+      "completedAt": "2026-05-31T16:09:09.931Z"
+    }
+  ],
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
+  "aggregateCompletion": {
+    "status": "complete",
+    "completedAt": "2026-05-31T16:09:53Z",
+    "evidence": "Aggregate Codex goal was completed via update_goal and G006 final checkpoint passed with structured quality gate; this reconciles artifactComplete=true into aggregateCompletion for status clarity.",
+    "codexGoal": {
+      "goal": {
+        "threadId": "019e7e56-0c00-7823-b629-df3c6489e7c2",
+        "objective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
+        "status": "complete",
+        "tokensUsed": 586682,
+        "timeUsedSeconds": 1669,
+        "createdAt": 1780236090,
+        "updatedAt": 1780243736
+      },
+      "remainingTokens": null,
+      "completionBudgetReport": null
+    }
+  }
+}

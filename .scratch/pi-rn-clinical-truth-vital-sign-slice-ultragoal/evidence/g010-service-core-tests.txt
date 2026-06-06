@@ -1,0 +1,31 @@
+$ cargo test --manifest-path pi-ledger/Cargo.toml -p clinical-truth-service
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (pi-ledger/target/debug/deps/clinical_truth_service-efe5799f07243218)
+
+running 17 tests
+test tests::append_claim_rejects_idempotency_key_reuse_with_different_payload ... ok
+test tests::append_claim_orders_patient_entries_and_replays_same_idempotency_key ... ok
+test tests::append_paths_fail_closed_for_wrong_operation_or_missing_target ... ok
+test tests::preview_append_admission_accepts_first_slice_vital_claim ... ok
+test tests::service_info_and_registry_info_are_private_core_metadata ... ok
+test tests::snapshot_and_validate_snapshot_require_admin_context_and_patient_scope ... ok
+test tests::validate_snapshot_detects_corruption_and_does_not_import_entries ... ok
+test tests::append_revision_claim_returns_target_proof_and_replays_idempotently ... ok
+test tests::point_read_projects_before_and_after_revision_without_mutating_history ... ok
+test tests::preview_maps_kernel_errors_to_v1alpha1_error_codes ... ok
+test tests::validate_claim_extracts_vital_sign_fields_without_appending ... ok
+test tests::preview_fails_closed_for_contract_and_registry_mismatch ... ok
+test tests::get_entry_fetches_by_claim_id_record_hash_or_exact_pair ... ok
+test tests::file_wal_replay_fails_closed_on_corrupted_head ... ok
+test tests::file_wal_replay_rejects_entry_version_overflow ... ok
+test tests::file_wal_append_failure_does_not_mutate_ledger_or_consume_clock ... ok
+test tests::file_wal_persists_replays_and_rehydrates_patient_ledger ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+   Doc-tests clinical_truth_service
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

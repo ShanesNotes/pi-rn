@@ -14,7 +14,7 @@ PRD user stories covered: 15, 16
 - `pi-chart/src/types.ts` — `EvidenceRef`, `EvidenceRole`, `EvidenceKind`, `Links{supports,supersedes,corrects,fulfills,addresses,resolves,contradicts}`, `TransformBlock{input_refs}`, `NoteFrontmatter.references: string[]`.
 - `pi-chart/CONTEXT.md` / `clinician-facing-terminology-map.md` — *Source trail*, *Why am I seeing this?*, *Source document*.
 - `pi-ledger/docs/ledger-core-public-interface.md` — frozen Claim target (evidence is not a kernel field; revision lineage is `revises.target.{id,hash}`).
-- `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` **(proposed, not accepted)**.
+- `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` **(accepted north star, ADR-promoted)**.
 
 ## Scope at scale (architect mandate, 2026-05-29)
 
@@ -27,6 +27,8 @@ Make `EvidenceRef` the **one** evidence edge across all three fact shapes (envel
 ### A. Converge `NoteFrontmatter.references` onto `EvidenceRef`
 
 `NoteFrontmatter.references: string[]` is a flat, role-less, second-class edge. The contract is the **typed `EvidenceRef`** model already present on envelope facts via `links.supports`.
+
+`transform` is the PRD §2.E provenance block `transform{activity, tool, version?, run_id?, input_refs?}`. This issue owns the `transform.input_refs` consumer and dead-field closure; it does not redefine `activity`/`tool` beyond the PRD-owned block shape.
 
 | Fact shape | Today's evidence edge | Contract evidence edge |
 | --- | --- | --- |
@@ -57,6 +59,7 @@ Make `EvidenceRef` the **one** evidence edge across all three fact shapes (envel
 | `vitals_window` | consumed | a time-windowed vitals slice as evidence (e.g. "MAP 07:40–08:10") |
 | `note` | consumed | a note as evidence |
 | `artifact` | consumed | a *Source document* (report/image/external record) as evidence — consistent with "report visuals as evidence, not substrate" |
+| note/report passing mention | consumed as contextual evidence, not fact authority | a narrative note may mention a fact with marginal evidentiary weight; the discrete charted fact should cite the ordered diagnostic/lab/read source as primary evidence and the passing mention only as context/confirmatory evidence when useful |
 | `external` | **deferred** | external-system evidence; kept in the enum, **no consumer specified here** — flag for a future external-record slice, not silently dead |
 | `vitals` | **revise → fold into `vitals_window`** | `vitals` vs `vitals_window` is a redundant pair; the contract keeps `vitals_window` (carries selection) and treats bare `vitals` as a lossy alias normalized on read. Flagged as an open naming question below. |
 
@@ -89,7 +92,7 @@ Make `EvidenceRef` the **one** evidence edge across all three fact shapes (envel
 
 - The evidence graph has **no kernel field**. The kernel models only *revision* lineage (`revises.target.{id,hash}`, Issue 09) and validates content via `predicate`/`object`. Evidence is chart/provenance substrate carried in the fixture/export and, where persisted into the Claim, under a chart-namespaced provenance block — never as a new kernel-validated field. **No kernel widening.**
 - Because evidence travels inside the canonicalized Claim body, every consumed evidence field affects the **Record hash** (`canonical.rs`); dropping a field silently would silently change content hashes. This is a second reason no field may be silently dead.
-- **Scale dependency:** subscribing many agents to evidence-graph updates (server-streaming) assumes the **proposed** clinical-truth service (`clinical-truth-service-decision-proposal.md`, *proposed — not accepted*). The `EvidenceRef` field shapes are transport-agnostic and do not depend on acceptance.
+- **Scale dependency:** subscribing many agents to evidence-graph updates (server-streaming) assumes the **accepted** clinical-truth service north star (`clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted). The `EvidenceRef` field shapes are transport-agnostic and do not depend on storage implementation details.
 
 ## Acceptance criteria
 
@@ -99,7 +102,7 @@ Make `EvidenceRef` the **one** evidence edge across all three fact shapes (envel
 - [ ] `transform.input_refs` is assigned a Source-trail consumer (closing the "never walked" gap).
 - [ ] Doc states the multi-provider / multi-agent rationale for a single typed edge (one fabric, shardable, no fragmentation).
 - [ ] Kernel-mapping note: evidence has no kernel field; carried in fixture/export + chart-namespaced provenance; no kernel widening; evidence affects Record hash.
-- [ ] Any at-scale streaming/subscription claim is marked as assuming the **proposed** clinical-truth service and cites the proposal.
+- [ ] Any at-scale streaming/subscription claim is marked as assuming the **accepted** clinical-truth service north star and cites the accepted service north star.
 - [ ] Connectors stay `(patientId, encounterId, asOf)`-parameterized; no hardcoded patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).
 
 ## Blocked by

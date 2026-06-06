@@ -1,0 +1,1 @@
+$ ! rg -n 'pi-sim|hidden_truth|clinical-truth-service|crates/clinical-truth-service|createHash|canonical_json\(|record_hash\(' pi-chart/src/clinical-truth-contract.ts pi-chart/src/clinical-truth-adapter.ts

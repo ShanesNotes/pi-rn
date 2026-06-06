@@ -79,7 +79,7 @@ The Chart Review Packet is the **clinician-facing view**; the accountable compil
 
 ## Kernel-mapping note
 
-Surfaces are **chart-internal projections — no kernel fields**. They map to the kernel only transitively, through the substrate fields they read (`predicateId`/`factShape` → kernel `predicate`/`shape`; `object` → kernel `object`; `time.*` → kernel `time.valid`/`time.recorded_at`; `revises` → kernel `revises.target.{id,hash}`; `integrity` → kernel `integrity`). The kernel's `query::point_read` is the analogous trusted-entry projection on the kernel side: "a trusted-entry projection, not Admission or chain validation" — surfaces mirror this discipline (read-only projection, never a write authority). **No surface stores truth; the kernel is not widened.** Under the **PROPOSED shared clinical-truth service** (gRPC/UDS, contract-first — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, *proposed, pending architect acceptance*), many concurrent surface readers subscribe to one shared truth source rather than each holding a writable copy; until that proposal is accepted, this remains an interface guarantee.
+Surfaces are **chart-internal projections — no kernel fields**. They map to the kernel only transitively, through the substrate fields they read (`predicateId`/`factShape` → kernel `predicate`/`shape`; `object` → kernel `object`; `time.*` → kernel `time.valid`/`time.recorded_at`; `revises` → kernel `revises.target.{id,hash}`; `integrity` → kernel `integrity`). The kernel's `query::point_read` is the analogous trusted-entry projection on the kernel side: "a trusted-entry projection, not Admission or chain validation" — surfaces mirror this discipline (read-only projection, never a write authority). **No surface stores truth; the kernel is not widened.** Under the **accepted shared clinical-truth service north star** (contract-first; private/local gRPC/UDS first transport — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, *accepted north star, ADR-promoted*), many concurrent surface readers subscribe via the app/backend to one shared private/internal truth source rather than each holding a writable copy or direct ledger-service connection; this is an ADR-promoted interface guarantee.
 
 ## Connector contract
 
@@ -93,7 +93,7 @@ Every surface projection stays `(patientId, encounterId, asOf)`-parameterized an
 - [ ] States **mismatches surface as review prompts** (Pi prompts; Reconcile/Resolve clinician-owned).
 - [ ] Asserts **no surface stores truth** and **no surface makes an autonomous truth decision** (no chart/complete/verify/sign/finalize/upgrade-certainty).
 - [ ] States Report View is never a competing record; Handoff View final is clinician-owned; Chart Review Packet's accountable artifact remains the `ContextPacket`.
-- [ ] Carries a kernel-mapping note: surfaces map only transitively; mirror `point_read` read-only discipline; no kernel widening; cites the **proposed** clinical-truth service.
+- [ ] Carries a kernel-mapping note: surfaces map only transitively; mirror `point_read` read-only discipline; no kernel widening; cites the **accepted** clinical-truth service north star.
 - [ ] Connector signature `(patientId, encounterId, asOf)`; rebuildability testable for `patient_001` and `patient_002`.
 - [ ] Reconciliation posture (adopt) and `Status: ready-for-agent` present.
 
@@ -105,6 +105,6 @@ Every surface projection stays `(patientId, encounterId, asOf)`-parameterized an
 
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/07-unified-evidence-edge-and-dead-field-closure.md` (Source trail / linked refs)
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/09-lifecycle-vocabulary-and-correction-record-hash.md` (lifecycle labels)
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-as-separate-facts.md` (review state; Done vs Charted)
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-attestation-as-separate-facts.md` (review state; Done vs Charted)
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/11-projection-facing-fields-authority-attention-timing-access-tier.md` (authority/attention/timing/access tier)
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/12-human-agent-suggestion-state-on-the-substrate.md` (Suggested / Add to Shift Brain)

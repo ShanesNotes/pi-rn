@@ -174,6 +174,10 @@ When a lower-authority term is useful but misleading, preserve the evidence and 
 - Whole-chart validation owns link resolution, contradiction/resolution checks, note-reference integrity, and transform provenance coherence.
 
 
+## Current clinical-truth adapter slice
+
+As of 2026-05-31, `pi-chart/src/clinical-truth-contract.ts` and `pi-chart/src/clinical-truth-adapter.ts` implement the first backend-mediated `vital.sign` adapter slice against Rust-owned conformance vectors. The adapter can map `VitalSample` and `observation/vital_sign` `EventEnvelope` inputs to Claim candidates and call an injected `ClinicalTruthBackendClient`; it does not compute canonical JSON, Record hashes, Entry hashes, registry decisions, append admission, or idempotent acceptance in TypeScript. Draft/suggested event facts must be reviewed/promoted before accepted ledger append.
+
 ## Boundary with pi-ledger
 
 `pi-ledger` owns the reusable cryptographic claim-ledger kernel after ADR 020. `pi-chart` owns chart/EHR workflows, clinical views, adapters, and brownfield compatibility. `pi-chart` should consume `pi-ledger` through explicit adapters after the kernel interface is proven; it should not treat `pi-chart/src/claim-ledger/` as the canonical kernel home.

@@ -1,0 +1,2361 @@
+
+> pi-chart@0.1.0 test
+> node --test --import tsx 'src/**/*.test.ts' 'scripts/**/*.test.ts'
+
+TAP version 13
+# Subtest: connector keeps pinned intent order
+ok 1 - connector keeps pinned intent order
+  ---
+  duration_ms: 13.242383
+  type: 'test'
+  ...
+# Subtest: MAR-blocked administration requests are advisory only
+ok 2 - MAR-blocked administration requests are advisory only
+  ---
+  duration_ms: 4.963792
+  type: 'test'
+  ...
+# Subtest: MAR-blocked administration derives block state from context bundle when caller state is stale
+ok 3 - MAR-blocked administration derives block state from context bundle when caller state is stale
+  ---
+  duration_ms: 0.597593
+  type: 'test'
+  ...
+# Subtest: administration requests never produce medication administration drafts
+ok 4 - administration requests never produce medication administration drafts
+  ---
+  duration_ms: 0.479076
+  type: 'test'
+  ...
+# Subtest: documentation requests can return source-linked draft suggestions
+ok 5 - documentation requests can return source-linked draft suggestions
+  ---
+  duration_ms: 1.000974
+  type: 'test'
+  ...
+# Subtest: documentation intent cannot be used to draft medication administration
+ok 6 - documentation intent cannot be used to draft medication administration
+  ---
+  duration_ms: 6.52124
+  type: 'test'
+  ...
+# Subtest: buildContextBundle exposes fixture artifact without source refs for warning badge path
+ok 7 - buildContextBundle exposes fixture artifact without source refs for warning badge path
+  ---
+  duration_ms: 0.720809
+  type: 'test'
+  ...
+# Subtest: tool allowlist permits read-like names and rejects write-like camel segments
+ok 8 - tool allowlist permits read-like names and rejects write-like camel segments
+  ---
+  duration_ms: 1.065097
+  type: 'test'
+  ...
+# Subtest: buildAgentCanvasContext is patient-agnostic and works for patient_002
+ok 9 - buildAgentCanvasContext is patient-agnostic and works for patient_002
+  ---
+  duration_ms: 471.758336
+  type: 'test'
+  ...
+# Subtest: buildAgentCanvasContext also works for another opened patient chart
+ok 10 - buildAgentCanvasContext also works for another opened patient chart
+  ---
+  duration_ms: 300.728314
+  type: 'test'
+  ...
+# Subtest: buildAgentCanvasContext scopes latest vitals and loops to the opened encounter
+ok 11 - buildAgentCanvasContext scopes latest vitals and loops to the opened encounter
+  ---
+  duration_ms: 43.209106
+  type: 'test'
+  ...
+# Subtest: vitalSourceRef builds encounter-scoped sample-key provenance
+ok 12 - vitalSourceRef builds encounter-scoped sample-key provenance
+  ---
+  duration_ms: 0.468796
+  type: 'test'
+  ...
+# Subtest: agent canvas context builder does not bake in the demo patient
+ok 13 - agent canvas context builder does not bake in the demo patient
+  ---
+  duration_ms: 0.284655
+  type: 'test'
+  ...
+# Subtest: agent canvas constants pin clinical intent and block-state vocabulary
+ok 14 - agent canvas constants pin clinical intent and block-state vocabulary
+  ---
+  duration_ms: 4.589927
+  type: 'test'
+  ...
+# Subtest: advisory banner copy is pinned as source-data verification language
+ok 15 - advisory banner copy is pinned as source-data verification language
+  ---
+  duration_ms: 0.480829
+  type: 'test'
+  ...
+# Subtest: chart view fixture declares density for smart-collapse behavior
+ok 16 - chart view fixture declares density for smart-collapse behavior
+  ---
+  duration_ms: 0.537448
+  type: 'test'
+  ...
+# Subtest: patient_002 context fixture keeps MAR block and review-required artifacts explicit
+ok 17 - patient_002 context fixture keeps MAR block and review-required artifacts explicit
+  ---
+  duration_ms: 0.46021
+  type: 'test'
+  ...
+# Subtest: overview cockpit renders required patient and clinical content
+ok 18 - overview cockpit renders required patient and clinical content
+  ---
+  duration_ms: 4.11546
+  type: 'test'
+  ...
+# Subtest: clinical worklist keeps prioritized required sections
+ok 19 - clinical worklist keeps prioritized required sections
+  ---
+  duration_ms: 0.467664
+  type: 'test'
+  ...
+# Subtest: artifact pane is editable, resizable, and uses Chart language
+ok 20 - artifact pane is editable, resizable, and uses Chart language
+  ---
+  duration_ms: 4.276096
+  type: 'test'
+  ...
+# Subtest: prototype copy uses Chart product language only
+ok 21 - prototype copy uses Chart product language only
+  ---
+  duration_ms: 0.789991
+  type: 'test'
+  ...
+# Subtest: agent dock is a chart-side advisory shell with a mock prompt
+ok 22 - agent dock is a chart-side advisory shell with a mock prompt
+  ---
+  duration_ms: 0.818015
+  type: 'test'
+  ...
+# Subtest: generated context fixture is grounded in patient_002 view primitives
+ok 23 - generated context fixture is grounded in patient_002 view primitives
+  ---
+  duration_ms: 0.401387
+  type: 'test'
+  ...
+# Subtest: clinician journey storyboard exposes chart navigation states
+ok 24 - clinician journey storyboard exposes chart navigation states
+  ---
+  duration_ms: 0.464007
+  type: 'test'
+  ...
+# Subtest: parses synthetic board fixture into four columns
+ok 25 - parses synthetic board fixture into four columns
+  ---
+  duration_ms: 7.364994
+  type: 'test'
+  ...
+# Subtest: In Progress column renders with count 0 and no cards
+ok 26 - In Progress column renders with count 0 and no cards
+  ---
+  duration_ms: 1.959617
+  type: 'test'
+  ...
+# Subtest: extracts ID, title, and Status/Outcome pill text
+ok 27 - extracts ID, title, and Status/Outcome pill text
+  ---
+  duration_ms: 0.709496
+  type: 'test'
+  ...
+# Subtest: Ready cards render without status pills or section-name fallback
+ok 28 - Ready cards render without status pills or section-name fallback
+  ---
+  duration_ms: 1.28122
+  type: 'test'
+  ...
+# Subtest: escapes HTML special characters in card text
+ok 29 - escapes HTML special characters in card text
+  ---
+  duration_ms: 0.54911
+  type: 'test'
+  ...
+# Subtest: escapes angle brackets in card text
+ok 30 - escapes angle brackets in card text
+  ---
+  duration_ms: 0.661915
+  type: 'test'
+  ...
+# Subtest: truncates long status pills to 30 characters plus ellipsis
+ok 31 - truncates long status pills to 30 characters plus ellipsis
+  ---
+  duration_ms: 0.645605
+  type: 'test'
+  ...
+# Subtest: throws with section name on partial-table snapshot
+ok 32 - throws with section name on partial-table snapshot
+  ---
+  duration_ms: 1.236445
+  type: 'test'
+  ...
+# Subtest: smoke parses the real board if present
+ok 33 - smoke parses the real board if present
+  ---
+  duration_ms: 2.125024
+  type: 'test'
+  ...
+# Subtest: migrate-v02-to-v03 rewrites every mechanical rule and validates green
+ok 34 - migrate-v02-to-v03 rewrites every mechanical rule and validates green
+  ---
+  duration_ms: 1103.534534
+  type: 'test'
+  ...
+# Subtest: migrate-v02-to-v03 is byte-identical on re-run
+ok 35 - migrate-v02-to-v03 is byte-identical on re-run
+  ---
+  duration_ms: 742.910873
+  type: 'test'
+  ...
+# WARN   timeline/2026-04-18/vitals.jsonl:1: V-VITAL-01: vitals row should carry recorded_at chart-ingest/write time
+# WARN   timeline/2026-04-18/vitals.jsonl:1: V-VITAL-01: vitals row should carry deterministic sample_key
+# WARN   timeline/2026-04-18/vitals.jsonl:1: V-VITAL-03: spo2 sample should carry inline oxygen context or have a covering o2_delivery context_segment
+# WARN   timeline/2026-04-18/vitals.jsonl:2: V-VITAL-01: vitals row should carry recorded_at chart-ingest/write time
+# WARN   timeline/2026-04-18/vitals.jsonl:2: V-VITAL-01: vitals row should carry deterministic sample_key
+# WARN   timeline/2026-04-18/vitals.jsonl:2: V-VITAL-03: spo2 sample should carry inline oxygen context or have a covering o2_delivery context_segment
+# WARN   timeline/2026-04-18/vitals.jsonl:3: V-VITAL-01: vitals row should carry recorded_at chart-ingest/write time
+# WARN   timeline/2026-04-18/vitals.jsonl:3: V-VITAL-01: vitals row should carry deterministic sample_key
+# WARN   timeline/2026-04-18/vitals.jsonl:4: V-VITAL-01: vitals row should carry recorded_at chart-ingest/write time
+# WARN   timeline/2026-04-18/vitals.jsonl:4: V-VITAL-01: vitals row should carry deterministic sample_key
+# WARN   timeline/2026-04-18/events.ndjson:7: V-EVIDENCE-01: agent-inferred assessment must use object-form EvidenceRef; got bare string at supports[0]: vitals://enc_001?missing=fields.
+# ERROR  timeline/2026-04-18/events.ndjson:7: links.supports: malformed vitals URI 'vitals://enc_001?missing=fields'
+# ERROR  timeline/2026-04-18/events.ndjson:7: assessment links.supports must include at least one observation event, vitals:// URI, or artifact_ref event
+# Subtest: migrate-v02-to-v03 leaves the live tree untouched on validation failure
+ok 36 - migrate-v02-to-v03 leaves the live tree untouched on validation failure
+  ---
+  duration_ms: 206.413162
+  type: 'test'
+  ...
+# Subtest: rebuild is deterministic against unchanged content
+ok 37 - rebuild is deterministic against unchanged content
+  ---
+  duration_ms: 1641.082606
+  type: 'test'
+  ...
+# Subtest: current.md 'as of' uses chart timestamp, not wall clock
+ok 38 - current.md 'as of' uses chart timestamp, not wall clock
+  ---
+  duration_ms: 950.470598
+  type: 'test'
+  ...
+# Subtest: latest-vitals.md orders clinically (heart_rate before bp_systolic before spo2)
+ok 39 - latest-vitals.md orders clinically (heart_rate before bp_systolic before spo2)
+  ---
+  duration_ms: 550.704849
+  type: 'test'
+  ...
+# Subtest: rebuildDerived emits deterministic memory-proof.md with required headings
+ok 40 - rebuildDerived emits deterministic memory-proof.md with required headings
+  ---
+  duration_ms: 543.442702
+  type: 'test'
+  ...
+# Subtest: active-constraints.md does not double the \# Constraints heading
+ok 41 - active-constraints.md does not double the \# Constraints heading
+  ---
+  duration_ms: 470.140351
+  type: 'test'
+  ...
+# Subtest: current.md contested annotations clear after resolver and open-intents excludes contested_claim duplicates
+ok 42 - current.md contested annotations clear after resolver and open-intents excludes contested_claim duplicates
+  ---
+  duration_ms: 23.824098
+  type: 'test'
+  ...
+# Subtest: plain id parses as an event ref
+ok 43 - plain id parses as an event ref
+  ---
+  duration_ms: 2.9237
+  type: 'test'
+  ...
+# Subtest: note id parses as a note ref
+ok 44 - note id parses as a note ref
+  ---
+  duration_ms: 0.402691
+  type: 'test'
+  ...
+# Subtest: vitals URI parses into canonical vitals ref
+ok 45 - vitals URI parses into canonical vitals ref
+  ---
+  duration_ms: 0.668569
+  type: 'test'
+  ...
+# Subtest: malformed vitals URI returns null
+ok 46 - malformed vitals URI returns null
+  ---
+  duration_ms: 0.352955
+  type: 'test'
+  ...
+# Subtest: formatVitalsUri composes a parseable URI (metric param)
+ok 47 - formatVitalsUri composes a parseable URI (metric param)
+  ---
+  duration_ms: 1.256543
+  type: 'test'
+  ...
+# Subtest: formatVitalsUri accepts legacy `name` alias
+ok 48 - formatVitalsUri accepts legacy `name` alias
+  ---
+  duration_ms: 0.334129
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: parseEvidenceRef normalizes legacy structured objects into canonical refs
+ok 49 - v0.2 back-compat: parseEvidenceRef normalizes legacy structured objects into canonical refs
+  ---
+  duration_ms: 1.07726
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: legacy structured vitals without encounterId still normalize
+ok 50 - v0.2 back-compat: legacy structured vitals without encounterId still normalize
+  ---
+  duration_ms: 0.581081
+  type: 'test'
+  ...
+# Subtest: canonical object refs round-trip without dropping optional fields
+ok 51 - canonical object refs round-trip without dropping optional fields
+  ---
+  duration_ms: 0.769392
+  type: 'test'
+  ...
+# Subtest: isVitalsUri discriminates
+ok 52 - isVitalsUri discriminates
+  ---
+  duration_ms: 0.766305
+  type: 'test'
+  ...
+# Subtest: migrate moves v0.1 layout under patients/<subject>/
+ok 53 - migrate moves v0.1 layout under patients/<subject>/
+  ---
+  duration_ms: 109.858365
+  type: 'test'
+  ...
+# Subtest: migrate is idempotent on re-run
+ok 54 - migrate is idempotent on re-run
+  ---
+  duration_ms: 53.058761
+  type: 'test'
+  ...
+# Subtest: migrate resumes safely after a partial move
+ok 55 - migrate resumes safely after a partial move
+  ---
+  duration_ms: 46.349732
+  type: 'test'
+  ...
+# Subtest: migrate completes sessions template + legacy removal even when registry already exists
+ok 56 - migrate completes sessions template + legacy removal even when registry already exists
+  ---
+  duration_ms: 52.125677
+  type: 'test'
+  ...
+# Subtest: migrate converges a stale session template left by an earlier buggy run
+ok 57 - migrate converges a stale session template left by an earlier buggy run
+  ---
+  duration_ms: 29.499991
+  type: 'test'
+  ...
+# Subtest: migrate preserves a session template that points at another on-disk patient
+ok 58 - migrate preserves a session template that points at another on-disk patient
+  ---
+  duration_ms: 54.016082
+  type: 'test'
+  ...
+# Subtest: migrate writes the session template pointing at the actual patient id
+ok 59 - migrate writes the session template pointing at the actual patient id
+  ---
+  duration_ms: 18.121011
+  type: 'test'
+  ...
+# Subtest: readActiveConstraints returns structured + body
+ok 60 - readActiveConstraints returns structured + body
+  ---
+  duration_ms: 95.451717
+  type: 'test'
+  ...
+# Subtest: readActiveConstraints returns null structured when block absent
+ok 61 - readActiveConstraints returns null structured when block absent
+  ---
+  duration_ms: 39.614322
+  type: 'test'
+  ...
+# Subtest: readActiveConstraints includes canonical constraint events and review actions
+ok 62 - readActiveConstraints includes canonical constraint events and review actions
+  ---
+  duration_ms: 48.41392
+  type: 'test'
+  ...
+# Subtest: readRecentEvents defaults asOf to latest chart event, not wall clock
+ok 63 - readRecentEvents defaults asOf to latest chart event, not wall clock
+  ---
+  duration_ms: 52.715495
+  type: 'test'
+  ...
+# Subtest: readRecentEvents respects explicit asOf
+ok 64 - readRecentEvents respects explicit asOf
+  ---
+  duration_ms: 4.137311
+  type: 'test'
+  ...
+# Subtest: readRecentEvents enforces inclusive bounds and excludes future/invalid timestamps
+ok 65 - readRecentEvents enforces inclusive bounds and excludes future/invalid timestamps
+  ---
+  duration_ms: 392.415933
+  type: 'test'
+  ...
+# Subtest: readLatestVitals picks newest by parsed timestamp
+ok 66 - readLatestVitals picks newest by parsed timestamp
+  ---
+  duration_ms: 4.47648
+  type: 'test'
+  ...
+# Subtest: latestEffectiveAt walks events + vitals
+ok 67 - latestEffectiveAt walks events + vitals
+  ---
+  duration_ms: 15.825933
+  type: 'test'
+  ...
+# Subtest: readRecentEvents sim-time default uses appended event time
+ok 68 - readRecentEvents sim-time default uses appended event time
+  ---
+  duration_ms: 345.297502
+  type: 'test'
+  ...
+# Subtest: read APIs ignore simulation hidden_truth material under a patient package
+ok 69 - read APIs ignore simulation hidden_truth material under a patient package
+  ---
+  duration_ms: 35.189501
+  type: 'test'
+  ...
+# Subtest: known-good clinical event validates
+ok 70 - known-good clinical event validates
+  ---
+  duration_ms: 427.12724
+  type: 'test'
+  ...
+# Subtest: canonical EvidenceRef plus transform/resolves/contradicts validate
+ok 71 - canonical EvidenceRef plus transform/resolves/contradicts validate
+  ---
+  duration_ms: 9.785933
+  type: 'test'
+  ...
+# Subtest: interval-shaped event validates with effective_period
+ok 72 - interval-shaped event validates with effective_period
+  ---
+  duration_ms: 7.991772
+  type: 'test'
+  ...
+# Subtest: event with both effective_at and effective_period fails XOR schema
+ok 73 - event with both effective_at and effective_period fails XOR schema
+  ---
+  duration_ms: 6.047394
+  type: 'test'
+  ...
+# Subtest: event with neither effective_at nor effective_period fails XOR schema
+ok 74 - event with neither effective_at nor effective_period fails XOR schema
+  ---
+  duration_ms: 6.084986
+  type: 'test'
+  ...
+# Subtest: clinical event missing encounter_id fails conditional schema
+ok 75 - clinical event missing encounter_id fails conditional schema
+  ---
+  duration_ms: 7.208204
+  type: 'test'
+  ...
+# Subtest: clinical event missing data fails conditional schema
+ok 76 - clinical event missing data fails conditional schema
+  ---
+  duration_ms: 6.352869
+  type: 'test'
+  ...
+# Subtest: structural event without data/links/encounter_id is OK
+ok 77 - structural event without data/links/encounter_id is OK
+  ---
+  duration_ms: 3.022039
+  type: 'test'
+  ...
+# Subtest: vitals row schema requires subject + encounter_id + structured source
+ok 78 - vitals row schema requires subject + encounter_id + structured source
+  ---
+  duration_ms: 149.974558
+  type: 'test'
+  ...
+# Subtest: note schema rejects missing references
+ok 79 - note schema rejects missing references
+  ---
+  duration_ms: 200.697001
+  type: 'test'
+  ...
+# Subtest: constraints schema validates known-good block
+ok 80 - constraints schema validates known-good block
+  ---
+  duration_ms: 213.175122
+  type: 'test'
+  ...
+# Subtest: loadValidator does not reuse stale validators after same-$id schema edits
+ok 81 - loadValidator does not reuse stale validators after same-$id schema edits
+  ---
+  duration_ms: 198.014833
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionAuthor round-trips valid session yaml
+ok 82 - tryLoadSessionAuthor round-trips valid session yaml
+  ---
+  duration_ms: 24.31694
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionAuthor returns undefined when session file is absent
+ok 83 - tryLoadSessionAuthor returns undefined when session file is absent
+  ---
+  duration_ms: 2.836974
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionAuthor returns undefined on malformed yaml
+ok 84 - tryLoadSessionAuthor returns undefined on malformed yaml
+  ---
+  duration_ms: 5.073923
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionAuthor returns undefined when author fields missing
+ok 85 - tryLoadSessionAuthor returns undefined when author fields missing
+  ---
+  duration_ms: 27.966509
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionAuthor preserves run_id when present
+ok 86 - tryLoadSessionAuthor preserves run_id when present
+  ---
+  duration_ms: 12.301553
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionPatientId returns current_patient when set
+ok 87 - tryLoadSessionPatientId returns current_patient when set
+  ---
+  duration_ms: 7.576138
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionState returns full object
+ok 88 - tryLoadSessionState returns full object
+  ---
+  duration_ms: 4.984731
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionChartRoot walks up to pi-chart.yaml
+ok 89 - tryLoadSessionChartRoot walks up to pi-chart.yaml
+  ---
+  duration_ms: 4.04736
+  type: 'test'
+  ...
+# Subtest: tryLoadSessionChartRoot returns undefined when no pi-chart.yaml above
+ok 90 - tryLoadSessionChartRoot returns undefined when no pi-chart.yaml above
+  ---
+  duration_ms: 3.27866
+  type: 'test'
+  ...
+# Subtest: tryLoadSystemRegistry reads pi-chart.yaml
+ok 91 - tryLoadSystemRegistry reads pi-chart.yaml
+  ---
+  duration_ms: 11.236036
+  type: 'test'
+  ...
+# Subtest: tryLoadSystemRegistry returns null when pi-chart.yaml absent
+ok 92 - tryLoadSystemRegistry returns null when pi-chart.yaml absent
+  ---
+  duration_ms: 1.828346
+  type: 'test'
+  ...
+# Subtest: listPatientIds reads patients/ directory as truth, not pi-chart.yaml
+ok 93 - listPatientIds reads patients/ directory as truth, not pi-chart.yaml
+  ---
+  duration_ms: 7.725603
+  type: 'test'
+  ...
+# Subtest: listPatientIds ignores stray entries without chart.yaml
+ok 94 - listPatientIds ignores stray entries without chart.yaml
+  ---
+  duration_ms: 15.23858
+  type: 'test'
+  ...
+# Subtest: listPatientIds returns [] when patients/ does not exist
+ok 95 - listPatientIds returns [] when patients/ does not exist
+  ---
+  duration_ms: 2.188555
+  type: 'test'
+  ...
+# Subtest: latestEffectiveAt returns max across events + vitals
+ok 96 - latestEffectiveAt returns max across events + vitals
+  ---
+  duration_ms: 98.272941
+  type: 'test'
+  ...
+# Subtest: SimClock.now matches latestEffectiveAt
+ok 97 - SimClock.now matches latestEffectiveAt
+  ---
+  duration_ms: 87.142137
+  type: 'test'
+  ...
+# Subtest: WallClock.now is recent
+ok 98 - WallClock.now is recent
+  ---
+  duration_ms: 0.89941
+  type: 'test'
+  ...
+# Subtest: chartClock selects SimClock by default and WallClock when configured
+ok 99 - chartClock selects SimClock by default and WallClock when configured
+  ---
+  duration_ms: 46.682619
+  type: 'test'
+  ...
+# Subtest: formatIsoSecondsInTimeZone renders stable wall-clock ISO strings
+ok 100 - formatIsoSecondsInTimeZone renders stable wall-clock ISO strings
+  ---
+  duration_ms: 104.832916
+  type: 'test'
+  ...
+# Subtest: nowIsoForChart uses chart timezone and falls back to UTC
+ok 101 - nowIsoForChart uses chart timezone and falls back to UTC
+  ---
+  duration_ms: 27.353376
+  type: 'test'
+  ...
+# Subtest: patientRoot confines patient ids to one patients/ child directory
+ok 102 - patientRoot confines patient ids to one patients/ child directory
+  ---
+  duration_ms: 3.073187
+  type: 'test'
+  ...
+# Subtest: assertValidPatientId accepts simple stable directory names
+ok 103 - assertValidPatientId accepts simple stable directory names
+  ---
+  duration_ms: 0.486911
+  type: 'test'
+  ...
+# Subtest: V-PROFILE-01: event without profile field validates clean (profile is optional)
+ok 104 - V-PROFILE-01: event without profile field validates clean (profile is optional)
+  ---
+  duration_ms: 1857.911844
+  type: 'test'
+  ...
+# Subtest: V-PROFILE-01: event with empty-string profile is rejected
+ok 105 - V-PROFILE-01: event with empty-string profile is rejected
+  ---
+  duration_ms: 680.943366
+  type: 'test'
+  ...
+# Subtest: V-PROFILE-01: event with unregistered profile emits a warning, not an error
+ok 106 - V-PROFILE-01: event with unregistered profile emits a warning, not an error
+  ---
+  duration_ms: 558.376069
+  type: 'test'
+  ...
+# Subtest: baseline fixture validates green
+ok 107 - baseline fixture validates green
+  ---
+  duration_ms: 586.44386
+  type: 'test'
+  ...
+# Subtest: subject mismatch surfaces error
+ok 108 - subject mismatch surfaces error
+  ---
+  duration_ms: 479.515718
+  type: 'test'
+  ...
+# Subtest: clinical event missing encounter_id rejected
+ok 109 - clinical event missing encounter_id rejected
+  ---
+  duration_ms: 436.328553
+  type: 'test'
+  ...
+# Subtest: V-SRC-01 warns on unknown source.kind
+ok 110 - V-SRC-01 warns on unknown source.kind
+  ---
+  duration_ms: 409.393187
+  type: 'test'
+  ...
+# Subtest: V-SRC-02 warns on deprecated agent_reasoning
+ok 111 - V-SRC-02 warns on deprecated agent_reasoning
+  ---
+  duration_ms: 395.911937
+  type: 'test'
+  ...
+# Subtest: V-SRC-03 rejects import events missing structured provenance
+ok 112 - V-SRC-03 rejects import events missing structured provenance
+  ---
+  duration_ms: 378.190229
+  type: 'test'
+  ...
+# Subtest: vitals URI window with no samples rejected
+ok 113 - vitals URI window with no samples rejected
+  ---
+  duration_ms: 330.868128
+  type: 'test'
+  ...
+# Subtest: vitals URI malformed rejected
+ok 114 - vitals URI malformed rejected
+  ---
+  duration_ms: 293.662391
+  type: 'test'
+  ...
+# Subtest: V-TIME-02 rejects future-dated point intent missing due_by
+ok 115 - V-TIME-02 rejects future-dated point intent missing due_by
+  ---
+  duration_ms: 308.636495
+  type: 'test'
+  ...
+# Subtest: future-dated interval intent is permitted without due_by
+ok 116 - future-dated interval intent is permitted without due_by
+  ---
+  duration_ms: 329.095568
+  type: 'test'
+  ...
+# Subtest: Phase A constraint assertions allow open effective_period and status_detail
+ok 117 - Phase A constraint assertions allow open effective_period and status_detail
+  ---
+  duration_ms: 309.395566
+  type: 'test'
+  ...
+# Subtest: assessment with no evidence rejected
+ok 118 - assessment with no evidence rejected
+  ---
+  duration_ms: 310.568559
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-01 warns only for bare-string supports on agent-inferred assessments
+ok 119 - V-EVIDENCE-01 warns only for bare-string supports on agent-inferred assessments
+  ---
+  duration_ms: 311.888494
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-01 stays silent outside the agent-inferred assessment predicate
+ok 120 - V-EVIDENCE-01 stays silent outside the agent-inferred assessment predicate
+  ---
+  duration_ms: 300.076677
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-02 rejects multiple object-form primary supports
+ok 121 - V-EVIDENCE-02 rejects multiple object-form primary supports
+  ---
+  duration_ms: 311.203914
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-02 ignores bare strings and non-primary object supports
+ok 122 - V-EVIDENCE-02 ignores bare strings and non-primary object supports
+  ---
+  duration_ms: 309.222115
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: V-EVIDENCE-03 detects normalized derived_from cycles at depth 2
+ok 123 - v0.2 back-compat: V-EVIDENCE-03 detects normalized derived_from cycles at depth 2
+  ---
+  duration_ms: 304.373533
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-03 allows derived_from depth 8
+ok 124 - V-EVIDENCE-03 allows derived_from depth 8
+  ---
+  duration_ms: 330.150394
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-03 rejects derived_from depth 9
+ok 125 - V-EVIDENCE-03 rejects derived_from depth 9
+  ---
+  duration_ms: 302.795555
+  type: 'test'
+  ...
+# Subtest: V-EVIDENCE-03 stays silent for empty derived_from arrays
+ok 126 - V-EVIDENCE-03 stays silent for empty derived_from arrays
+  ---
+  duration_ms: 319.922876
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-01 rejects import activity with non-import source kind
+ok 127 - V-TRANSFORM-01 rejects import activity with non-import source kind
+  ---
+  duration_ms: 306.04625
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-01 rejects normalize activity with non-import source kind
+ok 128 - V-TRANSFORM-01 rejects normalize activity with non-import source kind
+  ---
+  duration_ms: 314.826921
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-01 stays silent for import activity with synthea_import source kind
+ok 129 - V-TRANSFORM-01 stays silent for import activity with synthea_import source kind
+  ---
+  duration_ms: 301.47528
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-01 stays silent for non-import transform activities
+ok 130 - V-TRANSFORM-01 stays silent for non-import transform activities
+  ---
+  duration_ms: 1246.914836
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM rules stay silent when no transform block is present
+ok 131 - V-TRANSFORM rules stay silent when no transform block is present
+  ---
+  duration_ms: 306.944137
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-02 rejects unresolved event input refs
+ok 132 - V-TRANSFORM-02 rejects unresolved event input refs
+  ---
+  duration_ms: 307.457349
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-02 rejects unrecognized external schemes
+ok 133 - V-TRANSFORM-02 rejects unrecognized external schemes
+  ---
+  duration_ms: 303.540007
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-02 stays silent for existing event input refs
+ok 134 - V-TRANSFORM-02 stays silent for existing event input refs
+  ---
+  duration_ms: 318.335138
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-02 stays silent for approved external schemes
+ok 135 - V-TRANSFORM-02 stays silent for approved external schemes
+  ---
+  duration_ms: 305.770763
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-02 stays silent for valid encounter-bearing vitals_window refs
+ok 136 - V-TRANSFORM-02 stays silent for valid encounter-bearing vitals_window refs
+  ---
+  duration_ms: 299.41561
+  type: 'test'
+  ...
+# Subtest: V-TRANSFORM-02 stays silent for empty input_refs
+ok 137 - V-TRANSFORM-02 stays silent for empty input_refs
+  ---
+  duration_ms: 319.927854
+  type: 'test'
+  ...
+# Subtest: Phase 3 keeps links.supports encounterless vitals valid while transform.input_refs rejects the same URI shape
+ok 138 - Phase 3 keeps links.supports encounterless vitals valid while transform.input_refs rejects the same URI shape
+  ---
+  duration_ms: 302.073172
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-01 rejects contradicts refs outside the patient-local event index
+ok 139 - V-CONTRA-01 rejects contradicts refs outside the patient-local event index
+  ---
+  duration_ms: 308.854589
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-01 stays silent for same-patient contradicts targets
+ok 140 - V-CONTRA-01 stays silent for same-patient contradicts targets
+  ---
+  duration_ms: 293.620438
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-02 rejects overlapping contradicts and corrects targets only
+ok 141 - V-CONTRA-02 rejects overlapping contradicts and corrects targets only
+  ---
+  duration_ms: 305.61761
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-03 enforces strictly earlier recorded_at on contradicts targets
+ok 142 - V-CONTRA-03 enforces strictly earlier recorded_at on contradicts targets
+  ---
+  duration_ms: 308.358651
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-04 warns when a supersessor omits resolves or contradicts back-references
+ok 143 - V-CONTRA-04 warns when a supersessor omits resolves or contradicts back-references
+  ---
+  duration_ms: 288.618454
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-04 stays silent when a supersessor resolves the contradictor
+ok 144 - V-CONTRA-04 stays silent when a supersessor resolves the contradictor
+  ---
+  duration_ms: 314.002052
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-04 stays silent when a supersessor contradicts the contradictor
+ok 145 - V-CONTRA-04 stays silent when a supersessor contradicts the contradictor
+  ---
+  duration_ms: 322.463502
+  type: 'test'
+  ...
+# Subtest: V-CONTRA-04 stays silent when the supersessor predates the contradiction
+ok 146 - V-CONTRA-04 stays silent when the supersessor predates the contradiction
+  ---
+  duration_ms: 315.52777
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent for a pending intent target
+ok 147 - V-RESOLVES-01 stays silent for a pending intent target
+  ---
+  duration_ms: 315.902976
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent for an overdue intent target
+ok 148 - V-RESOLVES-01 stays silent for an overdue intent target
+  ---
+  duration_ms: 302.077039
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 rejects future intents at the resolver anchor
+ok 149 - V-RESOLVES-01 rejects future intents at the resolver anchor
+  ---
+  duration_ms: 300.82289
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 rejects in-progress intents
+ok 150 - V-RESOLVES-01 rejects in-progress intents
+  ---
+  duration_ms: 318.042428
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent for failed fulfillments marked by status_detail
+ok 151 - V-RESOLVES-01 stays silent for failed fulfillments marked by status_detail
+  ---
+  duration_ms: 304.794955
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 ignores backdated fulfillments authored after the resolver anchor
+ok 152 - V-RESOLVES-01 ignores backdated fulfillments authored after the resolver anchor
+  ---
+  duration_ms: 306.16731
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 rejects terminally closed intents
+ok 153 - V-RESOLVES-01 rejects terminally closed intents
+  ---
+  duration_ms: 955.028935
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent for unacknowledged communications
+ok 154 - V-RESOLVES-01 stays silent for unacknowledged communications
+  ---
+  duration_ms: 302.304863
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent when a communication replacement lands after the resolver anchor
+ok 155 - V-RESOLVES-01 stays silent when a communication replacement lands after the resolver anchor
+  ---
+  duration_ms: 325.034367
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 ignores backdated communication replacements authored after the resolver anchor
+ok 156 - V-RESOLVES-01 ignores backdated communication replacements authored after the resolver anchor
+  ---
+  duration_ms: 309.552462
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 rejects communications replaced before the resolver anchor
+ok 157 - V-RESOLVES-01 rejects communications replaced before the resolver anchor
+  ---
+  duration_ms: 304.746933
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 rejects acknowledged timeout and failed communication targets
+ok 158 - V-RESOLVES-01 rejects acknowledged timeout and failed communication targets
+  ---
+  duration_ms: 948.295548
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent for the active-alert placeholder shape
+ok 159 - V-RESOLVES-01 stays silent for the active-alert placeholder shape
+  ---
+  duration_ms: 322.975579
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 stays silent for contradiction-bearing event targets
+ok 160 - V-RESOLVES-01 stays silent for contradiction-bearing event targets
+  ---
+  duration_ms: 318.565347
+  type: 'test'
+  ...
+# Subtest: V-RESOLVES-01 rejects vanilla observations and assessments without contradictions
+ok 161 - V-RESOLVES-01 rejects vanilla observations and assessments without contradictions
+  ---
+  duration_ms: 311.200022
+  type: 'test'
+  ...
+# Subtest: invariant 10: links.addresses targeting an assessment/problem stays valid
+ok 162 - invariant 10: links.addresses targeting an assessment/problem stays valid
+  ---
+  duration_ms: 325.14108
+  type: 'test'
+  ...
+# Subtest: invariant 10: links.addresses targeting an intent is rejected with tightened wording
+ok 163 - invariant 10: links.addresses targeting an intent is rejected with tightened wording
+  ---
+  duration_ms: 310.186163
+  type: 'test'
+  ...
+# Subtest: V-STATUS-02 rejects final order with non-terminal status_detail
+ok 164 - V-STATUS-02 rejects final order with non-terminal status_detail
+  ---
+  duration_ms: 294.140249
+  type: 'test'
+  ...
+# Subtest: V-STATUS-03 rejects backtracking status_detail transitions via supersedes
+ok 165 - V-STATUS-03 rejects backtracking status_detail transitions via supersedes
+  ---
+  duration_ms: 298.443568
+  type: 'test'
+  ...
+# Subtest: orphan note without communication event rejected
+ok 166 - orphan note without communication event rejected
+  ---
+  duration_ms: 314.110828
+  type: 'test'
+  ...
+# Subtest: V-NOTES-01 rejects communication note_ref with no note body
+ok 167 - V-NOTES-01 rejects communication note_ref with no note body
+  ---
+  duration_ms: 307.247383
+  type: 'test'
+  ...
+# Subtest: V-NOTES-01 stays silent for paired note and communication
+ok 168 - V-NOTES-01 stays silent for paired note and communication
+  ---
+  duration_ms: 316.112795
+  type: 'test'
+  ...
+# Subtest: V-NOTES-01 accepts duplicate note_ref without claimed-body semantics
+ok 169 - V-NOTES-01 accepts duplicate note_ref without claimed-body semantics
+  ---
+  duration_ms: 316.647598
+  type: 'test'
+  ...
+# Subtest: V-NOTES ignores missing empty and non-string note_ref communications
+ok 170 - V-NOTES ignores missing empty and non-string note_ref communications
+  ---
+  duration_ms: 298.317236
+  type: 'test'
+  ...
+# Subtest: V-NOTES-02 accepts attested nursing roles without role warnings
+ok 171 - V-NOTES-02 accepts attested nursing roles without role warnings
+  ---
+  duration_ms: 296.039801
+  type: 'test'
+  ...
+# Subtest: V-NOTES-02 warns for rn_agent used as clinical nursing role
+ok 172 - V-NOTES-02 warns for rn_agent used as clinical nursing role
+  ---
+  duration_ms: 328.456048
+  type: 'test'
+  ...
+# Subtest: V-NOTES-02 warns for nurse_practitioner ambiguity without failing validation
+ok 173 - V-NOTES-02 warns for nurse_practitioner ambiguity without failing validation
+  ---
+  duration_ms: 306.389632
+  type: 'test'
+  ...
+# Subtest: V-NOTES-02 stays silent for rn_agent in agent-source note context
+ok 174 - V-NOTES-02 stays silent for rn_agent in agent-source note context
+  ---
+  duration_ms: 301.279671
+  type: 'test'
+  ...
+# Subtest: V-NOTES-03 warns for missing note frontmatter without hard error
+ok 175 - V-NOTES-03 warns for missing note frontmatter without hard error
+  ---
+  duration_ms: 312.222476
+  type: 'test'
+  ...
+# Subtest: V-NOTES-03 warns for malformed YAML frontmatter without hard error
+ok 176 - V-NOTES-03 warns for malformed YAML frontmatter without hard error
+  ---
+  duration_ms: 325.185283
+  type: 'test'
+  ...
+# Subtest: V-NOTES-03 downgrades missing id discoverability errors
+ok 177 - V-NOTES-03 downgrades missing id discoverability errors
+  ---
+  duration_ms: 301.413426
+  type: 'test'
+  ...
+# Subtest: V-NOTES-03 downgrades recorded_at discoverability errors but preserves pairing by id
+ok 178 - V-NOTES-03 downgrades recorded_at discoverability errors but preserves pairing by id
+  ---
+  duration_ms: 296.828259
+  type: 'test'
+  ...
+# Subtest: V-NOTES-03 preserves unrelated hard note schema errors
+ok 179 - V-NOTES-03 preserves unrelated hard note schema errors
+  ---
+  duration_ms: 304.855839
+  type: 'test'
+  ...
+# Subtest: note references[] with unknown id rejected
+ok 180 - note references[] with unknown id rejected
+  ---
+  duration_ms: 306.325058
+  type: 'test'
+  ...
+# Subtest: day-prefix mismatch produces warning (not error)
+ok 181 - day-prefix mismatch produces warning (not error)
+  ---
+  duration_ms: 298.677394
+  type: 'test'
+  ...
+# Subtest: encounter day-prefix mismatch produces warning
+ok 182 - encounter day-prefix mismatch produces warning
+  ---
+  duration_ms: 321.128585
+  type: 'test'
+  ...
+# Subtest: note day-prefix mismatch produces warning
+ok 183 - note day-prefix mismatch produces warning
+  ---
+  duration_ms: 293.709253
+  type: 'test'
+  ...
+# Subtest: chart.yaml subject drifting from patient directory is an error
+ok 184 - chart.yaml subject drifting from patient directory is an error
+  ---
+  duration_ms: 309.53185
+  type: 'test'
+  ...
+# Subtest: V-INTERVAL-02 rejects effective_period on point-shaped subtype
+ok 185 - V-INTERVAL-02 rejects effective_period on point-shaped subtype
+  ---
+  duration_ms: 318.883252
+  type: 'test'
+  ...
+# Subtest: V-INTERVAL-04 rejects point event superseding an interval to close it
+ok 186 - V-INTERVAL-04 rejects point event superseding an interval to close it
+  ---
+  duration_ms: 312.639111
+  type: 'test'
+  ...
+# Subtest: vitals row missing encounter_id rejected
+ok 187 - vitals row missing encounter_id rejected
+  ---
+  duration_ms: 307.023793
+  type: 'test'
+  ...
+# Subtest: V-VITAL-01 accepts deterministic sample_key and recorded_at ordering
+ok 188 - V-VITAL-01 accepts deterministic sample_key and recorded_at ordering
+  ---
+  duration_ms: 56.143007
+  type: 'test'
+  ...
+# Subtest: V-VITAL-01 rejects mismatched sample_key
+ok 189 - V-VITAL-01 rejects mismatched sample_key
+  ---
+  duration_ms: 51.574581
+  type: 'test'
+  ...
+# Subtest: V-VITAL-01 rejects duplicate sample_key and object values
+ok 190 - V-VITAL-01 rejects duplicate sample_key and object values
+  ---
+  duration_ms: 55.214802
+  type: 'test'
+  ...
+# Subtest: V-VITAL-03 and V-VITAL-06 use oxygen context segments for spo2 context
+ok 191 - V-VITAL-03 and V-VITAL-06 use oxygen context segments for spo2 context
+  ---
+  duration_ms: 57.682942
+  type: 'test'
+  ...
+# Subtest: V-VITAL-03 ignores oxygen context segments from other encounters or replaced events
+ok 192 - V-VITAL-03 ignores oxygen context segments from other encounters or replaced events
+  ---
+  duration_ms: 61.973286
+  type: 'test'
+  ...
+# Subtest: invariant 8: multi-supersessor for one target is rejected
+ok 193 - invariant 8: multi-supersessor for one target is rejected
+  ---
+  duration_ms: 286.766096
+  type: 'test'
+  ...
+# Subtest: invariant 8: a supersession cycle is rejected
+ok 194 - invariant 8: a supersession cycle is rejected
+  ---
+  duration_ms: 297.082303
+  type: 'test'
+  ...
+# Subtest: invariant 10: links.fulfills targeting a non-intent is rejected
+ok 195 - invariant 10: links.fulfills targeting a non-intent is rejected
+  ---
+  duration_ms: 289.261037
+  type: 'test'
+  ...
+# Subtest: V-FULFILL-02 rejects acquisition action without fulfills
+ok 196 - V-FULFILL-02 rejects acquisition action without fulfills
+  ---
+  duration_ms: 303.853591
+  type: 'test'
+  ...
+# Subtest: V-FULFILL-03 rejects result observation without acquisition action support
+ok 197 - V-FULFILL-03 rejects result observation without acquisition action support
+  ---
+  duration_ms: 302.246849
+  type: 'test'
+  ...
+# Subtest: V-EXAMFIND-01 rejects exam findings that try to fulfill or address loops
+ok 198 - V-EXAMFIND-01 rejects exam findings that try to fulfill or address loops
+  ---
+  duration_ms: 308.136781
+  type: 'test'
+  ...
+# Subtest: V-EXAMFIND-01 rejects unsupported finding_state values
+ok 199 - V-EXAMFIND-01 rejects unsupported finding_state values
+  ---
+  duration_ms: 311.924624
+  type: 'test'
+  ...
+# Subtest: invariant 10: links.addresses targeting an arbitrary observation is rejected
+ok 200 - invariant 10: links.addresses targeting an arbitrary observation is rejected
+  ---
+  duration_ms: 302.888145
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: links.supports accepts a legacy structured vitals EvidenceRef
+ok 201 - v0.2 back-compat: links.supports accepts a legacy structured vitals EvidenceRef
+  ---
+  duration_ms: 312.059351
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: legacy structured vitals without encounterId remain valid
+ok 202 - v0.2 back-compat: legacy structured vitals without encounterId remain valid
+  ---
+  duration_ms: 317.59148
+  type: 'test'
+  ...
+# Subtest: links.supports accepts a canonical vitals_window EvidenceRef
+ok 203 - links.supports accepts a canonical vitals_window EvidenceRef
+  ---
+  duration_ms: 301.439534
+  type: 'test'
+  ...
+# Subtest: external EvidenceRef is structurally accepted but does not satisfy assessment evidence
+ok 204 - external EvidenceRef is structurally accepted but does not satisfy assessment evidence
+  ---
+  duration_ms: 314.347557
+  type: 'test'
+  ...
+# Subtest: visible timeline events reject simulator/evaluator-only metadata keys
+ok 205 - visible timeline events reject simulator/evaluator-only metadata keys
+  ---
+  duration_ms: 296.913769
+  type: 'test'
+  ...
+# Subtest: visible artifacts reject simulator/evaluator-only staging tokens
+ok 206 - visible artifacts reject simulator/evaluator-only staging tokens
+  ---
+  duration_ms: 298.801399
+  type: 'test'
+  ...
+# Subtest: artifact_ref absolute path is rejected
+ok 207 - artifact_ref absolute path is rejected
+  ---
+  duration_ms: 298.86987
+  type: 'test'
+  ...
+# Subtest: artifact_ref traversal path is rejected
+ok 208 - artifact_ref traversal path is rejected
+  ---
+  duration_ms: 295.346993
+  type: 'test'
+  ...
+# Subtest: artifact_ref missing patient-local file is rejected
+ok 209 - artifact_ref missing patient-local file is rejected
+  ---
+  duration_ms: 327.526777
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-01: claim_review without reviewed target errors; reviewed_refs/supports/contradicts pass
+ok 210 - V-REVIEW-01: claim_review without reviewed target errors; reviewed_refs/supports/contradicts pass
+  ---
+  duration_ms: 1217.49155
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-02: claim_review decision must be allowed
+ok 211 - V-REVIEW-02: claim_review decision must be allowed
+  ---
+  duration_ms: 610.911806
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-03: accountability outcomes by agent reviewer warn, clinician reviewer does not
+ok 212 - V-REVIEW-03: accountability outcomes by agent reviewer warn, clinician reviewer does not
+  ---
+  duration_ms: 591.842391
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-04: rejected claim_review requires rationale or contradicts basis
+ok 213 - V-REVIEW-04: rejected claim_review requires rationale or contradicts basis
+  ---
+  duration_ms: 591.383293
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-05: verified claim_review requires explicit basis
+ok 214 - V-REVIEW-05: verified claim_review requires explicit basis
+  ---
+  duration_ms: 654.694076
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-06: co_signed claim_review requires target and human reviewer
+ok 215 - V-REVIEW-06: co_signed claim_review requires target and human reviewer
+  ---
+  duration_ms: 626.109996
+  type: 'test'
+  ...
+# Subtest: V-REVIEW-07: claim_review must not use data.status_detail
+ok 216 - V-REVIEW-07: claim_review must not use data.status_detail
+  ---
+  duration_ms: 304.619343
+  type: 'test'
+  ...
+# Subtest: V-ATTEST-01: attestation requires attests_to and attestation_role
+ok 217 - V-ATTEST-01: attestation requires attests_to and attestation_role
+  ---
+  duration_ms: 622.161406
+  type: 'test'
+  ...
+# Subtest: V-ATTEST-02: attestation role must be in the allowed enum
+ok 218 - V-ATTEST-02: attestation role must be in the allowed enum
+  ---
+  duration_ms: 607.168836
+  type: 'test'
+  ...
+# Subtest: V-ATTEST-03: verify/cosign/countersign by non-clinician source warns only
+ok 219 - V-ATTEST-03: verify/cosign/countersign by non-clinician source warns only
+  ---
+  duration_ms: 616.813528
+  type: 'test'
+  ...
+# Subtest: V-ATTEST-04: scribe attestation requires on_behalf_of
+ok 220 - V-ATTEST-04: scribe attestation requires on_behalf_of
+  ---
+  duration_ms: 602.186208
+  type: 'test'
+  ...
+# Subtest: V-VITALS-01 rejects vital-topic trend with no vital evidence link
+ok 221 - V-VITALS-01 rejects vital-topic trend with no vital evidence link
+  ---
+  duration_ms: 308.269431
+  type: 'test'
+  ...
+# Subtest: V-VITALS-01 accepts vital-topic trend with vitals_window evidence
+ok 222 - V-VITALS-01 accepts vital-topic trend with vitals_window evidence
+  ---
+  duration_ms: 300.191063
+  type: 'test'
+  ...
+# Subtest: V-VITALS-01 accepts vital-topic trend with event-ref to observation.vital_sign (permissive)
+ok 223 - V-VITALS-01 accepts vital-topic trend with event-ref to observation.vital_sign (permissive)
+  ---
+  duration_ms: 316.972974
+  type: 'test'
+  ...
+# Subtest: V-VITALS-01 ignores non-vital-topic trend assessments
+ok 224 - V-VITALS-01 ignores non-vital-topic trend assessments
+  ---
+  duration_ms: 299.015436
+  type: 'test'
+  ...
+# Subtest: isSuperseded: latest event hides the prior
+ok 225 - isSuperseded: latest event hides the prior
+  ---
+  duration_ms: 45.268894
+  type: 'test'
+  ...
+# Subtest: effectiveClaim walks the chain to the tail
+ok 226 - effectiveClaim walks the chain to the tail
+  ---
+  duration_ms: 42.309587
+  type: 'test'
+  ...
+# Subtest: supersededPriors collects the whole chain back to the root
+ok 227 - supersededPriors collects the whole chain back to the root
+  ---
+  duration_ms: 40.546875
+  type: 'test'
+  ...
+# Subtest: isSuperseded respects asOf — a future supersessor doesn't hide the prior
+ok 228 - isSuperseded respects asOf — a future supersessor doesn't hide the prior
+  ---
+  duration_ms: 61.517656
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: target with no attestation events projects as none (rule 2)
+ok 229 - ADR17-17c: target with no attestation events projects as none (rule 2)
+  ---
+  duration_ms: 3.265294
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: target with single cosign attestation projects as single (rule 3) — T06, V-ATTEST-01
+ok 230 - ADR17-17c: target with single cosign attestation projects as single (rule 3) — T06, V-ATTEST-01
+  ---
+  duration_ms: 0.743642
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: target with multiple attestations projects as chain ordered by recorded_at (rule 4)
+ok 231 - ADR17-17c: target with multiple attestations projects as chain ordered by recorded_at (rule 4)
+  ---
+  duration_ms: 0.551224
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: scribe role without on_behalf_of projects as none (rule 6, V-ATTEST-04)
+ok 232 - ADR17-17c: scribe role without on_behalf_of projects as none (rule 6, V-ATTEST-04)
+  ---
+  duration_ms: 0.278402
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: scribe role with on_behalf_of projects as single (rule 3 + 6)
+ok 233 - ADR17-17c: scribe role with on_behalf_of projects as single (rule 3 + 6)
+  ---
+  duration_ms: 0.675803
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: unknown attestation_role is rejected (rule 5, V-ATTEST-02)
+ok 234 - ADR17-17c: unknown attestation_role is rejected (rule 5, V-ATTEST-02)
+  ---
+  duration_ms: 0.311025
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: attestation linked via links.supports also matches target (rule 1)
+ok 235 - ADR17-17c: attestation linked via links.supports also matches target (rule 1)
+  ---
+  duration_ms: 0.442096
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: clinician-family author contract is view-visible and validator-enforced later (V-ATTEST-03)
+ok 236 - ADR17-17c: clinician-family author contract is view-visible and validator-enforced later (V-ATTEST-03)
+  ---
+  duration_ms: 0.310183
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: empty allEvents returns none
+ok 237 - ADR17-17c: empty allEvents returns none
+  ---
+  duration_ms: 2.479
+  type: 'test'
+  ...
+# Subtest: ADR17-17c: deriveAttestationState does not mutate inputs
+ok 238 - ADR17-17c: deriveAttestationState does not mutate inputs
+  ---
+  duration_ms: 1.130071
+  type: 'test'
+  ...
+# Subtest: contextPacket composes required sections from existing projections
+ok 239 - contextPacket composes required sections from existing projections
+  ---
+  duration_ms: 344.893199
+  type: 'test'
+  ...
+# Subtest: contextPacket is exported from the views barrel
+ok 240 - contextPacket is exported from the views barrel
+  ---
+  duration_ms: 0.386319
+  type: 'test'
+  ...
+# Subtest: contextPacket wrapper keys and refs do not widen forbidden S5 surfaces
+ok 241 - contextPacket wrapper keys and refs do not widen forbidden S5 surfaces
+  ---
+  duration_ms: 90.921644
+  type: 'test'
+  ...
+# Subtest: constraints axis: active not superseded are returned; superseded are hidden
+ok 242 - constraints axis: active not superseded are returned; superseded are hidden
+  ---
+  duration_ms: 91.352378
+  type: 'test'
+  ...
+# Subtest: constraints axis prefers canonical assessment/constraint events over constraint_set cache
+ok 243 - constraints axis prefers canonical assessment/constraint events over constraint_set cache
+  ---
+  duration_ms: 49.866688
+  type: 'test'
+  ...
+# Subtest: problems axis: only assessment/problem with status active, no superseded
+ok 244 - problems axis: only assessment/problem with status active, no superseded
+  ---
+  duration_ms: 89.922533
+  type: 'test'
+  ...
+# Subtest: activeProblems aliases currentState problems axis
+ok 245 - activeProblems aliases currentState problems axis
+  ---
+  duration_ms: 74.565627
+  type: 'test'
+  ...
+# Subtest: vitals axis returns latest per metric regardless of supersession semantics
+ok 246 - vitals axis returns latest per metric regardless of supersession semantics
+  ---
+  duration_ms: 58.597653
+  type: 'test'
+  ...
+# Subtest: vitals axis scopes latest samples to the requested encounter
+ok 247 - vitals axis scopes latest samples to the requested encounter
+  ---
+  duration_ms: 41.357335
+  type: 'test'
+  ...
+# Subtest: constraints axis surfaces the constraint_set from constraints.md
+ok 248 - constraints axis surfaces the constraint_set from constraints.md
+  ---
+  duration_ms: 29.102651
+  type: 'test'
+  ...
+# Subtest: all axis composes each panel
+ok 249 - all axis composes each panel
+  ---
+  duration_ms: 28.792358
+  type: 'test'
+  ...
+# Subtest: intents axis keeps active items and surfaces contested sibling data
+ok 250 - intents axis keeps active items and surfaces contested sibling data
+  ---
+  duration_ms: 49.922755
+  type: 'test'
+  ...
+# Subtest: all axis adds observations plus contested observation pairs
+ok 251 - all axis adds observations plus contested observation pairs
+  ---
+  duration_ms: 24.513746
+  type: 'test'
+  ...
+# Subtest: supersession clears contested sibling data
+ok 252 - supersession clears contested sibling data
+  ---
+  duration_ms: 36.919189
+  type: 'test'
+  ...
+# Subtest: all axis characterizes fulfilled order, specimen collection, and lab result as closed result evidence
+ok 253 - all axis characterizes fulfilled order, specimen collection, and lab result as closed result evidence
+  ---
+  duration_ms: 45.871958
+  type: 'test'
+  ...
+# Subtest: context axis returns latest active context segment by canonical segment_type
+ok 254 - context axis returns latest active context segment by canonical segment_type
+  ---
+  duration_ms: 18.783769
+  type: 'test'
+  ...
+# Subtest: all axis includes context and vitals ignore structured invalid samples
+ok 255 - all axis includes context and vitals ignore structured invalid samples
+  ---
+  duration_ms: 38.396323
+  type: 'test'
+  ...
+# Subtest: vitals axis suppresses A1 canonical metrics unless profile-routed
+ok 256 - vitals axis suppresses A1 canonical metrics unless profile-routed
+  ---
+  duration_ms: 22.866617
+  type: 'test'
+  ...
+# Subtest: role-carrying event supports preserve role on emitted child nodes
+ok 257 - role-carrying event supports preserve role on emitted child nodes
+  ---
+  duration_ms: 94.840949
+  type: 'test'
+  ...
+# Subtest: event ref: chain recurses to supporting observation
+ok 258 - event ref: chain recurses to supporting observation
+  ---
+  duration_ms: 73.63091
+  type: 'test'
+  ...
+# Subtest: contradicts edges produce a dedicated evidence-chain fork
+ok 259 - contradicts edges produce a dedicated evidence-chain fork
+  ---
+  duration_ms: 80.161558
+  type: 'test'
+  ...
+# Subtest: vitals_window ref: chain resolves to trend points
+ok 260 - vitals_window ref: chain resolves to trend points
+  ---
+  duration_ms: 91.401482
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: legacy and canonical vitals refs preserve the existing EvidenceNode output shape
+ok 261 - v0.2 back-compat: legacy and canonical vitals refs preserve the existing EvidenceNode output shape
+  ---
+  duration_ms: 49.435292
+  type: 'test'
+  ...
+# Subtest: vitals_window ref preserves encounter scoping across evidenceChain -> trend
+ok 262 - vitals_window ref preserves encounter scoping across evidenceChain -> trend
+  ---
+  duration_ms: 20.914364
+  type: 'test'
+  ...
+# Subtest: derived_from cycles on supports stay bounded while the main support still resolves
+ok 263 - derived_from cycles on supports stay bounded while the main support still resolves
+  ---
+  duration_ms: 38.752725
+  type: 'test'
+  ...
+# Subtest: external supports remain structurally valid but emit no evidence node
+ok 264 - external supports remain structurally valid but emit no evidence node
+  ---
+  duration_ms: 39.436272
+  type: 'test'
+  ...
+# Subtest: artifact ref: chain drops escaped paths even if the file exists outside artifacts
+ok 265 - artifact ref: chain drops escaped paths even if the file exists outside artifacts
+  ---
+  duration_ms: 48.69671
+  type: 'test'
+  ...
+# Subtest: note ref: chain resolves to NarrativeEntry
+ok 266 - note ref: chain resolves to NarrativeEntry
+  ---
+  duration_ms: 23.606291
+  type: 'test'
+  ...
+# Subtest: artifact ref: chain resolves to ArtifactPointer when file exists
+ok 267 - artifact ref: chain resolves to ArtifactPointer when file exists
+  ---
+  duration_ms: 19.979256
+  type: 'test'
+  ...
+# Subtest: evidenceChain asOf excludes future supports and future roots
+ok 268 - evidenceChain asOf excludes future supports and future roots
+  ---
+  duration_ms: 25.818381
+  type: 'test'
+  ...
+# Subtest: evidenceChain asOf clamps vitals windows
+ok 269 - evidenceChain asOf clamps vitals windows
+  ---
+  duration_ms: 21.842678
+  type: 'test'
+  ...
+# Subtest: lab result evidence chain traverses specimen collection to fulfilled order intent
+ok 270 - lab result evidence chain traverses specimen collection to fulfilled order intent
+  ---
+  duration_ms: 23.725369
+  type: 'test'
+  ...
+# Subtest: memoryProof returns six required sections and is JSON-serializable
+ok 271 - memoryProof returns six required sections and is JSON-serializable
+  ---
+  duration_ms: 846.243691
+  type: 'test'
+  ...
+# Subtest: machine-verified/generated corpus fixtures cover all six broad EHR surfaces
+ok 272 - machine-verified/generated corpus fixtures cover all six broad EHR surfaces
+  ---
+  duration_ms: 120.956247
+  type: 'test'
+  ...
+# Subtest: memoryProof preserves asOf replay across evidence, notes, loops, and handoff
+ok 273 - memoryProof preserves asOf replay across evidence, notes, loops, and handoff
+  ---
+  duration_ms: 285.286826
+  type: 'test'
+  ...
+# Subtest: memoryProof keeps current-state source refs scoped to encounterId
+ok 274 - memoryProof keeps current-state source refs scoped to encounterId
+  ---
+  duration_ms: 69.372898
+  type: 'test'
+  ...
+# Subtest: memoryProof clamps vitals evidence windows to the consumer event time
+ok 275 - memoryProof clamps vitals evidence windows to the consumer event time
+  ---
+  duration_ms: 29.057355
+  type: 'test'
+  ...
+# Subtest: memoryProof reuses one bedside observation across projection contexts
+ok 276 - memoryProof reuses one bedside observation across projection contexts
+  ---
+  duration_ms: 226.784657
+  type: 'test'
+  ...
+# Subtest: memoryProof ignores hidden simulator state files
+ok 277 - memoryProof ignores hidden simulator state files
+  ---
+  duration_ms: 531.266037
+  type: 'test'
+  ...
+# Subtest: memoryProof represents open-loop closure with patient_002
+ok 278 - memoryProof represents open-loop closure with patient_002
+  ---
+  duration_ms: 50.755236
+  type: 'test'
+  ...
+# Subtest: memoryProof is deterministic
+ok 279 - memoryProof is deterministic
+  ---
+  duration_ms: 60.966542
+  type: 'test'
+  ...
+# Subtest: narrative returns both notes in recorded_at order
+ok 280 - narrative returns both notes in recorded_at order
+  ---
+  duration_ms: 81.076097
+  type: 'test'
+  ...
+# Subtest: narrative filters by subtype
+ok 281 - narrative filters by subtype
+  ---
+  duration_ms: 32.752661
+  type: 'test'
+  ...
+# Subtest: narrative filters by authorId
+ok 282 - narrative filters by authorId
+  ---
+  duration_ms: 37.582617
+  type: 'test'
+  ...
+# Subtest: narrative filters by encounter
+ok 283 - narrative filters by encounter
+  ---
+  duration_ms: 52.787773
+  type: 'test'
+  ...
+# Subtest: narrative prefixes joined communication notes with transform and role tags
+ok 284 - narrative prefixes joined communication notes with transform and role tags
+  ---
+  duration_ms: 21.223354
+  type: 'test'
+  ...
+# Subtest: narrative tags 'infer' activity and counterevidence role on the same event
+ok 285 - narrative tags 'infer' activity and counterevidence role on the same event
+  ---
+  duration_ms: 33.760739
+  type: 'test'
+  ...
+# Subtest: narrative tags 'summarize' activity as [inferred]
+ok 286 - narrative tags 'summarize' activity as [inferred]
+  ---
+  duration_ms: 30.455779
+  type: 'test'
+  ...
+# Subtest: narrative leaves unsupported transform and role combinations untagged
+ok 287 - narrative leaves unsupported transform and role combinations untagged
+  ---
+  duration_ms: 19.447177
+  type: 'test'
+  ...
+# Subtest: pending: intent with no fulfillments and no due_by
+ok 288 - pending: intent with no fulfillments and no due_by
+  ---
+  duration_ms: 59.391771
+  type: 'test'
+  ...
+# Subtest: encounterId filters ordinary intent loops before Agent Canvas consumes them
+ok 289 - encounterId filters ordinary intent loops before Agent Canvas consumes them
+  ---
+  duration_ms: 29.230737
+  type: 'test'
+  ...
+# Subtest: in_progress: one active fulfillment, no terminal
+ok 290 - in_progress: one active fulfillment, no terminal
+  ---
+  duration_ms: 31.588394
+  type: 'test'
+  ...
+# Subtest: overdue: no fulfillment, due_by in the past
+ok 291 - overdue: no fulfillment, due_by in the past
+  ---
+  duration_ms: 72.817013
+  type: 'test'
+  ...
+# Subtest: failed: a final fulfillment carries ADR 002 data.status_detail = failed
+ok 292 - failed: a final fulfillment carries ADR 002 data.status_detail = failed
+  ---
+  duration_ms: 28.867912
+  type: 'test'
+  ...
+# Subtest: failed: a fulfillment carries legacy data.outcome = failed
+ok 293 - failed: a fulfillment carries legacy data.outcome = failed
+  ---
+  duration_ms: 31.823304
+  type: 'test'
+  ...
+# Subtest: closed intents (status final) are not emitted at all
+ok 294 - closed intents (status final) are not emitted at all
+  ---
+  duration_ms: 18.924528
+  type: 'test'
+  ...
+# Subtest: terminal-final fulfillment closes the loop (skipped from output)
+ok 295 - terminal-final fulfillment closes the loop (skipped from output)
+  ---
+  duration_ms: 23.340002
+  type: 'test'
+  ...
+# Subtest: observation.exam_finding is evidence and does not close an intent loop
+ok 296 - observation.exam_finding is evidence and does not close an intent loop
+  ---
+  duration_ms: 17.343054
+  type: 'test'
+  ...
+# Subtest: assessment events do not fulfill intent loops
+ok 297 - assessment events do not fulfill intent loops
+  ---
+  duration_ms: 39.821118
+  type: 'test'
+  ...
+# Subtest: superseded fulfillment does not close the loop
+ok 298 - superseded fulfillment does not close the loop
+  ---
+  duration_ms: 40.224969
+  type: 'test'
+  ...
+# Subtest: corrected failure fulfillment does not force failed
+ok 299 - corrected failure fulfillment does not force failed
+  ---
+  duration_ms: 25.949702
+  type: 'test'
+  ...
+# Subtest: an intent authored after asOf is hidden (regression: future intents leaking)
+ok 300 - an intent authored after asOf is hidden (regression: future intents leaking)
+  ---
+  duration_ms: 16.842787
+  type: 'test'
+  ...
+# Subtest: default asOf uses chart-clock now so past-due intents become overdue without explicit asOf
+ok 301 - default asOf uses chart-clock now so past-due intents become overdue without explicit asOf
+  ---
+  duration_ms: 32.8255
+  type: 'test'
+  ...
+# Subtest: contested_claim emits after the default threshold
+ok 302 - contested_claim emits after the default threshold
+  ---
+  duration_ms: 29.712066
+  type: 'test'
+  ...
+# Subtest: medium contested_claim entries sort after overdue intents
+ok 303 - medium contested_claim entries sort after overdue intents
+  ---
+  duration_ms: 17.40371
+  type: 'test'
+  ...
+# Subtest: resolver event clears contested_claim and currentState contested data while validator stays green
+ok 304 - resolver event clears contested_claim and currentState contested data while validator stays green
+  ---
+  duration_ms: 318.202941
+  type: 'test'
+  ...
+# Subtest: monitoring_plan emits vital_cadence loop when ordered cadence is stale
+ok 305 - monitoring_plan emits vital_cadence loop when ordered cadence is stale
+  ---
+  duration_ms: 10.520768
+  type: 'test'
+  ...
+# Subtest: alarm-triggered monitoring_plan emits high-severity vital_alarm loop
+ok 306 - alarm-triggered monitoring_plan emits high-severity vital_alarm loop
+  ---
+  duration_ms: 11.604771
+  type: 'test'
+  ...
+# Subtest: final fulfillment closes vital monitoring loops
+ok 307 - final fulfillment closes vital monitoring loops
+  ---
+  duration_ms: 11.781349
+  type: 'test'
+  ...
+# Subtest: vital monitoring freshness is scoped to the intent encounter
+ok 308 - vital monitoring freshness is scoped to the intent encounter
+  ---
+  duration_ms: 9.507942
+  type: 'test'
+  ...
+# Subtest: newer wrong-encounter vital does not evict fresh in-encounter monitoring sample
+ok 309 - newer wrong-encounter vital does not evict fresh in-encounter monitoring sample
+  ---
+  duration_ms: 8.915118
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: nurse_charted event projects as human-authored (T09)
+ok 310 - ADR17-17a: nurse_charted event projects as human-authored (T09)
+  ---
+  duration_ms: 2.130364
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: agent_inference event projects as agent-authored (T10)
+ok 311 - ADR17-17a: agent_inference event projects as agent-authored (T10)
+  ---
+  duration_ms: 0.452736
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: agent_synthesis event projects as agent-authored (T10)
+ok 312 - ADR17-17a: agent_synthesis event projects as agent-authored (T10)
+  ---
+  duration_ms: 0.2403
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: clinician_chart_action event projects as human-authored (T09)
+ok 313 - ADR17-17a: clinician_chart_action event projects as human-authored (T09)
+  ---
+  duration_ms: 0.226383
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: monitor_extension event projects as device-authored
+ok 314 - ADR17-17a: monitor_extension event projects as device-authored
+  ---
+  duration_ms: 0.243997
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: synthea_import event projects as imported
+ok 315 - ADR17-17a: synthea_import event projects as imported
+  ---
+  duration_ms: 0.243466
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: agent author with on_behalf_of human projects as agent-on-behalf-of-human (T11)
+ok 316 - ADR17-17a: agent author with on_behalf_of human projects as agent-on-behalf-of-human (T11)
+  ---
+  duration_ms: 0.45485
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: human author with on_behalf_of does NOT project as agent-on-behalf-of-human (must be agent role)
+ok 317 - ADR17-17a: human author with on_behalf_of does NOT project as agent-on-behalf-of-human (must be agent role)
+  ---
+  duration_ms: 0.388253
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: unknown source.kind projects as unknown
+ok 318 - ADR17-17a: unknown source.kind projects as unknown
+  ---
+  duration_ms: 0.568307
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: missing source.kind projects as unknown
+ok 319 - ADR17-17a: missing source.kind projects as unknown
+  ---
+  duration_ms: 0.832141
+  type: 'test'
+  ...
+# Subtest: ADR17-17a: deriveAuthorshipClass does not mutate event (memo C4)
+ok 320 - ADR17-17a: deriveAuthorshipClass does not mutate event (memo C4)
+  ---
+  duration_ms: 0.279194
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with no reviews and agent-authored projects as suggested (rule 4, V-REVIEW-03)
+ok 321 - ADR17-17b: target with no reviews and agent-authored projects as suggested (rule 4, V-REVIEW-03)
+  ---
+  duration_ms: 4.578615
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with no reviews and human-authored projects as none (rule 5)
+ok 322 - ADR17-17b: target with no reviews and human-authored projects as none (rule 5)
+  ---
+  duration_ms: 3.724582
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with single accepted claim_review projects as accepted (rule 6, V-REVIEW-01, V-REVIEW-02)
+ok 323 - ADR17-17b: target with single accepted claim_review projects as accepted (rule 6, V-REVIEW-01, V-REVIEW-02)
+  ---
+  duration_ms: 1.113971
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with explicit verified basis projects as verified (V-REVIEW-05)
+ok 324 - ADR17-17b: target with explicit verified basis projects as verified (V-REVIEW-05)
+  ---
+  duration_ms: 0.792426
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with single rejected claim_review projects as rejected (rule 6, V-REVIEW-04)
+ok 325 - ADR17-17b: target with single rejected claim_review projects as rejected (rule 6, V-REVIEW-04)
+  ---
+  duration_ms: 0.668078
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with co_signed claim_review projects as co_signed (V-REVIEW-06)
+ok 326 - ADR17-17b: target with co_signed claim_review projects as co_signed (V-REVIEW-06)
+  ---
+  duration_ms: 0.432637
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with links.supersedes from another event projects as superseded (rule 1)
+ok 327 - ADR17-17b: target with links.supersedes from another event projects as superseded (rule 1)
+  ---
+  duration_ms: 0.427577
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with links.corrects from another event projects as entered_in_error (rule 2)
+ok 328 - ADR17-17b: target with links.corrects from another event projects as entered_in_error (rule 2)
+  ---
+  duration_ms: 0.280837
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with two conflicting human reviews projects as contested (rule 8)
+ok 329 - ADR17-17b: target with two conflicting human reviews projects as contested (rule 8)
+  ---
+  duration_ms: 1.09837
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: target with conflicting reviews + later resolver projects as resolver outcome (rule 9)
+ok 330 - ADR17-17b: target with conflicting reviews + later resolver projects as resolver outcome (rule 9)
+  ---
+  duration_ms: 1.001846
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: claim_review status_detail remains a validator concern (V-REVIEW-07)
+ok 331 - ADR17-17b: claim_review status_detail remains a validator concern (V-REVIEW-07)
+  ---
+  duration_ms: 0.357093
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: brownfield action:result_review subtype links to target and projects acknowledged as accepted
+ok 332 - ADR17-17b: brownfield action:result_review subtype links to target and projects acknowledged as accepted
+  ---
+  duration_ms: 0.865415
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: empty allEvents returns none
+ok 333 - ADR17-17b: empty allEvents returns none
+  ---
+  duration_ms: 0.20924
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: targetEventId not in allEvents returns none
+ok 334 - ADR17-17b: targetEventId not in allEvents returns none
+  ---
+  duration_ms: 0.210132
+  type: 'test'
+  ...
+# Subtest: ADR17-17b: deriveReviewState does not mutate inputs
+ok 335 - ADR17-17b: deriveReviewState does not mutate inputs
+  ---
+  duration_ms: 0.335361
+  type: 'test'
+  ...
+# Subtest: timeline filters by type
+ok 336 - timeline filters by type
+  ---
+  duration_ms: 72.910552
+  type: 'test'
+  ...
+# Subtest: timeline characterizes observation.exam_finding as evidence
+ok 337 - timeline characterizes observation.exam_finding as evidence
+  ---
+  duration_ms: 51.874436
+  type: 'test'
+  ...
+# Subtest: timeline subtypePrefix picks medication_*
+ok 338 - timeline subtypePrefix picks medication_*
+  ---
+  duration_ms: 44.197055
+  type: 'test'
+  ...
+# Subtest: timeline hides superseded by default and includes when requested
+ok 339 - timeline hides superseded by default and includes when requested
+  ---
+  duration_ms: 80.921201
+  type: 'test'
+  ...
+# Subtest: default window is start-of-day → chart-clock now (regression: -∞/+∞ default)
+ok 340 - default window is start-of-day → chart-clock now (regression: -∞/+∞ default)
+  ---
+  duration_ms: 56.919514
+  type: 'test'
+  ...
+# Subtest: timeline scopes to encounterId
+ok 341 - timeline scopes to encounterId
+  ---
+  duration_ms: 29.995458
+  type: 'test'
+  ...
+# Subtest: timeline pairs contradiction entries symmetrically
+ok 342 - timeline pairs contradiction entries symmetrically
+  ---
+  duration_ms: 26.614022
+  type: 'test'
+  ...
+# Subtest: timeline pairs transitive contradictions (A↔B, B↔C) at each edge
+ok 343 - timeline pairs transitive contradictions (A↔B, B↔C) at each edge
+  ---
+  duration_ms: 30.7178
+  type: 'test'
+  ...
+# Subtest: timeline omits contradiction pairing when the counterpart is filtered out
+ok 344 - timeline omits contradiction pairing when the counterpart is filtered out
+  ---
+  duration_ms: 18.409914
+  type: 'test'
+  ...
+# Subtest: trend pulls samples from vitals.jsonl within the window
+ok 345 - trend pulls samples from vitals.jsonl within the window
+  ---
+  duration_ms: 96.273528
+  type: 'test'
+  ...
+# Subtest: trend includes event-recorded observations for the same metric
+ok 346 - trend includes event-recorded observations for the same metric
+  ---
+  duration_ms: 38.999486
+  type: 'test'
+  ...
+# Subtest: trend source filter narrows to one source
+ok 347 - trend source filter narrows to one source
+  ---
+  duration_ms: 35.60246
+  type: 'test'
+  ...
+# Subtest: trend encounterId filter keeps points inside the requested encounter
+ok 348 - trend encounterId filter keeps points inside the requested encounter
+  ---
+  duration_ms: 26.185594
+  type: 'test'
+  ...
+# Subtest: trend drops structured invalid vitals and preserves sample metadata
+ok 349 - trend drops structured invalid vitals and preserves sample metadata
+  ---
+  duration_ms: 29.030833
+  type: 'test'
+  ...
+# Subtest: trend suppresses A1 canonical metrics from A3 vitals unless profile-routed
+ok 350 - trend suppresses A1 canonical metrics from A3 vitals unless profile-routed
+  ---
+  duration_ms: 27.083961
+  type: 'test'
+  ...
+# Subtest: vitalsTrend reports 'vitals_window' shape when supports cite a vitals_window ref
+ok 351 - vitalsTrend reports 'vitals_window' shape when supports cite a vitals_window ref
+  ---
+  duration_ms: 54.954186
+  type: 'test'
+  ...
+# Subtest: vitalsTrend reports 'event_ref' shape when supports point to observation.vital_sign events
+ok 352 - vitalsTrend reports 'event_ref' shape when supports point to observation.vital_sign events
+  ---
+  duration_ms: 39.878517
+  type: 'test'
+  ...
+# Subtest: vitalsTrend reports 'none' shape for vital-topic trend with no vital evidence link (failing invariant)
+ok 353 - vitalsTrend reports 'none' shape for vital-topic trend with no vital evidence link (failing invariant)
+  ---
+  duration_ms: 45.568919
+  type: 'test'
+  ...
+# Subtest: vitalsTrend ignores non-vital trend assessments
+ok 354 - vitalsTrend ignores non-vital trend assessments
+  ---
+  duration_ms: 48.447514
+  type: 'test'
+  ...
+# Subtest: vitalsTrend prefers 'vitals_window' over 'event_ref' when both are present
+ok 355 - vitalsTrend prefers 'vitals_window' over 'event_ref' when both are present
+  ---
+  duration_ms: 33.253709
+  type: 'test'
+  ...
+# Subtest: formatVitalSampleKey is stable across value whitespace normalization
+ok 356 - formatVitalSampleKey is stable across value whitespace normalization
+  ---
+  duration_ms: 2.737245
+  type: 'test'
+  ...
+# Subtest: vital quality and profile routing helpers accept canonical forms only
+ok 357 - vital quality and profile routing helpers accept canonical forms only
+  ---
+  duration_ms: 0.543068
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects missing base envelope fields
+ok 358 - appendEvent rejects missing base envelope fields
+  ---
+  duration_ms: 31.9052
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects clinical event missing encounter_id
+ok 359 - appendEvent rejects clinical event missing encounter_id
+  ---
+  duration_ms: 14.59032
+  type: 'test'
+  ...
+# Subtest: appendEvent fills id + recorded_at
+ok 360 - appendEvent fills id + recorded_at
+  ---
+  duration_ms: 190.949331
+  type: 'test'
+  ...
+# Subtest: appendEvent does not mutate caller's input
+ok 361 - appendEvent does not mutate caller's input
+  ---
+  duration_ms: 95.786116
+  type: 'test'
+  ...
+# Subtest: nextEventId probes existing day file and increments
+ok 362 - nextEventId probes existing day file and increments
+  ---
+  duration_ms: 75.309309
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects schema-invalid payload before persistence
+ok 363 - appendEvent rejects schema-invalid payload before persistence
+  ---
+  duration_ms: 50.586814
+  type: 'test'
+  ...
+# Subtest: writeNote is deprecated for sanctioned authoring
+ok 364 - writeNote is deprecated for sanctioned authoring
+  ---
+  duration_ms: 8.734583
+  type: 'test'
+  ...
+# Subtest: write paths reject event subject that does not match patient directory
+ok 365 - write paths reject event subject that does not match patient directory
+  ---
+  duration_ms: 52.434227
+  type: 'test'
+  ...
+# Subtest: write paths reject even a subject-matching event when chart.yaml is stale
+ok 366 - write paths reject even a subject-matching event when chart.yaml is stale
+  ---
+  duration_ms: 53.284252
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects explicit ID collision against existing event
+ok 367 - appendEvent rejects explicit ID collision against existing event
+  ---
+  duration_ms: 79.251167
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects explicit ID collision against structural markdown
+ok 368 - appendEvent rejects explicit ID collision against structural markdown
+  ---
+  duration_ms: 61.829914
+  type: 'test'
+  ...
+# Subtest: writeCommunicationNote rejects explicit note ID collision even with different filename
+ok 369 - writeCommunicationNote rejects explicit note ID collision even with different filename
+  ---
+  duration_ms: 82.157364
+  type: 'test'
+  ...
+# Subtest: writeNote refuses overwrite
+ok 370 - writeNote refuses overwrite
+  ---
+  duration_ms: 61.895309
+  type: 'test'
+  ...
+# Subtest: writeCommunicationNote produces note + matching comm event
+ok 371 - writeCommunicationNote produces note + matching comm event
+  ---
+  duration_ms: 62.502811
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects standalone communication events
+ok 372 - appendEvent rejects standalone communication events
+  ---
+  duration_ms: 41.963143
+  type: 'test'
+  ...
+# Subtest: writeCommunicationNote rolls back note when event persistence fails
+ok 373 - writeCommunicationNote rolls back note when event persistence fails
+  ---
+  duration_ms: 69.910054
+  type: 'test'
+  ...
+# Subtest: writeCommunicationNote rejects unknown note references before persistence
+ok 374 - writeCommunicationNote rejects unknown note references before persistence
+  ---
+  duration_ms: 34.711637
+  type: 'test'
+  ...
+# Subtest: writeCommunicationNote reports both persistence and rollback failures
+ok 375 - writeCommunicationNote reports both persistence and rollback failures
+  ---
+  duration_ms: 68.303313
+  type: 'test'
+  ...
+# Subtest: generated write timestamps use chart timezone and preserve caller-supplied timestamps
+ok 376 - generated write timestamps use chart timezone and preserve caller-supplied timestamps
+  ---
+  duration_ms: 86.184465
+  type: 'test'
+  ...
+# Subtest: generated write timestamps fall back to UTC when chart timezone is absent
+ok 377 - generated write timestamps fall back to UTC when chart timezone is absent
+  ---
+  duration_ms: 48.878747
+  type: 'test'
+  ...
+# Subtest: nextNoteId is pure for supplied timestamps
+ok 378 - nextNoteId is pure for supplied timestamps
+  ---
+  duration_ms: 0.399294
+  type: 'test'
+  ...
+# Subtest: session autofill fills author when the caller omits it
+ok 379 - session autofill fills author when the caller omits it
+  ---
+  duration_ms: 48.370295
+  type: 'test'
+  ...
+# Subtest: session autofill never overrides an explicit author
+ok 380 - session autofill never overrides an explicit author
+  ---
+  duration_ms: 43.621204
+  type: 'test'
+  ...
+# Subtest: missing sessions/current.yaml is a no-op (caller still must supply author)
+ok 381 - missing sessions/current.yaml is a no-op (caller still must supply author)
+  ---
+  duration_ms: 6.837856
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects unknown supersedes targets before persistence
+ok 382 - appendEvent rejects unknown supersedes targets before persistence
+  ---
+  duration_ms: 41.581483
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects fulfills targets that are not intents
+ok 383 - appendEvent rejects fulfills targets that are not intents
+  ---
+  duration_ms: 39.961666
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects addresses targets that are not assessment/problem
+ok 384 - appendEvent rejects addresses targets that are not assessment/problem
+  ---
+  duration_ms: 55.659905
+  type: 'test'
+  ...
+# Subtest: appendEvent rejects old-shape addresses intent targets with validator-matching wording
+ok 385 - appendEvent rejects old-shape addresses intent targets with validator-matching wording
+  ---
+  duration_ms: 50.825351
+  type: 'test'
+  ...
+# Subtest: appendEvent accepts canonical local EvidenceRef objects
+ok 386 - appendEvent accepts canonical local EvidenceRef objects
+  ---
+  duration_ms: 115.537034
+  type: 'test'
+  ...
+# Subtest: v0.2 back-compat: appendEvent accepts legacy and canonical non-local EvidenceRef variants
+ok 387 - v0.2 back-compat: appendEvent accepts legacy and canonical non-local EvidenceRef variants
+  ---
+  duration_ms: 46.993052
+  type: 'test'
+  ...
+# Subtest: writeArtifactRef normalizes in-scope paths and rejects escapes
+ok 388 - writeArtifactRef normalizes in-scope paths and rejects escapes
+  ---
+  duration_ms: 52.684365
+  type: 'test'
+  ...
+# Subtest: writeArtifactRef rejects missing artifacts and does not synthesize authorship
+ok 389 - writeArtifactRef rejects missing artifacts and does not synthesize authorship
+  ---
+  duration_ms: 8.891423
+  type: 'test'
+  ...
+1..389
+# tests 389
+# suites 0
+# pass 389
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 46372.916664

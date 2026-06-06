@@ -54,3 +54,36 @@ export {
 
 export { patientRoot } from "./types.js";
 export type * from "./types.js";
+
+export {
+  appendThroughClinicalTruth,
+  appendVitalEventToClinicalTruth,
+  appendVitalSampleToClinicalTruth,
+  buildAppendVitalEventRequest,
+  buildAppendVitalSampleRequest,
+  projectAcceptedVitalSign,
+} from "./clinical-truth-adapter.js";
+export type {
+  AcceptedVitalProjection,
+  AppendVitalOptions,
+  ClinicalTruthAppendPipeline,
+  AppendVitalResult,
+  ClinicalTruthAcceptedEntryView,
+  ClinicalTruthAppendRequest,
+  ClinicalTruthAppendResponse,
+  ClinicalTruthBackendClient,
+} from "./clinical-truth-adapter.js";
+
+export {
+  CLINICAL_TRUTH_CANONICALIZATION_ID,
+  CLINICAL_TRUTH_CONTRACT_VERSION,
+  CLINICAL_TRUTH_VITAL_SIGN_REGISTRY_VERSION,
+  VITAL_SIGN_PREDICATE,
+  vitalEventEnvelopeToClaimCandidate,
+  vitalSampleToClaimCandidate,
+} from "./clinical-truth-contract.js";
+export type {
+  ClaimActor,
+  ClinicalTruthClaimCandidate,
+  VitalClaimCandidateOptions,
+} from "./clinical-truth-contract.js";

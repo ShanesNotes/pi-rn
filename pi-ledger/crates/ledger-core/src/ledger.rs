@@ -146,7 +146,7 @@ impl StoreClock {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AppendLedger {
     patient_id: String,
     store_clock: StoreClock,
@@ -165,9 +165,16 @@ impl AppendLedger {
     }
 
     pub fn from_snapshot(snapshot: LedgerSnapshot) -> Result<Self, LedgerError> {
+        Self::from_snapshot_with_clock(snapshot, StoreClock::default())
+    }
+
+    pub fn from_snapshot_with_clock(
+        snapshot: LedgerSnapshot,
+        store_clock: StoreClock,
+    ) -> Result<Self, LedgerError> {
         let ledger = Self {
             patient_id: snapshot.patient_id,
-            store_clock: StoreClock::default(),
+            store_clock,
             entries: snapshot.entries,
             head_hash: snapshot.head_hash,
         };

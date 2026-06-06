@@ -11,7 +11,7 @@ PRD user stories covered: 1, 11, 12, 17, 19, 27, 28, 29 (closeout of the field s
 
 ## What to build
 
-The closeout doc that (a) **enumerates the SEVEN things pi-chart must make explicit to be mappable** to the frozen kernel Claim target, (b) **asserts NO kernel widening**, and (c) records the **integration mechanism** as the **PROPOSED shared clinical-truth service** (gRPC/UDS, contract-first, pending acceptance) plus all other deferrals. Posture is **open-question** because two of the seven prerequisites (production registry; agreed canonicalization id) and the entire integration mechanism are **not yet decided** — this doc surfaces them for the architect, it does not resolve them.
+The closeout doc that (a) **enumerates the SEVEN things pi-chart must make explicit to be mappable** to the frozen kernel Claim target, (b) **asserts NO kernel widening**, and (c) records the **integration mechanism** as the **accepted shared clinical-truth service north star** (contract-first; private/internal service; private/local gRPC/UDS first transport; per-patient append-only WAL/log first storage posture; many entry points mediated through app/backend with one patient-scoped append order) plus all remaining deferrals. Posture is **open-question** because two of the seven prerequisites (production registry; agreed canonicalization id) and service ADR promotion is recorded — this doc surfaces them for the architect, it does not resolve them.
 
 ### Scaling posture (architect mandate 2026-05-29)
 
@@ -40,57 +40,59 @@ The mapping **bends the chart to the frozen Claim target; it never bends the ker
 - Chart-internal fields with **no kernel field** (authority posture, attention cue, timing state, access tier, suggestion state, `certainty`, `transform`, `source`) stay view-side/provenance and are **not** pushed into the kernel.
 - Per the kernel's own boundary reminders: `pi-ledger` does not import `pi-chart`/`EventEnvelope`/brownfield schemas, does not inspect hidden `pi-sim`, and does not grant `pi-agent` accepted-write authority — this closeout preserves all three.
 
-## Integration mechanism (the PROPOSED runtime — assuming the proposal)
+## Integration mechanism (accepted service north star; ADR-promoted)
 
-The integration mechanism is recorded as the **PROPOSED shared clinical-truth service**, not as an accepted decision:
+The integration mechanism is recorded as the **accepted shared clinical-truth service north star**. The service shape, concurrency/consistency model, app/backend-mediated access shape, private/internal exposure boundary, first transport, first storage posture, and ADR promotion are accepted:
 
-- **Mechanism (proposed):** grow `pi-ledger` from a library into a **long-lived shared clinical-truth service** that owns durable per-patient append-only storage and exposes only the ADR-008 safe consumer paths; `pi-chart` (and later `pi-agent`) become **clients**. Canonicalization/hashing runs **once, in Rust** (single cryptographic source of truth).
-- **Contract-first:** the load-bearing artifact is a **versioned service contract** over the ADR-008 interface plus the kernel's golden vectors promoted to a transport-agnostic conformance suite. **Transport: gRPC over a Unix-domain socket** (recommended), swappable behind the contract; wasm-of-canonicalization is an optional client fast-path only.
-- **Status:** **PROPOSED (2026-05-29), pending architect acceptance** — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`. On acceptance it promotes to `pi-ledger/docs/adr/009` (+ a `pi-chart` client-adapter ADR). Any issue depending on this **assumes the proposal** and must cite it.
-- This reshapes the old narrow "Rust↔TS integration mechanism" framing into "client-of-a-truth-service over a versioned contract." The **mechanism decision is still not made** — it remains an open architect decision and is **out of scope to resolve here**.
+- **Mechanism (accepted north star):** grow `pi-ledger` from a library into a **long-lived shared clinical-truth service** that owns durable per-patient append-only WAL/log storage first and exposes only the ADR-008 safe consumer paths; `pi-chart` (and later `pi-agent`) become **clients**. Canonicalization/hashing runs **once, in Rust** (single cryptographic source of truth).
+- **Contract-first + first transport:** the load-bearing artifact is a **versioned service contract** over the ADR-008 interface plus the kernel's golden vectors promoted to a transport-agnostic conformance suite. Private/local gRPC over a Unix-domain socket is the accepted first transport and remains swappable behind the contract; wasm-of-canonicalization is an optional client fast-path only.
+- **Concurrency/consistency:** multiple clinicians, workflows, and agents may enter Pi-RN through different UI/workflow entry points, but none is a local truth owner. For a given patient ledger, the service is the single authoritative append/order path: it assigns `seq`/`accepted_at`/head, rechecks target hashes, and exposes one ordered patient truth stream to readers/subscribers.
+- **Access/exposure shape:** browser/EHR/task/specialty entry points talk to the Pi-RN/pi-chart app/backend, not directly to the ledger service. The backend/service layer mediates auth/session/workflow concerns and calls the clinical-truth service over private/local gRPC/UDS first transport. The clinical-truth service is private/internal, not a public/external clinical API.
+- **Status:** **ACCEPTED (2026-05-31 human grill), ADR-promoted** — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, `pi-ledger/docs/adr/009-clinical-truth-service.md`, and `pi-chart/docs/adr/021-clinical-truth-service-client-boundary.md`. Any issue depending on this **assumes the accepted service north star** and must cite it.
+- This reshapes the old narrow "Rust↔TS integration mechanism" framing into "client-of-a-truth-service over a versioned contract." The service shape, concurrency/consistency model, app/backend-mediated access shape, private/internal exposure boundary, and first transport are accepted; the old undecided Rust↔TS integration-mechanism framing is closed.
 
 ## Boundary register (deferrals / out of scope)
 
-- **Out of scope (not chosen here):** implementing the adapter; the Rust↔TS integration mechanism / transport confirm; authoring the production `PredicateRegistry`; the canonicalization-id agreement; widening/modifying the kernel or its frozen interface; backend/vector/OpenBrain/storage/runtime/service/graph-index/semantic-search/access-plane selection; hot/warm/cold **retrieval** technology and cold-history retrieval beyond source-linked citation; hidden `pi-sim` coupling/oracle truth/evaluator labels; agent autonomous accepted-writes or task completion; full CPOE/pharmacy/MAR/drug-dictionary/med-rec/CDS/protocol engines; treating generated UI/design assets/prototype layout as substrate authority (ADR 018 pts 5-7); reopening accepted ADRs without a separate ADR process.
-- **Deferred sub-decisions surfaced for the architect (from the proposal):** transport confirm (gRPC-over-UDS vs Cap'n Proto RPC vs custom framed); durable storage engine (append-only WAL vs redb/sled/SQLite); concurrency/consistency model (per-patient single-writer serialization recommended); promotion of the proposal to ADR 009 / `pi-chart` client-adapter ADR.
+- **Out of scope (not chosen here):** implementing the adapter; authoring the production `PredicateRegistry`; the canonicalization-id agreement; widening/modifying the kernel or its frozen interface; backend framework/vector/OpenBrain/storage/runtime/service/graph-index/semantic-search/full access-plane policy selection; hot/warm/cold **retrieval** technology and cold-history retrieval beyond source-linked citation; hidden `pi-sim` coupling/oracle truth/evaluator labels; agent autonomous accepted-writes or task completion; full CPOE/pharmacy/MAR/drug-dictionary/med-rec/CDS/protocol engines; treating generated UI/design assets/prototype layout as substrate authority (ADR 018 pts 5-7); reopening accepted ADRs without a separate ADR process.
 - **Retained per ADR 018 pt 4:** EventEnvelope/VitalSample/NoteFrontmatter NDJSON+Markdown stays the fixture/export/archive format; every contract field must round-trip to/from it (Issue 13).
 
 ## Open questions for the architect (surface, do not answer)
 
 1. **Production `PredicateRegistry`** (prereq #1): who authors it, and against what predicate vocabulary? Kernel `phase1_registry` is fixtures-only and cannot satisfy production policy.
 2. **Canonicalization-id agreement** (prereq #7): is `jcs-rfc8785-pi-chart-v1` byte-identical to the kernel's `canonical_json`/`record_hash` rule? If not, cross-side Record hashes will not match and corrections will not be Revision-admissible. Agreement is a named prerequisite, **unresolved**.
-3. **Accept the clinical-truth-service proposal?** Until accepted, the integration mechanism (and therefore the whole adapter lane) stays gated. The proposal is the *proposed* shape, not a decision.
-4. **Transport / storage / concurrency sub-decisions** (from the proposal) remain open.
+## Settled service decisions
+
+- **Service ADRs:** accepted in `pi-ledger` ADR 009 and `pi-chart` ADR 021; concurrency is settled as many entry points with one patient-scoped service-side append order, mediated through the app/backend; service exposure is settled as private/internal; transport is settled as private/local gRPC/UDS first transport; storage is settled as per-patient append-only WAL/log first.
 
 ## Connector contract
 
-All connectors over this substrate stay `(patientId, encounterId, asOf)`-parameterized and **never hardcode a patient** (demo `patient_002`/`enc_p002_001`; regression `patient_001`). This holds equally if/when the substrate is hosted behind the proposed shared clinical-truth service.
+All connectors over this substrate stay `(patientId, encounterId, asOf)`-parameterized and **never hardcode a patient** (demo `patient_002`/`enc_p002_001`; regression `patient_001`). This holds equally when the substrate is hosted behind the accepted shared clinical-truth service north star.
 
 ## Acceptance checks
 
 - [ ] Lists the **seven** mappability prerequisites against the frozen public interface, each with chart gap + kernel target + status (incl. #1 registry and #7 canonicalization-id as OPEN).
 - [ ] Names the K3 store-owned never-emit metadata and the already-explicit `subject.patientId`.
 - [ ] States **"no kernel widening"** and that mapping bends the chart to the frozen target.
-- [ ] Records the integration mechanism as the **PROPOSED shared clinical-truth service** (gRPC/UDS, contract-first, **pending acceptance**) and cites `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`.
-- [ ] States the Rust↔TS mechanism decision is **still not made** / out of scope here.
-- [ ] Records the boundary register (backend/vector/OpenBrain/retrieval/sim/runtime/access-plane non-selection; no autonomous writes/completion) and ADR-018 fixture/export retention.
+- [ ] Records the integration mechanism as the **accepted shared clinical-truth service north star** (contract-first; private/internal service; private/local gRPC/UDS first transport; append-only WAL/log first storage; entry points mediated through app/backend) and cites `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`.
+- [ ] States ADR promotion is complete while concurrency, first transport, and first storage posture are settled.
+- [ ] Records the boundary register (backend-framework/vector/OpenBrain/retrieval/sim/runtime/full-access-plane non-selection; no autonomous writes/completion) and ADR-018 fixture/export retention.
 - [ ] Surfaces the open questions for the architect **without answering** them.
 - [ ] Connector signature `(patientId, encounterId, asOf)`, no hardcoded patient.
 - [ ] Reconciliation posture (open-question) and `Status: ready-for-human` present.
 
 ## Blocked by
 
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/01-charted-clinical-fact-identity-and-scope.md`
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/02-factShape-and-the-6-to-4-collapse-decision.md`
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicateId-projection-and-production-registry.md`
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/04-typed-object-per-predicate.md`
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/05-bitemporal-time-fields-and-canonical-utc.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/01-charted-clinical-fact-identity-and-scope-fields.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/02-fact-shape-and-the-six-to-four-collapse.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicate-id-projection-and-production-registry.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/04-typed-object-per-predicate-replacing-magic-key-data.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/05-bitemporal-time-fields-and-canonical-utc-contract.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/06-source-authorship-and-provenance-vocabulary.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/07-unified-evidence-edge-and-dead-field-closure.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/08-integrity-field-and-agreed-canonicalization-id.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/09-lifecycle-vocabulary-and-correction-record-hash.md`
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-as-separate-facts.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-attestation-as-separate-facts.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/11-projection-facing-fields-authority-attention-timing-access-tier.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/12-human-agent-suggestion-state-on-the-substrate.md`
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/13-eventenvelope-ndjson-markdown-fixture-export-roundtrip.md`
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/13-eventenvelope-ndjson-markdown-fixture-export-round-trip.md`
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/14-clinician-surface-derivation-guarantee.md`

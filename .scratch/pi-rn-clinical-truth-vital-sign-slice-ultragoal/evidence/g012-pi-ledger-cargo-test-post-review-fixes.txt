@@ -1,0 +1,189 @@
+$ cargo test --manifest-path pi-ledger/Cargo.toml
+   Compiling ledger-core v0.1.0 (/home/ark/pi-rn/pi-ledger/crates/ledger-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.92s
+     Running unittests src/lib.rs (pi-ledger/target/debug/deps/clinical_truth_service-efe5799f07243218)
+
+running 17 tests
+test tests::append_claim_orders_patient_entries_and_replays_same_idempotency_key ... ok
+test tests::append_claim_rejects_idempotency_key_reuse_with_different_payload ... ok
+test tests::file_wal_replay_rejects_entry_version_overflow ... ok
+test tests::service_info_and_registry_info_are_private_core_metadata ... ok
+test tests::preview_fails_closed_for_contract_and_registry_mismatch ... ok
+test tests::validate_snapshot_detects_corruption_and_does_not_import_entries ... ok
+test tests::point_read_projects_before_and_after_revision_without_mutating_history ... ok
+test tests::preview_maps_kernel_errors_to_v1alpha1_error_codes ... ok
+test tests::get_entry_fetches_by_claim_id_record_hash_or_exact_pair ... ok
+test tests::append_revision_claim_returns_target_proof_and_replays_idempotently ... ok
+test tests::append_paths_fail_closed_for_wrong_operation_or_missing_target ... ok
+test tests::validate_claim_extracts_vital_sign_fields_without_appending ... ok
+test tests::preview_append_admission_accepts_first_slice_vital_claim ... ok
+test tests::file_wal_replay_fails_closed_on_corrupted_head ... ok
+test tests::snapshot_and_validate_snapshot_require_admin_context_and_patient_scope ... ok
+test tests::file_wal_append_failure_does_not_mutate_ledger_or_consume_clock ... ok
+test tests::file_wal_persists_replays_and_rehydrates_patient_ledger ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (pi-ledger/target/debug/deps/ledger_core-4670cfe63b3fbd77)
+
+running 123 tests
+test canonical::tests::exposes_canonicalization_identifier ... ok
+test canonical::tests::accepts_ijson_safe_integer_bounds ... ok
+test canonical::tests::object_keys_sort_by_utf16_code_units_for_jcs_compatibility ... ok
+test canonical::tests::canonical_json_uses_jcs_number_formatting_edges ... ok
+test canonical::tests::rejects_negative_integer_below_ijson_safe_range ... ok
+test canonical::tests::synthetic_claim_fixture_uses_k1_time_vocabulary ... ok
+test canonical::tests::rejects_positive_integer_above_ijson_safe_range ... ok
+test canonical::tests::claim_id_and_record_hash_remain_separate_reference_parts ... ok
+test claim::tests::rejects_unsupported_time_fields_outside_k1_allowlist ... ok
+test claim::tests::t_k1_02_requires_minimal_claim_fields ... ok
+test canonical::tests::unsupported_json_input_documents_fail_deterministically ... ok
+test claim::tests::t_k1_01_accepts_only_the_four_claim_shapes ... ok
+test claim::tests::rejects_caller_supplied_k3_owned_time_metadata ... ok
+test claim::tests::t_k1_03_rejects_malformed_correction_target_hash ... ok
+test canonical::tests::t_k8_02_record_hash_returns_typed_record_hash_with_existing_golden_vector ... ok
+test canonical::tests::nested_payload_integrity_fields_remain_hash_sensitive ... ok
+test canonical::tests::canonical_json_is_invariant_to_object_property_order ... ok
+test claim::tests::t_k7_01_claim_validation_rejects_non_canonical_valid_time_that_query_would_reject ... ok
+test claim::tests::t_k1_03_requires_corrects_target_id_and_hash ... ok
+test claim::tests::t_k7_01_claim_validation_rejects_non_canonical_recorded_at_provenance_time ... ok
+test canonical::tests::record_hash_is_sha256_over_canonical_json_with_pi_ledger_encoding ... ok
+test canonical::tests::record_hash_excludes_integrity_hash_and_signature_self_fields ... ok
+test canonical::tests::record_hash_changes_when_clinical_payload_changes ... ok
+test claim::tests::t_k1_03_rejects_revision_modes_beyond_corrects ... ok
+test claim::tests::validates_recorded_at_as_a_k1_time_string ... ok
+test claim::tests::validates_only_k1_time_valid_and_recorded_at_fields ... ok
+test claim::tests::validates_time_valid_as_exactly_one_instant_or_interval ... ok
+test claim::tests::t_k9_01_validated_claim_exposes_captured_field_authority_accessors ... ok
+test claim::tests::t_k1_04_validates_plain_synthetic_claim_without_event_envelope_wrapper ... ok
+test fixture::tests::t_k10_06_fixture_claims_have_an_explicit_append_admission_path ... ok
+test fixture::tests::t_boundary_02_fixture_has_no_hidden_simulator_coupling ... ok
+test claim::tests::t_k7_01_claim_validation_rejects_unordered_valid_intervals ... ok
+test claim::tests::validated_claim_must_be_canonicalizable_and_hashable ... ok
+test claim::tests::t_k9_01_validated_claim_revision_target_is_absent_for_base_claims ... ok
+test claim::tests::t_k8_03_claim_correction_target_hash_uses_shared_record_hash_rule ... ok
+test claim::tests::validates_interval_as_exactly_start_and_end ... ok
+test conformance::tests::committed_vital_sign_vector_suite_matches_generator ... ok
+test conformance::tests::vital_sign_vector_suite_is_deterministic_and_names_required_cases ... ok
+test fixture::tests::t_boundary_03_fixture_has_no_backend_or_phi_commitment ... ok
+test fixture::tests::t_neg_07_t_boundary_01_package_citations_do_not_leak_package_adr_authority ... ok
+test fixture::tests::t_k11_07_fixture_correction_has_an_explicit_revision_admission_path ... ok
+test fixture::tests::t_k6_01_fixture_contains_exactly_one_patient_and_one_encounter ... ok
+test hash::tests::t_k8_01_record_and_entry_hash_reject_missing_prefix ... ok
+test fixture::tests::t_neg_08_t_boundary_05_fixture_has_no_current_patient_migration_creep ... ok
+test fixture::tests::t_neg_09_t_boundary_04_fixture_has_no_access_plane_or_agent_write_shortcut ... ok
+test hash::tests::t_k8_01_record_and_entry_hash_reject_non_hex_characters ... ok
+test fixture::tests::t_k6_01_fixture_claims_validate_through_k1_k4_and_append_through_k3 ... ok
+test hash::tests::t_k8_01_record_and_entry_hash_parse_valid_prefixed_lowercase_sha256_values ... ok
+test fixture::tests::t_k6_02_fixture_avoids_pi_chart_prototype_authority ... ok
+test fixture::tests::t_k6_01_fixture_contains_four_base_shapes_and_no_fifth_shape ... ok
+test hash::tests::t_k8_01_record_and_entry_hash_reject_uppercase_hex ... ok
+test ledger::tests::admission_rejects_claims_outside_the_patient_scoped_ledger ... ok
+test ledger::tests::append_admission_starts_from_the_k1_validated_claim_boundary ... ok
+test ledger::tests::t_k10_02_admission_rejects_patient_mismatch_before_store_clock_mutation ... ok
+test ledger::tests::t_k10_04_append_admissible_preserves_k3_metadata_hash_and_head_behavior ... ok
+test fixture::tests::t_k6_02_fixture_avoids_current_patient_capture ... ok
+test ledger::tests::snapshot_persists_patient_scope_and_reread_rejects_scope_mismatch ... ok
+test hash::tests::t_k8_01_record_and_entry_hash_reject_wrong_length ... ok
+test ledger::tests::append_reports_exhausted_store_clock_without_mutating_ledger ... ok
+test fixture::tests::t_k6_01_fixture_inventory_is_tiny_and_generated ... ok
+test ledger::tests::t_k11_03_revision_admission_rejects_base_claims_and_base_append_still_succeeds ... ok
+test ledger::tests::t_k10_03_admission_wraps_predicate_shape_and_object_policy_failures ... ok
+test ledger::tests::t_k11_01_dangling_correction_requires_revision_admission_before_append ... ok
+test fixture::tests::t_k6_01_fixture_supports_k5_known_time_correction_behavior ... ok
+test ledger::tests::t_k11_06_revision_admission_validates_target_records_before_matching ... ok
+test ledger::tests::claim_validation_rejects_caller_supplied_k3_metadata_before_admission ... ok
+test ledger::tests::rebuild_recomputes_entry_hash_from_record_content_not_stored_record_hash_field ... ok
+test ledger::tests::t_k10_05_snapshot_reread_remains_registry_independent ... ok
+test ledger::tests::t_k10_01_admission_rejects_unregistered_predicate_that_explicit_bypass_can_append ... ok
+test ledger::tests::t_k11_07_revision_admission_rejects_cross_patient_target_entries ... ok
+test ledger::tests::t_k11_05_revision_admission_rejects_corrupt_target_hash_storage ... ok
+test ledger::tests::t_k11_04_revision_admitted_correction_appends_with_k3_metadata_and_links ... ok
+test ledger::tests::t_k7_02_append_rejects_non_canonical_store_accepted_time_without_mutating_ledger ... ok
+test ledger::tests::t_k3_03_fresh_synthetic_ledger_validates_hash_chain_and_head ... ok
+test ledger::tests::t_k8_04_recomputed_hashes_round_trip_through_distinct_typed_hashes ... ok
+test ledger::tests::t_k3_04_mutating_an_older_entry_is_detected_on_reread ... ok
+test ledger::tests::t_k3_02_sequence_is_monotonic_and_previous_hash_links_to_prior_entry ... ok
+test ledger::tests::t_k9_02_bypass_append_rejects_cross_patient_without_raw_patient_pointer_reread ... ok
+test ledger::tests::t_k11_08_revision_admissible_proof_is_rechecked_against_receiving_ledger ... ok
+test ledger::tests::t_k11_02_right_target_id_with_wrong_record_hash_is_rejected_before_clock_mutation ... ok
+test ledger::tests::validation_rejects_non_store_assigned_batch_id_in_stored_entry ... ok
+test ledger::tests::validation_rejects_unsupported_record_kind_in_stored_entry ... ok
+test ledger::tests::t_k3_05_changing_ledger_head_without_matching_entries_fails_validation ... ok
+test predicates::tests::registry_rejects_duplicate_predicate_ids ... ok
+test predicates::tests::registry_rejects_predicate_definitions_with_unsupported_shape ... ok
+test predicates::tests::clinical_truth_vital_sign_registry_requires_encounter_id_for_first_slice ... ok
+test ledger::tests::entry_hash_recomputation_excludes_the_entrys_own_hash_field ... ok
+test predicates::tests::seed_registry_accepts_phase1_correction_fixture_without_extra_predicates ... ok
+test predicates::tests::clinical_truth_vital_sign_registry_is_narrow_versioned_slice_policy ... ok
+test ledger::tests::validation_rejects_non_canonical_accepted_time_in_stored_entry ... ok
+test predicates::tests::clinical_truth_vital_sign_registry_hash_is_stable_and_version_sensitive ... ok
+test predicates::tests::t_k4_01_seed_registry_loads_without_duplicate_predicate_ids ... ok
+test ledger::tests::validation_rejects_unsupported_entry_version_in_stored_entry ... ok
+test ledger::tests::t_rebuild_02_hashes_are_reproducible_from_stored_records ... ok
+test ledger::tests::t_k9_02_bypass_append_uses_claim_field_authority_for_patient_scope ... ok
+test predicates::tests::t_k9_03_registry_validates_already_validated_claim_through_claim_field_authority ... ok
+test predicates::tests::t_k9_03_registry_uses_validated_claim_predicate_shape_and_object_accessors ... ok
+test ledger::tests::t_k3_01_append_assigns_accepted_metadata_and_hash_fields ... ok
+test ledger::tests::t_rebuild_01_rereading_ledger_is_deterministic ... ok
+test predicates::tests::t_neg_01_claim_with_fifth_shape_fails_predicate_validation ... ok
+test query::tests::correction_hiding_requires_corrects_mode ... ok
+test ledger::tests::t_k8_04_validation_rejects_malformed_hash_strings_at_typed_boundaries ... ok
+test query::tests::rejects_invalid_visible_entry_record_hash_during_correction_hiding ... ok
+test query::tests::rejects_non_canonical_accepted_times ... ok
+test predicates::tests::t_k4_02_t_neg_02_claim_using_unregistered_predicate_fails_validation ... ok
+test fixture::tests::t_k6_01_fixture_generation_is_deterministic_across_calls ... ok
+test predicates::tests::t_k4_04_t_neg_03_invalid_object_for_seeded_predicate_fails_validation ... ok
+test tests::exposes_scaffold_marker ... ok
+test time::tests::t_k7_03_canonical_timestamp_accepts_fixed_utc_form_and_orders_chronologically ... ok
+test time::tests::t_k7_03_canonical_timestamp_rejects_non_canonical_or_invalid_forms ... ok
+test time::tests::t_k7_03_valid_time_expression_accepts_instant_and_interval_contains_points ... ok
+test query::tests::t_k7_04_recorded_at_is_provenance_not_known_time_visibility ... ok
+test query::tests::t_k5_03_backdated_correction_changes_view_only_after_acceptance ... ok
+test query::tests::t_k5_02_t_neg_06_known_at_before_acceptance_returns_no_claims ... ok
+test predicates::tests::t_k4_03_claim_shape_inconsistent_with_predicate_shape_fails_validation ... ok
+test query::tests::t_k8_05_correction_hiding_requires_typed_record_hash_targets ... ok
+test query::tests::t_rebuild_03_known_time_view_is_recalculated_from_ledger_entries ... ok
+test query::tests::rejects_non_canonical_query_timestamps ... ok
+test query::tests::t_k5_01_valid_at_filters_valid_intervals_at_the_requested_point ... ok
+test query::tests::t_k5_01_valid_at_filters_by_clinical_valid_time ... ok
+test query::tests::t_k5_02_normal_future_accepted_claim_is_invisible_at_known_at ... ok
+test query::tests::rejects_non_canonical_claim_valid_timestamps ... ok
+test time::tests::t_k7_03_valid_time_expression_rejects_ambiguous_or_unordered_values ... ok
+
+test result: ok. 123 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/public_append_interface.rs (pi-ledger/target/debug/deps/public_append_interface-8be4687585785ec8)
+
+running 6 tests
+test admission_lifecycle_docs_explain_proof_steps_and_append_ledger_authority ... ok
+test k12_public_base_claim_moves_from_validated_to_append_admissible_before_append ... ok
+test k12_public_source_guard_keeps_admission_bypass_out_of_production_interface ... ok
+test public_examples_use_fixture_helpers_instead_of_local_claim_json_builders ... ok
+test interface_inventory_docs_name_safe_paths_and_bypass_boundary ... ok
+test k12_public_correction_claim_moves_from_append_admissible_to_revision_admissible_before_append ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/trusted_history_rebuild.rs (pi-ledger/target/debug/deps/trusted_history_rebuild-197d1cb503f93dd5)
+
+running 4 tests
+test snapshot_rebuild_does_not_reopen_public_admission_bypass ... ok
+test trusted_rebuild_docs_name_snapshot_seam_and_bypass_boundary ... ok
+test public_rebuild_round_trips_snapshot_and_preserves_query_view ... ok
+test public_rebuild_rejects_broken_previous_link_and_head ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests clinical_truth_service
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ledger_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

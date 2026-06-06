@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ledger-core"]
+members = ["crates/ledger-core", "crates/clinical-truth-service"]
 resolver = "3"
 
 [workspace.package]

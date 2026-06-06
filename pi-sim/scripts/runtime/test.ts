@@ -5,6 +5,13 @@ import { join } from "node:path";
 import { SimClock } from "./clock.js";
 import { buildVitalFrame } from "./frame.js";
 import { PublicTelemetryPublisher } from "./publisher.js";
+import {
+  PUBLIC_TELEMETRY_APPEND_LANES,
+  PUBLIC_TELEMETRY_LANE_PATHS,
+  PUBLIC_TELEMETRY_OPTIONAL_CURRENT_LANES,
+  assertPublicTelemetryContractManifest,
+  readPublicTelemetryContractManifest,
+} from "./publicTelemetryContract.js";
 import { PulseProvider, type PulseTransport } from "./pulseProvider.js";
 import { loadPulseScenario } from "./pulseScenario.js";
 import { loadScriptedScenario } from "./scenario.js";
@@ -804,20 +811,10 @@ async function testScriptedAlarmSmokeScenario(): Promise<void> {
 }
 
 function testLaneManifest(): void {
-  const manifest = readJson<{ lanes: Array<Record<string, unknown>> }>("vitals/.lanes.json");
-  const required = [
-    "current.json",
-    "timeline.json",
-    "timeline.jsonl",
-    "status.json",
-    "events.jsonl",
-    "encounter/current.json",
-    "assessments/status.json",
-    "assessments/current.json",
-    "waveforms/status.json",
-    "waveforms/current.json",
-  ];
-  for (const path of required) {
+  const manifest = readPublicTelemetryContractManifest();
+  assertPublicTelemetryContractManifest(manifest);
+  assert.deepEqual(new Set(manifest.lanes.map((entry) => entry.path)), new Set(PUBLIC_TELEMETRY_LANE_PATHS));
+  for (const path of PUBLIC_TELEMETRY_LANE_PATHS) {
     const lane = manifest.lanes.find((entry) => entry.path === path);
     assert.ok(lane, `missing lane ${path}`);
     assert.equal(typeof lane.schemaVersion, "number");
@@ -825,14 +822,19 @@ function testLaneManifest(): void {
     assert.equal(typeof lane.producer, "string");
     assert.equal(typeof lane.preferredConsumerMode, "string");
   }
+  for (const path of PUBLIC_TELEMETRY_APPEND_LANES) {
+    const lane = manifest.lanes.find((entry) => entry.path === path);
+    assert.ok(lane?.writeSemantics.includes("append-jsonl"));
+    assert.ok(lane?.writeSemantics.includes("reset-on-construction"));
+  }
+  for (const path of PUBLIC_TELEMETRY_OPTIONAL_CURRENT_LANES) {
+    const lane = manifest.lanes.find((entry) => entry.path === path);
+    assert.ok(lane?.writeSemantics.includes("clears-when-unavailable"));
+  }
   const events = manifest.lanes.find((entry) => entry.path === "events.jsonl");
-  assert.ok((events?.writeSemantics as string[]).includes("append-jsonl"));
-  assert.ok((events?.writeSemantics as string[]).includes("reset-on-construction"));
   assert.equal(events?.schemaVersion, 2);
-  const timelineJsonl = manifest.lanes.find((entry) => entry.path === "timeline.jsonl");
-  assert.ok((timelineJsonl?.writeSemantics as string[]).includes("append-jsonl"));
   const timelineJson = manifest.lanes.find((entry) => entry.path === "timeline.json");
-  assert.ok((timelineJson?.writeSemantics as string[]).includes("compat-array"));
+  assert.ok(timelineJson?.writeSemantics.includes("compat-array"));
 }
 
 function seedOptionalCurrentFiles(dir: string): void {

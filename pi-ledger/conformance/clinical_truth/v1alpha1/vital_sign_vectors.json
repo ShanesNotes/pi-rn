@@ -1,0 +1,654 @@
+{
+  "canonicalization_id": "jcs-rfc8785-pi-chart-v1",
+  "contract_version": "clinical_truth.v1alpha1",
+  "negative_vectors": [
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 88
+        },
+        "predicate": "vital.sign",
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "PATIENT_MISMATCH",
+      "id": "900-patient-mismatch",
+      "operation": "AppendClaim",
+      "patient_ledger_ref": {
+        "patient_id": "patient-other"
+      }
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-shape-mismatch",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 88
+        },
+        "predicate": "vital.sign",
+        "shape": "context",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "PREDICATE_SHAPE_MISMATCH",
+      "id": "910-predicate-shape-mismatch",
+      "operation": "ValidateClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-noncanonical-time",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 88
+        },
+        "predicate": "vital.sign",
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05.000Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "NON_CANONICAL_TIMESTAMP",
+      "id": "920-non-canonical-recorded-time",
+      "operation": "ValidateClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-k3-metadata",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 88
+        },
+        "predicate": "vital.sign",
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "accepted_at": "2026-05-03T12:00:10Z",
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "CALLER_SUPPLIED_STORE_METADATA",
+      "id": "930-caller-supplied-k3-store-metadata",
+      "operation": "ValidateClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001-correction",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 92
+        },
+        "predicate": "vital.sign",
+        "revises": {
+          "mode": "corrects",
+          "target": {
+            "hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+            "id": "claim-vital-hr-001"
+          }
+        },
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "REVISION_NOT_ALLOWED_FOR_APPEND",
+      "id": "940-revision-not-allowed-for-base-append",
+      "operation": "AppendClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001-correction",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 92
+        },
+        "predicate": "vital.sign",
+        "revises": {
+          "mode": "corrects",
+          "target": {
+            "hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+            "id": "claim-vital-missing"
+          }
+        },
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "REVISION_TARGET_NOT_FOUND",
+      "id": "950-revision-target-not-found",
+      "operation": "AppendRevisionClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001-correction",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 92
+        },
+        "predicate": "vital.sign",
+        "revises": {
+          "mode": "corrects",
+          "target": {
+            "hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+            "id": "claim-vital-hr-001"
+          }
+        },
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected_error": "REVISION_TARGET_HASH_MISMATCH",
+      "id": "960-stale-revision-target-hash",
+      "operation": "AppendRevisionClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-idempotency-conflict",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 89
+        },
+        "predicate": "vital.sign",
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "client_request_id": "req-vital-append-001",
+      "expected_error": "IDEMPOTENCY_CONFLICT",
+      "id": "970-idempotency-key-reused-with-different-payload",
+      "operation": "AppendClaim"
+    }
+  ],
+  "patient_ledger_ref": {
+    "patient_id": "patient-vital-001"
+  },
+  "positive_vectors": [
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 88
+        },
+        "predicate": "vital.sign",
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected": {
+        "canonical_json": "{\"actor\":{\"id\":\"monitor-extension\",\"kind\":\"device\"},\"id\":\"claim-vital-hr-001\",\"integrity\":{\"canonicalization\":\"jcs-rfc8785-pi-chart-v1\"},\"object\":{\"code\":\"heart_rate\",\"encounterId\":\"encounter-vital-001\",\"quality\":\"valid\",\"source\":{\"kind\":\"monitor_extension\",\"ref\":\"public-vitals-fixture\"},\"unit\":\"/min\",\"value\":88},\"predicate\":\"vital.sign\",\"shape\":\"observation\",\"subject\":{\"patientId\":\"patient-vital-001\"},\"time\":{\"recorded_at\":\"2026-05-03T12:00:05Z\",\"valid\":{\"instant\":\"2026-05-03T12:00:00Z\"}}}",
+        "claim_id": "claim-vital-hr-001",
+        "predicate": "vital.sign",
+        "record_hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+        "recorded_at": "2026-05-03T12:00:05Z",
+        "shape": "observation",
+        "subject_patient_id": "patient-vital-001",
+        "valid_time": {
+          "instant": "2026-05-03T12:00:00Z"
+        }
+      },
+      "id": "100-base-vital-sign-canonical-record-hash",
+      "operation": "ValidateClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 88
+        },
+        "predicate": "vital.sign",
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "client_request_id": "req-vital-append-001",
+      "expected": {
+        "accepted_at": "2026-05-03T12:00:10Z",
+        "batch_id": "batch-000000000001",
+        "claim_id": "claim-vital-hr-001",
+        "claim_json": {
+          "actor": {
+            "id": "monitor-extension",
+            "kind": "device"
+          },
+          "id": "claim-vital-hr-001",
+          "integrity": {
+            "canonicalization": "jcs-rfc8785-pi-chart-v1"
+          },
+          "object": {
+            "code": "heart_rate",
+            "encounterId": "encounter-vital-001",
+            "quality": "valid",
+            "source": {
+              "kind": "monitor_extension",
+              "ref": "public-vitals-fixture"
+            },
+            "unit": "/min",
+            "value": 88
+          },
+          "predicate": "vital.sign",
+          "shape": "observation",
+          "subject": {
+            "patientId": "patient-vital-001"
+          },
+          "time": {
+            "recorded_at": "2026-05-03T12:00:05Z",
+            "valid": {
+              "instant": "2026-05-03T12:00:00Z"
+            }
+          }
+        },
+        "entry_hash": "sha256:3570b7eb9e1e54f9033eeb4e8117d7f879fb17f68e464dc0a64f8e0a0b32c02c",
+        "head_hash": "sha256:3570b7eb9e1e54f9033eeb4e8117d7f879fb17f68e464dc0a64f8e0a0b32c02c",
+        "previous_entry_hash": null,
+        "record_hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+        "seq": 1
+      },
+      "id": "110-base-vital-sign-append-result",
+      "operation": "AppendClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001-correction",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 92
+        },
+        "predicate": "vital.sign",
+        "revises": {
+          "mode": "corrects",
+          "target": {
+            "hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+            "id": "claim-vital-hr-001"
+          }
+        },
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "expected": {
+        "canonical_json": "{\"actor\":{\"id\":\"monitor-extension\",\"kind\":\"device\"},\"id\":\"claim-vital-hr-001-correction\",\"integrity\":{\"canonicalization\":\"jcs-rfc8785-pi-chart-v1\"},\"object\":{\"code\":\"heart_rate\",\"encounterId\":\"encounter-vital-001\",\"quality\":\"valid\",\"source\":{\"kind\":\"monitor_extension\",\"ref\":\"public-vitals-fixture\"},\"unit\":\"/min\",\"value\":92},\"predicate\":\"vital.sign\",\"revises\":{\"mode\":\"corrects\",\"target\":{\"hash\":\"sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030\",\"id\":\"claim-vital-hr-001\"}},\"shape\":\"observation\",\"subject\":{\"patientId\":\"patient-vital-001\"},\"time\":{\"recorded_at\":\"2026-05-03T12:00:05Z\",\"valid\":{\"instant\":\"2026-05-03T12:00:00Z\"}}}",
+        "record_hash": "sha256:652b234996339e141a9e71f09a648848dcb5dc991e0659c3bc134552c24da606",
+        "revision_target": {
+          "hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+          "id": "claim-vital-hr-001"
+        }
+      },
+      "id": "120-revision-vital-sign-canonical-record-hash",
+      "operation": "ValidateClaim"
+    },
+    {
+      "claim": {
+        "actor": {
+          "id": "monitor-extension",
+          "kind": "device"
+        },
+        "id": "claim-vital-hr-001-correction",
+        "integrity": {
+          "canonicalization": "jcs-rfc8785-pi-chart-v1"
+        },
+        "object": {
+          "code": "heart_rate",
+          "encounterId": "encounter-vital-001",
+          "quality": "valid",
+          "source": {
+            "kind": "monitor_extension",
+            "ref": "public-vitals-fixture"
+          },
+          "unit": "/min",
+          "value": 92
+        },
+        "predicate": "vital.sign",
+        "revises": {
+          "mode": "corrects",
+          "target": {
+            "hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+            "id": "claim-vital-hr-001"
+          }
+        },
+        "shape": "observation",
+        "subject": {
+          "patientId": "patient-vital-001"
+        },
+        "time": {
+          "recorded_at": "2026-05-03T12:00:05Z",
+          "valid": {
+            "instant": "2026-05-03T12:00:00Z"
+          }
+        }
+      },
+      "client_request_id": "req-vital-revision-001",
+      "expected": {
+        "accepted_at": "2026-05-03T12:05:10Z",
+        "batch_id": "batch-000000000002",
+        "claim_id": "claim-vital-hr-001-correction",
+        "claim_json": {
+          "actor": {
+            "id": "monitor-extension",
+            "kind": "device"
+          },
+          "id": "claim-vital-hr-001-correction",
+          "integrity": {
+            "canonicalization": "jcs-rfc8785-pi-chart-v1"
+          },
+          "object": {
+            "code": "heart_rate",
+            "encounterId": "encounter-vital-001",
+            "quality": "valid",
+            "source": {
+              "kind": "monitor_extension",
+              "ref": "public-vitals-fixture"
+            },
+            "unit": "/min",
+            "value": 92
+          },
+          "predicate": "vital.sign",
+          "revises": {
+            "mode": "corrects",
+            "target": {
+              "hash": "sha256:7da4d9d02f337d19c80d59a8515ce0e68654a7e9ffc9c3fbc492eed428ae4030",
+              "id": "claim-vital-hr-001"
+            }
+          },
+          "shape": "observation",
+          "subject": {
+            "patientId": "patient-vital-001"
+          },
+          "time": {
+            "recorded_at": "2026-05-03T12:00:05Z",
+            "valid": {
+              "instant": "2026-05-03T12:00:00Z"
+            }
+          }
+        },
+        "entry_hash": "sha256:ff02c8a7690fe38f97fe3825f81eef733801a8f4d713993c0a0ca2186090bfdb",
+        "head_hash": "sha256:ff02c8a7690fe38f97fe3825f81eef733801a8f4d713993c0a0ca2186090bfdb",
+        "previous_entry_hash": "sha256:3570b7eb9e1e54f9033eeb4e8117d7f879fb17f68e464dc0a64f8e0a0b32c02c",
+        "record_hash": "sha256:652b234996339e141a9e71f09a648848dcb5dc991e0659c3bc134552c24da606",
+        "seq": 2
+      },
+      "id": "130-revision-vital-sign-append-result",
+      "operation": "AppendRevisionClaim"
+    },
+    {
+      "id": "140-point-read-before-and-after-correction",
+      "operation": "PointRead",
+      "queries": [
+        {
+          "expected_claim_ids": [
+            "claim-vital-hr-001"
+          ],
+          "known_at": "2026-05-03T12:00:10Z",
+          "valid_at": "2026-05-03T12:00:00Z"
+        },
+        {
+          "expected_claim_ids": [
+            "claim-vital-hr-001-correction"
+          ],
+          "known_at": "2026-05-03T12:05:10Z",
+          "valid_at": "2026-05-03T12:00:00Z"
+        }
+      ]
+    }
+  ],
+  "registry": {
+    "content_hash": "sha256:d08fd55c937cca96c02d8a0f050e157d001e1539ac280aad344fbf029a0f0b46",
+    "predicate_count": 1,
+    "predicates": [
+      {
+        "id": "vital.sign",
+        "required_object_fields": [
+          {
+            "name": "code",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "number"
+          },
+          {
+            "name": "unit",
+            "type": "string"
+          },
+          {
+            "name": "encounterId",
+            "type": "string"
+          }
+        ],
+        "shape": "observation"
+      }
+    ],
+    "version": "clinical_truth.v1alpha1.vital_sign_fixture.2026-05-31"
+  },
+  "suite_id": "clinical_truth.v1alpha1.vital_sign.2026-05-31"
+}

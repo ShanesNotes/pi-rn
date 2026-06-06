@@ -1,0 +1,1 @@
+$ git diff --exit-code -- pi-ledger/conformance/clinical_truth/v1alpha1/vital_sign_vectors.json

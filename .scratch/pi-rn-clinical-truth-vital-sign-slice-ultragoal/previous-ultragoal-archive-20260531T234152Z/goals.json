@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "createdAt": "2026-05-31T22:53:21.937Z",
+  "updatedAt": "2026-05-31T23:14:00.628Z",
+  "briefPath": ".omx/ultragoal/brief.md",
+  "goalsPath": ".omx/ultragoal/goals.json",
+  "ledgerPath": ".omx/ultragoal/ledger.jsonl",
+  "codexGoalMode": "aggregate",
+  "goals": [
+    {
+      "id": "G001-baseline-and-current-state-capture",
+      "title": "Baseline and current-state capture",
+      "objective": "Baseline and current-state capture: preserve the previous completed ultragoal artifacts, current dirty/untracked state, and baseline verification posture; write a concise current-state artifact for this run.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T22:54:48.089Z",
+      "startedAt": "2026-05-31T22:53:49.251Z",
+      "completedAt": "2026-05-31T22:54:48.089Z",
+      "evidence": "Preserved previous completed ultragoal artifacts at .scratch/pi-rn-next-ultragoal-zoom-out/previous-ultragoal-archive-20260531T185255, initialized/refined the new 8-story ultragoal plan, wrote .scratch/pi-rn-clinical-truth-service-seam-planning/CURRENT-STATE.md, captured dirty/untracked and baseline verification posture. Fresh lightweight validation passed: .omx/ultragoal JSON/JSONL parse and git diff --check for new ultragoal/planning artifacts."
+    },
+    {
+      "id": "G002-contract-inventory-and-gap-register",
+      "title": "Contract inventory and gap register",
+      "objective": "Contract inventory and gap register: crosswalk pi-chart field-contract issues 01-15 against pi-ledger ADR-008 safe paths plus ADR-009/021; produce a registry/hash/storage/transport/replay/adapter gap register.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T22:56:14.119Z",
+      "startedAt": "2026-05-31T22:55:02.691Z",
+      "completedAt": "2026-05-31T22:56:14.119Z",
+      "evidence": "Created .scratch/pi-rn-clinical-truth-service-seam-planning/CONTRACT-GAP-REGISTER.md. It crosswalks pi-chart field-contract issues 01-15 against ledger-core ADR-008 safe paths and ADR-009/021, inventories kernel/service safe paths, and records registry/hash/contract/conformance/storage/concurrency/adapter/boundary gaps. Validation: ultragoal JSON/JSONL parse and git diff --check for the gap register passed."
+    },
+    {
+      "id": "G003-versioned-clinical-truth-service-contract-pr",
+      "title": "Versioned clinical-truth service contract PRD and test spec",
+      "objective": "Versioned clinical-truth service contract PRD and test spec: define private/internal backend-to-service operations only around safe lifecycle paths, including validation/admission/append/revision/point-read/snapshot/rebuild as appropriate.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T22:57:51.537Z",
+      "startedAt": "2026-05-31T22:56:24.132Z",
+      "completedAt": "2026-05-31T22:57:51.537Z",
+      "evidence": "Created SERVICE-CONTRACT-PRD.md and SERVICE-CONTRACT-TEST-SPEC.md under .scratch/pi-rn-clinical-truth-service-seam-planning. The PRD defines private/backend-mediated v1alpha1 operations mapped to safe ledger-core lifecycle paths: service/registry info, validate, preview admission, append base, append revision, get entry, point read, snapshot, and snapshot validation. The test spec defines operation-specific positive/negative tests and boundary tests. Validation: ultragoal JSON/JSONL parse and git diff --check for both contract docs passed."
+    },
+    {
+      "id": "G004-golden-vector-and-conformance-design",
+      "title": "Golden-vector and conformance design",
+      "objective": "Golden-vector and conformance design: specify transport-agnostic vectors for canonical bytes, Record hash, append result, correction-target proof, point-read result, and expected negative errors such as patient mismatch, shape mismatch, stale correction hash, non-canonical timestamps, and caller-supplied K3 metadata.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T22:58:57.836Z",
+      "startedAt": "2026-05-31T22:57:59.371Z",
+      "completedAt": "2026-05-31T22:58:57.836Z",
+      "evidence": "Created .scratch/pi-rn-clinical-truth-service-seam-planning/CONFORMANCE-GOLDEN-VECTORS.md. It specifies a transport-agnostic v1alpha1 vector suite, fixture layout, manifest fields, positive vectors for canonical bytes/Record hash/append/revision/point-read/snapshot behavior, and negative vectors for patient mismatch, shape mismatch, stale correction target hash, non-canonical timestamps, caller-supplied K3 metadata, and storage corruption. Validation: ultragoal JSON/JSONL parse and git diff --check for the conformance doc passed."
+    },
+    {
+      "id": "G005-per-patient-wal-log-storage-and-rebuild-plan",
+      "title": "Per-patient WAL/log storage and rebuild plan",
+      "objective": "Per-patient WAL/log storage and rebuild plan: specify append log record shape, fsync/replay boundaries, head validation, rebuild behavior, corruption handling, and a migration path to later embedded stores behind the same contract.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T23:00:04.446Z",
+      "startedAt": "2026-05-31T22:59:05.788Z",
+      "completedAt": "2026-05-31T23:00:04.446Z",
+      "evidence": "Created .scratch/pi-rn-clinical-truth-service-seam-planning/WAL-STORAGE-REBUILD-PLAN.md. It specifies per-patient truth-root layout, ledger meta, WAL accepted-entry record envelope, append protocol, durability modes, segment rotation, checkpoints, startup/rebuild, corruption fail-closed behavior, same-patient concurrency serialization, and migration criteria for later embedded stores behind the same contract. Validation: ultragoal JSON/JSONL parse and git diff --check for the WAL plan passed."
+    },
+    {
+      "id": "G006-pi-chart-adapter-test-plan-before-adapter-co",
+      "title": "Pi-chart adapter test plan before adapter code",
+      "objective": "Pi-chart adapter test plan before adapter code: specify EventEnvelope, VitalSample, and NoteFrontmatter round-trip fixtures; predicate/object mapping fixtures; EvidenceRef and review/attestation facts; and clinician-surface projection assertions from fields, not stored truth.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T23:01:03.289Z",
+      "startedAt": "2026-05-31T23:00:12.545Z",
+      "completedAt": "2026-05-31T23:01:03.289Z",
+      "evidence": "Created .scratch/pi-rn-clinical-truth-service-seam-planning/PI-CHART-ADAPTER-TEST-PLAN.md. It specifies pre-implementation adapter test families for EventEnvelope, VitalSample, NoteFrontmatter/Markdown, EvidenceRef, review/attestation act facts, correction target hashes, suggestions/promotions, service-client contract behavior, clinician-surface derivation, and negative boundary tests preventing direct service access or hidden pi-sim coupling. Validation: ultragoal JSON/JSONL parse and git diff --check for the adapter test plan passed."
+    },
+    {
+      "id": "G007-boundary-security-and-access-plan",
+      "title": "Boundary, security, and access plan",
+      "objective": "Boundary, security, and access plan: confirm clinical entry points go through the Pi-RN/pi-chart app/backend, the clinical-truth service remains private/internal, public telemetry enters chart truth only through explicit adapter/clinician validation, hidden pi-sim stays hidden, and pi-agent has no direct accepted-write authority.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T23:01:57.365Z",
+      "startedAt": "2026-05-31T23:01:12.292Z",
+      "completedAt": "2026-05-31T23:01:57.365Z",
+      "evidence": "Created .scratch/pi-rn-clinical-truth-service-seam-planning/BOUNDARY-SECURITY-ACCESS-PLAN.md. It records the canonical access path through the Pi-RN/pi-chart app/backend to private/internal clinical-truth service, service/app/backend responsibilities, human-agent suggestion boundary, observable charting seam, bounded pi-agent runtime contract, and threat/guardrail register. Validation: ultragoal JSON/JSONL parse and git diff --check for the boundary plan passed."
+    },
+    {
+      "id": "G008-final-implementation-readiness-gate",
+      "title": "Final implementation readiness gate",
+      "objective": "Final implementation readiness gate: run verification, ai-slop-cleaner/no-op if appropriate, independent code-reviewer and architect review, and produce a final go/no-go artifact for whether a later ultragoal may implement a small vertical slice.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-05-31T22:53:21.937Z",
+      "updatedAt": "2026-05-31T23:14:00.628Z",
+      "startedAt": "2026-05-31T23:02:11.109Z",
+      "evidence": "Final G008 gate clean. Verification passed: ultragoal JSON/JSONL parse, git diff --check, pi-chart npm run typecheck, pi-chart npm test 389/389, pi-ledger cargo test 128/128. AI slop cleaner passed/no-op for docs-only scope with no masking fallback slop. Independent code-reviewer re-review APPROVE with zero issues; independent architect re-review CLEAR with no architecture blocker. Final gate artifact: .scratch/pi-rn-clinical-truth-service-seam-planning/FINAL-READINESS-GATE.md.",
+      "completedAt": "2026-05-31T23:14:00.628Z"
+    }
+  ],
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
+  "refinement": {
+    "refinedAt": "2026-05-31T22:53:44.466Z",
+    "rationale": "Removed create-goals parser artifacts for objective, success criteria, and constraints; retained the eight explicit ultragoal stories from the brief.",
+    "originalGeneratedGoalCount": 11,
+    "refinedGoalCount": 8
+  }
+}

@@ -47,7 +47,7 @@ Derived from the real corpus (`patients/patient_002` + the 9-type union). `shape
 | `observation` | `lab_result` | `lab.result` | `observation` | issue 04 |
 | `observation` | `exam_finding` | `exam.finding` | `observation` | issue 04 |
 | `observation` | `intake_output` | `io.measurement` | `observation` | issue 04 |
-| `observation` | `context_segment` | `context.segment` | `observation`† | issue 04 |
+| `observation` | `context_segment` | `observation.context_segment` | `observation` | issue 04 |
 | `assessment` | `problem` | `assessment.problem` | `interpretation` | issue 04 |
 | `assessment` | `impression` | `assessment.impression` | `interpretation` | issue 04 |
 | `assessment` | `trend` | `assessment.trend` | `interpretation` | issue 04 |
@@ -61,12 +61,12 @@ Derived from the real corpus (`patients/patient_002` + the 9-type union). `shape
 | `action` | `intervention` | `act.intervention` | `act` | issue 04 |
 | `action` | `provider_evaluation` | `act.evaluation` | `act` | issue 04 |
 | `action` | `pharmacy_verification` | `act.pharmacy_verification` | `act` | issue 04 |
-| `action` | `result_review` | `review.result`‡ | `act` | issue 04 |
+| `action` | `result_review` | `review.reviewed` / `review.verified` | `act` | issue 10 / issue 04 object fields |
 | `action` | `transfer_performed` | `act.transfer` | `act` | issue 04 |
 | `communication` | `verbal_order` / `telephone_order` | `order.verbal` | `act` (issue 02 Res. A) | issue 04 |
-| `communication` | `readback` / `co_sign` | `comm.cosign`‡ | `act` (issue 02 Res. A) | issue 04 |
+| `communication` | `readback` / `co_sign` | `attestation.readback` / `attestation.cosigned` | `act` (issue 02 + issue 10) | issue 10 / issue 04 object fields |
 | `communication` | `sbar` / `handoff` / `consult_note` / `discharge_summary` / `*_note` / `advance_care_planning` / `notification` / `message` / `call` / `family_update` | `comm.note` | `context` (issue 02 Res. A default) | issue 04 |
-| `communication` | `radiology_report` / `echo_report` (asserting a finding) | `observation`-predicate per finding (see issue 02 OQ-1) | `observation` | issue 04 |
+| `communication` | `radiology_report` / `echo_report` (mentions or contains a finding) | communication stays `comm.note`/context; discrete findings become separate observation predicates owned by the registry (for example existing lab/exam observations or a future diagnostic-measurement predicate if Issue 03 adds one) | context for the communication; observation for extracted finding facts | issue 04 / registry decision |
 | `subject` | (any) | `context.patient` | `context` | issue 04 |
 | `encounter` | (any) | `context.encounter` | `context` | issue 04 |
 | `constraint_set` | `allergy` | `constraint.allergy` | `context` | issue 04 |
@@ -74,8 +74,8 @@ Derived from the real corpus (`patients/patient_002` + the 9-type union). `shape
 | `constraint_set` | `access` / `preference` / `advance_directive` | `constraint.care` | `context` | issue 04 |
 | `artifact_ref` | (any) | **— none —** (evidence, not a fact; issue 02 Res. B) | n/a | n/a (→ `EvidenceRef`, issue 07) |
 
-† `observation + context_segment` is a borderline case (narrative context segment vs observation). Flagged as **OQ-2** below; assumed `observation` to keep `context_segment` discrete and contestable, but the architect may move it to a `context.*` predicate.
-‡ `result_review`/`co_sign`/`attestation` may instead be **review facts** (issue 10), not first-class predicates. Flagged as **OQ-3**.
+† `observation + context_segment` was resolved by Issue 02: keep `factShape=observation` and use `observation.context_segment` so predicate namespace and shape agree.
+‡ `result_review`/`co_sign`/`attestation` are **separate review/attestation facts** with `factShape=act` (Issue 10). Their predicate ids are standardized as `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, and `attestation.readback`; each must be registered as act-shaped, not target mutation fields.
 
 ### Determinism & default rules
 
@@ -96,7 +96,7 @@ Per the ledger-core public interface, `predicates::phase1_registry` "Covers gene
 - **Registry must admit many predicates across providers and specialties.** The dotted-namespace form (`domain.name`) is chosen so new specialties add predicates under new domains (`cardiology.*`, `renal.*`) without colliding — the registry is an open, growable namespace, not a fixed enum. The table above is the v0 seed, not the closed set.
 - **Deterministic projection is concurrency-safe:** because `predicateOf` is pure and actor-independent, many concurrent authoring agents projecting the same clinical content converge on the same `predicateId` — so a later correction fact (issue 10) can target it by the same key regardless of which agent/provider authored the original.
 - **Sharding:** `predicateId` (with `factShape` and `subject.patientId`) is a routing coordinate for high-volume fan-out; predicate policy stays outside append storage (ledger-core: "Predicate policy stays outside Append ledger storage"), so the registry can be replicated/cached at each writer without serializing through the log.
-- Where the production registry is loaded by the shared clinical-truth service rather than embedded per client, that is the **proposed, not-yet-accepted** runtime (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, proposed). This table is transport-agnostic.
+- Where the production registry is loaded by the shared clinical-truth service rather than embedded per client, that is the **accepted north star, ADR-promoted** runtime (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted). This table is transport-agnostic.
 
 ## Kernel-mapping note
 
@@ -117,10 +117,10 @@ Per the ledger-core public interface, `predicates::phase1_registry` "Covers gene
 
 ## Open questions for the architect
 
-1. **OQ-1 (from issue 02):** does a finding-bearing report communication get an `observation` predicate on the communication itself, or a separate `observation` fact? This table assumes a separate `observation` fact (option b).
-2. **OQ-2:** `observation + context_segment` shape/predicate — keep as `observation` (`context.segment`, contestable) or move to a `context.*` predicate? Assumed `observation`.
-3. **OQ-3:** are `result_review` / `co_sign` / `readback` / `attestation` first-class predicates (`review.result`, `comm.cosign`) or **review facts** per issue 10? This is a live seam between issues 03 and 10; the architect must settle whether review/attestation is a predicate axis or a separate-fact axis. Provisionally listed as predicates with a note; defer final call to issue 10.
-4. **OQ-4 (registry ownership at scale):** does the production registry live in pi-chart and ship to the service, or is it authored against the service contract and owned service-side? Depends on acceptance of the clinical-truth-service proposal (proposed). Surfaced, not decided.
+1. **RESOLVED (from issue 02):** a finding-bearing report/note communication remains context/source narrative; discrete findings become separate `observation` facts with evidence/source links to the ordered report/read. Passing mentions in notes are evidentiary context, not documentation authority for the fact.
+2. **RESOLVED:** `observation + context_segment` uses `factShape=observation` and predicate `observation.context_segment`, inheriting Issue 02's decision.
+3. **RESOLVED:** `result_review` / `co_sign` / `readback` / `attestation` are separate review/attestation facts per Issue 10, with `factShape=act`. Predicate-id spelling is standardized here: `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, and `attestation.readback`.
+4. **OQ-4 (registry ownership at scale):** does the production registry live in pi-chart and ship to the service, or is it authored against the service contract and owned service-side? Depends on the accepted clinical-truth-service north star; exact registry ownership remains a service/adapter sub-decision. Surfaced, not decided.
 
 ## Blocked by
 
@@ -129,5 +129,5 @@ Per the ledger-core public interface, `predicates::phase1_registry` "Covers gene
 ## Boundary register
 
 - SPEC artifact only: no `pi-chart/src/` edits, no fixture migration, **no building the registry**.
-- No kernel widening; no Rust↔TS integration-mechanism choice; no backend/vector/OpenBrain/retrieval/runtime/access-plane selection; no hidden `pi-sim` coupling.
+- No kernel widening; accepted clinical-truth-service/access north star only; no storage/backend-framework/vector/OpenBrain/retrieval/runtime/full-access-plane selection; no hidden `pi-sim` coupling.
 - Connectors stay `(patientId, encounterId, asOf)`-parameterized and never hardcode a patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).

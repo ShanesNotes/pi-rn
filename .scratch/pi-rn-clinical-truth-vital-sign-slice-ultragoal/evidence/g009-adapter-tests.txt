@@ -1,0 +1,53 @@
+$ node --test --import tsx src/clinical-truth-contract.test.ts src/clinical-truth-adapter.test.ts
+TAP version 13
+# Subtest: appendVitalSampleToClinicalTruth uses backend seam and projects accepted fields
+ok 1 - appendVitalSampleToClinicalTruth uses backend seam and projects accepted fields
+  ---
+  duration_ms: 5.795251
+  type: 'test'
+  ...
+# Subtest: projection reads accepted backend Claim JSON rather than caller sample view
+ok 2 - projection reads accepted backend Claim JSON rather than caller sample view
+  ---
+  duration_ms: 1.330281
+  type: 'test'
+  ...
+# Subtest: appendVitalEventToClinicalTruth rejects non-final suggestions before backend append
+ok 3 - appendVitalEventToClinicalTruth rejects non-final suggestions before backend append
+  ---
+  duration_ms: 0.809276
+  type: 'test'
+  ...
+# Subtest: clinical truth adapter has no hidden sim, direct service, or hash-computation coupling
+ok 4 - clinical truth adapter has no hidden sim, direct service, or hash-computation coupling
+  ---
+  duration_ms: 1.832501
+  type: 'test'
+  ...
+# Subtest: VitalSample-to-Claim candidate matches Rust vital.sign vector fields without TS hashes
+ok 5 - VitalSample-to-Claim candidate matches Rust vital.sign vector fields without TS hashes
+  ---
+  duration_ms: 6.322819
+  type: 'test'
+  ...
+# Subtest: EventEnvelope vital_sign mapping preserves event evidence outside the Claim record
+ok 6 - EventEnvelope vital_sign mapping preserves event evidence outside the Claim record
+  ---
+  duration_ms: 1.580299
+  type: 'test'
+  ...
+# Subtest: clinical truth contract code has no hidden sim, direct service, or hash authority coupling
+ok 7 - clinical truth contract code has no hidden sim, direct service, or hash authority coupling
+  ---
+  duration_ms: 1.012955
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 231.939031

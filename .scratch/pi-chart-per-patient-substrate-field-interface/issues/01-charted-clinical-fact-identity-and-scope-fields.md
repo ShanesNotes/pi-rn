@@ -14,7 +14,7 @@ PRD user stories covered: 1, 3, 25, 26
 - Current field model: `pi-chart/src/types.ts` (`EventEnvelopeBase`, `ClinicalEvent`, `NoteFrontmatter`, `VitalSample`, `PatientScope`)
 - Kernel Claim target: `pi-ledger/docs/ledger-core-public-interface.md` (frozen K0–K12 public interface)
 - Defect site: `pi-chart/src/views/currentState.ts:230-235` (`eventMatchesEncounter`)
-- Scaling runtime (PROPOSED, not accepted): `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`
+- Scaling runtime (ACCEPTED NORTH STAR, ADR-promoted): `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`
 
 ## What to build (spec, not implementation)
 
@@ -83,7 +83,7 @@ This runs in a hugely data-rich, multi-provider setting with many concurrent aut
 - `subject.patientId` is the **shard/route key**: it selects which per-patient ledger a fact belongs to, so high claim volume routes deterministically and the kernel's per-patient `PatientMismatch` guard holds at the boundary.
 - `encounterId` is the **per-encounter partition** within a patient: crisp encounter scoping (no wildcard) is what lets many concurrent agents author into one patient without cross-encounter bleed, and lets readers narrow a busy patient's history to one visit.
 - `id` stays caller-set and globally stable so links/corrections resolve under concurrent authorship; **append-only, correction-by-new-fact** (Issue 09) is what makes concurrent multi-agent writes safe — identity is never reused or mutated.
-- Where this depends on a shared clinical-truth service hosting per-patient ledgers at scale, that runtime is the **proposed, not-yet-accepted** clinical-truth service over gRPC/UDS — see `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (proposed). This issue assumes that proposal only for the sharding/routing framing; it does not select it.
+- Where this depends on a shared clinical-truth service hosting per-patient ledgers at scale, that runtime is the **accepted north star, ADR-promoted** clinical-truth service (private/local gRPC/UDS first transport; append-only WAL/log first storage) — see `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (accepted north star). Many clinicians/agents may enter from many workflows, but the service provides one patient-scoped append order; this issue does not implement the storage engine.
 
 ## Acceptance criteria
 
@@ -92,7 +92,7 @@ This runs in a hugely data-rich, multi-provider setting with many concurrent aut
 - [ ] `subject` declared the single anchor; `PatientScope.patientId` named a read-path concern, not a second source.
 - [ ] Wildcard-leak defect named at `currentState.ts:230-235` with a contract-level fix: explicit per-encounter scope, explicit cross-encounter declaration, absence-is-not-a-match.
 - [ ] Connector signature shown as `(patientId, encounterId, asOf)`; demo `patient_002`/`enc_p002_001` and regression `patient_001` named; no hardcoded patient.
-- [ ] Scaling note: `subject.patientId` as shard/route key, `encounterId` as per-encounter partition, citing the proposed clinical-truth service as proposed (not accepted).
+- [ ] Scaling note: `subject.patientId` as shard/route key, `encounterId` as per-encounter partition, citing the accepted clinical-truth service north star (ADR-promoted).
 - [ ] States no source edit, no adapter, no Rust↔TS mechanism, no kernel widening.
 
 ## Blocked by

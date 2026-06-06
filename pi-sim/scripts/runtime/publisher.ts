@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import type { PublicTelemetryLanePath } from "./publicTelemetryContract.js";
 import type { VitalFrame } from "../types.js";
 import type {
   PublicAssessmentEnvelope,
@@ -33,15 +34,20 @@ export class PublicTelemetryPublisher {
     this.encounterDir = join(outDir, "encounter");
     this.assessmentsDir = join(outDir, "assessments");
     mkdirSync(outDir, { recursive: true });
-    rmSync(join(outDir, "events.jsonl"), { force: true });
-    rmSync(join(outDir, "timeline.jsonl"), { force: true });
+    rmSync(this.lanePath("events.jsonl"), { force: true });
+    rmSync(this.lanePath("timeline.jsonl"), { force: true });
+  }
+
+
+  private lanePath(path: PublicTelemetryLanePath): string {
+    return join(this.outDir, path);
   }
 
   publish(frame: VitalFrame): void {
     this.history.push(frame);
-    atomicWrite(join(this.outDir, "current.json"), `${JSON.stringify(frame, null, 2)}\n`);
-    atomicWrite(join(this.outDir, "timeline.json"), `${JSON.stringify(this.history, null, 2)}\n`);
-    appendFileSync(join(this.outDir, "timeline.jsonl"), `${JSON.stringify(frame)}\n`);
+    atomicWrite(this.lanePath("current.json"), `${JSON.stringify(frame, null, 2)}\n`);
+    atomicWrite(this.lanePath("timeline.json"), `${JSON.stringify(this.history, null, 2)}\n`);
+    appendFileSync(this.lanePath("timeline.jsonl"), `${JSON.stringify(frame)}\n`);
     const status: PublisherStatus = {
       schemaVersion: 1,
       source: frame.monitor?.source ?? "unknown",
@@ -50,18 +56,18 @@ export class PublicTelemetryPublisher {
       simTime_s: frame.t,
       updatedAt: frame.wallTime,
     };
-    atomicWrite(join(this.outDir, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
+    atomicWrite(this.lanePath("status.json"), `${JSON.stringify(status, null, 2)}\n`);
   }
 
   appendEvent(event: PublicTelemetryEvent): void {
-    appendFileSync(join(this.outDir, "events.jsonl"), `${JSON.stringify(event)}\n`);
+    appendFileSync(this.lanePath("events.jsonl"), `${JSON.stringify(event)}\n`);
   }
 
   publishWaveform(status: WaveformStatus, envelope?: WaveformEnvelope): void {
     mkdirSync(this.waveformDir, { recursive: true });
-    atomicWrite(join(this.waveformDir, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
+    atomicWrite(this.lanePath("waveforms/status.json"), `${JSON.stringify(status, null, 2)}\n`);
 
-    const currentPath = join(this.waveformDir, "current.json");
+    const currentPath = this.lanePath("waveforms/current.json");
     if (envelope) {
       atomicWrite(currentPath, `${JSON.stringify(envelope, null, 2)}\n`);
       return;
@@ -71,7 +77,7 @@ export class PublicTelemetryPublisher {
   }
 
   publishEncounter(context?: PublicEncounterContext): void {
-    const currentPath = join(this.encounterDir, "current.json");
+    const currentPath = this.lanePath("encounter/current.json");
     if (!context) {
       if (existsSync(currentPath)) rmSync(currentPath, { force: true });
       return;
@@ -83,9 +89,9 @@ export class PublicTelemetryPublisher {
 
   publishAssessment(status: PublicAssessmentStatus, envelope?: PublicAssessmentEnvelope, clearCurrent = false): void {
     mkdirSync(this.assessmentsDir, { recursive: true });
-    atomicWrite(join(this.assessmentsDir, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
+    atomicWrite(this.lanePath("assessments/status.json"), `${JSON.stringify(status, null, 2)}\n`);
 
-    const currentPath = join(this.assessmentsDir, "current.json");
+    const currentPath = this.lanePath("assessments/current.json");
     if (envelope) {
       atomicWrite(currentPath, `${JSON.stringify(envelope, null, 2)}\n`);
       return;

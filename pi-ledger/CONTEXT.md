@@ -71,6 +71,12 @@
 - Hidden simulator/oracle state is never ledger evidence.
 - FHIR, openEHR, UI models, runtime transcripts, and chart-specific layouts are boundary adapters, not internal ledger identity.
 
+## Current service-core slice
+
+As of 2026-05-31, `pi-ledger` also contains a private, transport-agnostic service-core crate at `crates/clinical-truth-service/` for the first `clinical_truth.v1alpha1` `vital.sign` slice. It wraps the safe `ledger-core` paths with versioned request/response/error semantics, per-patient append/idempotency behavior, point reads, snapshot/admin validation, and a file/WAL storage prototype. This crate is still internal service-core behavior, not a public clinical API or production transport/auth implementation.
+
+Rust-owned conformance vectors live under `conformance/clinical_truth/v1alpha1/` and should be regenerated with `cargo run --example generate_clinical_truth_vectors --quiet`, not hand-edited.
+
 ## Boundary with pi-chart
 
 `pi-chart` consumes `pi-ledger` through explicit adapters. `pi-chart` owns chart views, clinical workflows, draft/review UI, and any brownfield compatibility bridge. `pi-ledger` owns the cryptographic claim-ledger kernel and should not import `pi-chart` source, schemas, patient directories, or prototype artifacts.

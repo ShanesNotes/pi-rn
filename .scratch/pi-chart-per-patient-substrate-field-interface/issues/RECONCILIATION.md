@@ -15,10 +15,10 @@ Cross-referencing the critical chains:
 **Chain 03→04 (predicateId coverage):** Every predicateId in 04 must appear in 03.
 
 Let me check 04's predicate list against 03's:
-- 03 produces: `vital.sign`, `lab.result`, `exam.finding`, `io.measurement`, `context.segment`, `assessment.problem`, `assessment.impression`, `assessment.trend`, `order.request`, `plan.care`, `plan.monitoring`, `order.disposition`, `act.medication_administration`, `act.specimen_collection`, `act.imaging_acquired`, `act.intervention`, `act.evaluation`, `act.pharmacy_verification`, `review.result`, `act.transfer`, `order.verbal`, `comm.cosign`, `comm.note`, `context.patient`, `context.encounter`, `constraint.allergy`, `constraint.code_status`, `constraint.care`, plus generics `observation.generic`/`assessment.generic`/`act.generic`/`context.generic`.
-- 04 references: `vital.sign`, `lab.result`, `exam.finding`, `io.measurement`, `context.segment`, `assessment.problem`, `assessment.impression`, `assessment.trend`, `order.request`/`order.verbal`, `plan.care`, `plan.monitoring`, `order.disposition`, `act.medication_administration`, `act.specimen_collection`/`act.imaging_acquired`/`act.intervention`/`act.evaluation`/`act.pharmacy_verification`/`act.transfer`, `review.result`/`comm.cosign`, `comm.note`, `context.patient`, `context.encounter`, `constraint.allergy`, `constraint.code_status`, `constraint.care`, `*.generic`.
+- 03 produces: `vital.sign`, `lab.result`, `exam.finding`, `io.measurement`, `observation.context_segment`, `assessment.problem`, `assessment.impression`, `assessment.trend`, `order.request`, `plan.care`, `plan.monitoring`, `order.disposition`, `act.medication_administration`, `act.specimen_collection`, `act.imaging_acquired`, `act.intervention`, `act.evaluation`, `act.pharmacy_verification`, `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, `attestation.readback`, `act.transfer`, `order.verbal`, `comm.note`, `context.patient`, `context.encounter`, `constraint.allergy`, `constraint.code_status`, `constraint.care`, plus generics `observation.generic`/`assessment.generic`/`act.generic`/`context.generic`.
+- 04 references: `vital.sign`, `lab.result`, `exam.finding`, `io.measurement`, `observation.context_segment`, `assessment.problem`, `assessment.impression`, `assessment.trend`, `order.request`/`order.verbal`, `plan.care`, `plan.monitoring`, `order.disposition`, `act.medication_administration`, `act.specimen_collection`/`act.imaging_acquired`/`act.intervention`/`act.evaluation`/`act.pharmacy_verification`/`act.transfer`, `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, `attestation.readback`, `comm.note`, `context.patient`, `context.encounter`, `constraint.allergy`, `constraint.code_status`, `constraint.care`, `*.generic`.
 
-Note: 03 has `act.transfer` (from `transfer_performed`) — in 04 it's grouped with specimen/imaging/etc using `action:String`. But 03 lists `review.result` declared shape as `act`. Let me check the shape contradiction for `context.segment`.
+The previous shape/namespace contradiction for `context_segment` is now resolved as `observation.context_segment`.
 
 Now compiling the full report.
 
@@ -30,15 +30,18 @@ Authority: PRD `/home/ark/pi-rn/.scratch/pi-chart-per-patient-substrate-field-in
 
 ## Dimension 1 — type → factShape (02) → predicateId (03) → typed object (04) chain
 
-**Mostly coherent and impressively row-aligned, but three concrete defects:**
+**Mostly coherent and impressively row-aligned. Two earlier hard findings have since been converted into explicit issue-level open questions/fixes; the remaining work is decision resolution, not hidden contradiction repair.**
 
-**1a. `context.segment` shape contradiction (Issues 02 / 03 / 04). [HARD]**
-Issue 03 declares `observation + context_segment → context.segment` with declared `shape = observation†` (marked OQ-2). Issue 04 lists `context.segment (obs†)` — also observation. But Issue 02's collapse table maps source `type=observation` row #1 to `factShape=observation` generically, and never addresses `context_segment` as a sub-case; meanwhile Issue 02 routes all *narrative context* to `context`. The predicate is **named `context.segment`** (a `context.*` namespace) yet carries an `observation` shape — a registered predicate in the `context` namespace whose declared shape is `observation` is internally jarring and will read as a `ShapeMismatch` risk to a registry author.
-Fix: In Issue 02, add an explicit `context_segment` sub-row to the collapse table resolving its shape (observation vs context) so 03/04 inherit it rather than each carrying a dangling `†`/OQ-2.
+**1a. `observation.context_segment` shape / namespace seam (Issues 02 / 03 / 04). [RESOLVED — HUMAN GRILL 2026-05-31]**
+Issue 02 resolved the `context_segment` seam: keep `factShape=observation` and rename the predicate from `context.segment` to `observation.context_segment`. Issue 03 now declares `observation + context_segment → observation.context_segment` with `shape = observation`; Issue 04 now lists `observation.context_segment (obs)`. This avoids reclassifying existing observation rows while aligning predicate namespace with the kernel registry shape.
+Fix: applied in Issues 02/03/04; no remaining action for this seam.
 
-**1b. `review.result` predicate shape vs Issue 02 has no row for `action+result_review`. [MINOR]**
-Issue 03 maps `action + result_review → review.result` with shape `act‡`. Issue 02's collapse handles `action → act` generically (row #4), so the shape is consistent. But Issue 02 Resolution A only discusses *communication* co-sign/attestation/readback; it never mentions `result_review` (an `action` subtype). The OQ-3 seam (review-as-predicate vs review-as-fact) is raised in 03/04/10 but **not surfaced in Issue 02**, even though 02 owns the shape decision that the review-fact shape (OQ-1 in Issue 10: act vs interpretation) directly contradicts.
-Fix: Add a one-line cross-reference in Issue 02 OQ-2/OQ-3 noting that review/attestation shape is jointly owned with Issues 03/10 (act vs interpretation), so 02's "act" assumption for `review.result`/`comm.cosign` is not silently authoritative.
+**1aa. Report-with-finding communication shape (Issues 02 / 03 / 04 / 07). [RESOLVED — HUMAN GRILL 2026-05-31]**
+Finding-bearing report/note communications remain `context`/source narrative. Discrete findings become separate `observation` facts with evidence/source links to the ordered diagnostic/lab/read. Example: an EF value should come from the ordered echocardiogram and cardiologist read as an observation fact; notes that mention EF in passing are contextual/confirmatory evidence, not documentation authority for the fact.
+
+**1b. Review/attestation fact shape (Issues 02 / 03 / 04 / 10). [RESOLVED — HUMAN GRILL 2026-05-31]**
+Reviewed, Verified, Signed, Co-signed, readback, and order co-sign are separate append-only review/attestation facts with `factShape=act`. Rationale: a review/attestation is an accountable clinical action; the target may be an observation or interpretation, but the review fact itself is not a diagnosis/certainty interpretation and does not mutate the target. Issue 03 standardizes predicate IDs (`review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, `attestation.readback`); Issue 04 owns object fields; Issue 10 owns review-state semantics.
+Fix: applied in Issues 02/03/04/09/10; no remaining action for review/attestation shape.
 
 **1c. `order.request` / `order.verbal` collapsed into one object row but are distinct predicates. [MINOR]**
 Issue 03 lists `order.request` (from `intent`) and `order.verbal` (from `communication`, Issue 02 Res. A → `act`) as two predicates. Issue 04 collapses them into a single object row `order.request / order.verbal (act)`. That is fine for object typing, but `order.verbal` derives its `act` shape from Issue 02 Resolution A (communication), while `order.request` derives it from `intent → act` (row #3). Both land on `act`, so no shape contradiction — consistent. No fix needed; flagging only that the shared object row is intentional.
@@ -46,15 +49,14 @@ Issue 03 lists `order.request` (from `intent`) and `order.verbal` (from `communi
 **1d. Generic catch-all predicates declared in 03 but only one declared shape path. [CLEAN-ish]**
 03 defines `observation.generic`/`assessment.generic`/`act.generic`/`context.generic` (totality rule); 04 covers them as `*.generic` with `summary:String`, `encounterId:String`. Shapes implicitly inherit the type's factShape per 03's rule. Consistent.
 
-**Verdict:** The chain is otherwise clean — every predicate enumerated in 04 traces to a row in 03, and 03's declared shapes match 02's collapse except the `context.segment` namespace/shape mismatch (1a, hard).
+**Verdict:** The chain is otherwise clean — every predicate enumerated in 04 traces to a row in 03, and 03's declared shapes match 02's collapse including the resolved `context_segment` shape/naming decision (1a).
 
 ---
 
 ## Dimension 2 — source vocabulary (06) referenced by projection-facing authority/source labels (11, 14)
 
-**2a. Issue 11 uses source labels not all defined in Issue 06's controlled vocab. [HARD]**
-Issue 11 Field Group 1 derives authority from `source.kind ∈ {Ordered, Protocol, Unit policy}` (Required) and `{Nursing plan, Chart-derived}` (Routine). Issue 06's controlled `source.kind` vocab uses **machine values** `ordered`, `protocol`, `unit_policy`, `nursing_plan`, `chart_derived` with *clinician labels* "Ordered/Protocol/Unit policy/Nursing plan/Chart-derived". Issue 11 references the **clinician labels** as if they were the field values. This is a vocab-layer confusion: 11 should key off `source.kind` machine values (`ordered`, `protocol`, `unit_policy`, …), not the display labels.
-Fix: In Issue 11 Group 1, change the derivation source to the `source.kind` machine values from Issue 06 (e.g. `source.kind ∈ {ordered, protocol, unit_policy}`), matching 06's controlled enum exactly.
+**2a. Issue 11 source-kind derivation now uses Issue 06 machine values. [CLEAN]**
+The earlier finding said Issue 11 keyed authority off clinician display labels. Issue 11 now uses `source.kind` machine values (`ordered`, `protocol`, `unit_policy`, `nursing_plan`, `chart_derived`) and explicitly says they are Issue 06 machine values, not display labels. This finding is closed.
 
 **2b. Issue 11 "Report only / From handoff" maps to a source value 06 splits differently. [MINOR]**
 Issue 11 Report View uses "Report only / From handoff" as a single derivation from `source.kind` (verbal/report-derived). Issue 06 defines `report_only` (label "Report only / From handoff") — consistent. But Issue 06 also has `device_import` with label "Device/import (From monitor / From device / Imported)" while Issue 11 Group 2/timing never references device origin. Not a contradiction, just incomplete coverage of 06's vocab by 11.
@@ -70,15 +72,16 @@ Fix (optional): note in 11 that `device_import` origin feeds "Prompts review" at
 **3a. No issue reintroduces `references: string[]` as a contract edge. [CLEAN]**
 07 demotes `NoteFrontmatter.references` to fixture/export only; 13 Crosswalk C correctly maps `references: string[]` as an **export key** that "must converge on `EvidenceRef`" with a named round-trip gap — it does not treat it as a contract edge. 10, 12, 14 all reference "the one `EvidenceRef` edge." Consistent.
 
-**3b. Review facts link via EvidenceRef, not a second edge (10 ↔ 07). [CLEAN]**
-Issue 10 explicitly states review facts ride "the one evidence edge (`EvidenceRef`, Issue 07), NOT `revises`." Issue 12 promotion facts use `links.supports`/`addresses`. Note: Issue 12 says promotion links via `links.supports`/`addresses` while 07 renames `links.supports` → the `evidence: EvidenceRef[]` edge.
-**[MINOR contradiction]:** Issue 12 still names the *old* edge `links.supports`/`addresses` for promotion linkage, whereas 07 renames `links.supports` to `evidence`. 12 should say "links the suggestion via the `evidence`/`EvidenceRef` edge (Issue 07)" not `links.supports`.
-Fix: In Issue 12, replace `links.supports`/`addresses` with the unified `evidence: EvidenceRef[]` edge per Issue 07 (keeping `addresses` only if it is retained as a distinct lifecycle link in 07's register — which it is, as a `links.addresses` consumed edge).
+**3b. Review facts and suggestion promotion link via EvidenceRef, not a second evidence edge (10/12 ↔ 07). [RESOLVED]**
+Issue 10 explicitly states review facts ride "the one evidence edge (`EvidenceRef`, Issue 07), NOT `revises`." Issue 12 promotion wording now uses `evidence: EvidenceRef[]` for the suggestion-to-promotion evidence link and keeps `links.addresses` only as a distinct relationship/lifecycle link. This resolves the previous stale `links.supports` promotion-linkage finding.
 
 **3c. `addresses`/`fulfills` retained as links alongside the single evidence edge. [CLEAN, but name the distinction]**
 07's register keeps `links.addresses`, `links.fulfills`, `links.contradicts`, `links.supersedes`, `links.corrects`, `links.resolves` as **consumed lineage/relationship edges** distinct from the `evidence` edge (which is the renamed `links.supports`). This is internally consistent — the "single evidence edge" rule is specifically about *evidence pointers*, not lifecycle/relationship links. 11 (timing `Given/Administered` from `links.fulfills`) and 14 honor this. Consistent, but the mandate "single EvidenceRef edge" should not be misread as collapsing the relationship links.
 
 ---
+
+**3d. Review/attestation target linkage. [RESOLVED — REPO INVARIANT]**
+Because Issue 07 establishes one evidence edge and Issue 10 states review facts ride that edge, review/attestation target links use `evidence: EvidenceRef[]`. Legacy `attests_to` / `reviewed_refs` source keys map into evidence, not duplicate object fields. Review object fields retain review-specific details such as `attestation_role`, `review`, `verified_at`, and `closes`.
 
 ## Dimension 4 — lifecycle (09) ↔ certainty/review-facts (10) coherence
 
@@ -88,9 +91,9 @@ Fix: In Issue 12, replace `links.supports`/`addresses` with the unified `evidenc
 **4b. Review states are facts, not mutations — consistent everywhere. [CLEAN]**
 10 models Reviewed/Verified/Signed/Co-signed as separate append-only facts; 09 keeps lifecycle a projection over append-only lineage; 11 marks all explicit postures as new append-only facts; 12 models promotion/dismissal as separate facts; 14 asserts no surface mutates. No issue flips a boolean on a target. Consistent across 09/10/11/12/14.
 
-**4c. OQ-3 review-axis seam is open in 03/04/10 but Issue 09 also touches `comm.cosign`/attestation without flagging the same seam. [MINOR]**
-09's lifecycle table shows "Co-signed" via review facts (deferring to 10), and 09 OQ-1 handles `entered_in_error`/`supersedes` mode. The review-as-predicate-vs-fact seam (OQ-3) is owned by 03/04/10; 09 correctly defers attestation modeling to 10. No contradiction, but 09 should add a one-line pointer to OQ-3 since it references co-sign.
-Fix (optional): 09 add "co-sign/attestation modeling is OQ-3, owned by Issues 03/04/10."
+**4c. Review-axis lifecycle pointer. [RESOLVED]**
+09 now consumes the resolved review-axis decision: co-sign/attestation modeling is separate append-only `act` facts owned with Issues 03/04/10; lifecycle projections read those facts rather than mutating targets.
+Fix: applied in Issue 09.
 
 **4d. `draft` (09) and `Suggested` (12) as the two never-emitted provisional states — consistent. [CLEAN]**
 09 defines `draft` never-emitted-to-kernel; 12 defines `Suggested` never-through-append-path; both cross-reference. Coherent.
@@ -102,8 +105,8 @@ Fix (optional): 09 add "co-sign/attestation modeling is OQ-3, owned by Issues 03
 **5a. All SEVEN prerequisites present with correct owners. [CLEAN]**
 15's table enumerates: (1) predicateId+production registry → Issue 03; (2) factShape 6→4 → Issue 02; (3) typed object → Issue 04; (4) canonical-UTC → Issue 05; (5) Record hash on correction target → Issue 09; (6) top-level integrity → Issue 08; (7) agreed canonicalization id → Issue 08. Owners match each issue's self-declared scope. #1 and #7 correctly marked **OPEN**. Matches PRD §4 (line 81) exactly.
 
-**5b. Integration mechanism described as PROPOSED shared clinical-truth service (not accepted, not embed/CLI). [CLEAN]**
-15 records "PROPOSED shared clinical-truth service (gRPC/UDS, contract-first, pending architect acceptance)" and states "the mechanism decision is still not made / out of scope." Every issue (01–14) that cites the runtime marks it "proposed, not-yet-accepted." No issue describes it as accepted, embed, or CLI. The wasm-of-canonicalization is correctly framed as an *optional client fast-path only* (15 and 08), not the mechanism. Consistent and clean.
+**5b. Integration mechanism accepted as shared clinical-truth service north star; ADR-promoted. [RESOLVED — HUMAN GRILL 2026-05-31]**
+15 records the accepted service shape: grow `pi-ledger` into a long-lived shared clinical-truth service and make `pi-chart` a client over a versioned contract. Concurrency/consistency is settled as many clinical entry points with one patient-scoped service-side append order, and access/exposure shape is settled as entry points mediated through the app/backend before the private/internal clinical-truth service; the truth service is not a public/external clinical API. Durable storage is settled as per-patient append-only WAL/log first; transport is settled as private/local gRPC/UDS first transport; ADR promotion is complete in `pi-ledger` ADR 009 and `pi-chart` ADR 021. Embed/CLI/TS-regeneration remain rejected; wasm-of-canonicalization remains only an optional client fast-path, not the source-of-truth mechanism.
 
 **5c. K3 never-emit set consistent across 05 / 08 / 09 / 15. [CLEAN]**
 05, 09, 15 all list `accepted_at`/`seq`/`batch_id`/Record+Entry hash/prev-link/head as store-owned never-emit. 08 correctly notes `integrity.hash` *borders* the K3 boundary (open question whether never-emit vs optimistic). No contradiction; 08's nuance is flagged as OQ, not asserted.
@@ -120,15 +123,14 @@ Fix: 07 should add the full `transform` block field list (or explicitly state it
 01 names `encounterScope: "cross-encounter"` as an *example* and explicitly surfaces field name/shape as an open question. 04 says clinical/structural predicates require `encounterId:String` "or declares cross-encounter status explicitly" without naming the field — consistent with 01's open question. Not a contradiction since both defer it. **[MINOR]:** ensure 04 cross-references 01's open question by name rather than implying a resolved mechanism.
 Fix (optional): 04 add "(cross-encounter declaration field name is Issue 01 open question)".
 
-**6c. `quality` field on VitalSample — named in 04 (`vital.sign` optional `quality:String`) and 13, disposition partial. [MINOR]**
-04 lists `quality:String` as an optional on `vital.sign`. 13 Crosswalk B maps `quality` → "Chart-internal sample quality; map-or-defer (Issue 07)". This points `quality` at Issue 07, but **Issue 07 never mentions `quality`** — it owns evidence, not sample quality. This is a named-but-not-owned field: 13 defers it to 07, 07 does not catch it.
-Fix: Either 04 owns `quality` fully (it already types it as optional `vital.sign.quality:String`) and 13 should point `quality` at Issue 04, not Issue 07. Correct the 13 pointer.
+**6c. `quality` field on VitalSample — named in 04 and mapped by 13. [RESOLVED]**
+04 lists `quality:String` as an optional on `vital.sign`. Issue 13 now maps `quality` to Issue 04 rather than Issue 07, so sample quality is owned by the typed-object/predicate-object slice and no longer appears as an evidence-edge concern.
 
 **6d. `VitalSample.id` gap consistent across 01 / 04 / 13. [CLEAN]**
 01 flags vitals lack `id` (open question); 04 maps `vital.sign` requiring `code/value/unit` and notes VitalSample contributes `name/value/unit`; 13 Crosswalk B marks `id` "absent (`sample_key` the only near-id)" as a named round-trip gap pointing back to Issue 01. All three agree it is an open gap, none fabricates an `id`. Consistent.
 
 **6e. Single-agent / single-provider assumption check. [CLEAN]**
-Every issue carries an explicit multi-provider/multi-agent scale posture (01 §"At scale", 02 §"Scale posture", 03–14 equivalents). `actor.id` as human-authorship key + `(actor.id, actor.run_id)` as agent-run key (06); deterministic actor-independent predicate projection (03); review/suggestion/correction facts compose without contention (09/10/12). No issue assumes a single agent or single provider. Append-only/correction-by-new-fact is uniformly the concurrency-safety primitive. Clean — the mandate is honored throughout.
+Every issue carries an explicit multi-provider/multi-agent scale posture (01 §"At scale", 02 §"Scale posture", 03–14 equivalents). `actor.id` as human-authorship key + `(actor.id, actor.run_id)` as agent-run key (06); deterministic actor-independent predicate projection (03); review/suggestion/correction facts compose without contention (09/10/12). No issue assumes a single agent or single provider. Append-only/correction-by-new-fact plus the accepted private/internal, app/backend-mediated, one-patient-ledger append order is uniformly the concurrency-safety primitive. Clean — the mandate is honored throughout.
 
 **6f. PRD contradiction check — `encounterId` placement. [CLEAN]**
 PRD line 133 / 43: `encounterId → object.encounterId:string` (object, not subject). 01, 04, 13, 15 all map encounter to `object.encounterId`. No issue places it in subject. Consistent with PRD.
@@ -143,17 +145,19 @@ PRD line 110 (story 18). 09 explicitly marks `final` "must NOT express problem c
 
 ## Hard contradictions (must-fix before triage)
 
-1. **`context.segment` namespace vs shape mismatch (1a):** Issue 02 never resolves `context_segment`'s shape; Issues 03/04 carry a `context.*`-namespaced predicate with an `observation` declared shape (dangling OQ-2). A registry author cannot encode this without a `ShapeMismatch` risk. → Issue 02 must add an explicit `context_segment` collapse row.
-2. **Issue 11 keys authority off clinician *labels* instead of Issue 06's `source.kind` machine enum (2a):** `{Ordered, Protocol, Unit policy, Nursing plan, Chart-derived}` are display labels; 06's field values are `ordered/protocol/unit_policy/nursing_plan/chart_derived`. → Issue 11 Group 1 must reference the machine `source.kind` values.
+None currently identified as hidden contradictions after the issue-file updates. The previous two hard findings are now:
+
+1. **`context_segment` shape/naming seam:** resolved in human grill: `factShape=observation`, predicate `observation.context_segment`.
+2. **Issue 11 source-kind label/value mismatch:** fixed in Issue 11 by using Issue 06 machine values.
 
 ## Minor (note for triage)
 
-- **(1b)** Issue 02 doesn't surface the review/attestation shape seam (OQ-3) that 03/04/10 raise; add a cross-reference so 02's "act" for review predicates isn't silently authoritative.
-- **(3b)** Issue 12 still names old `links.supports` for promotion linkage; should use the renamed `evidence`/`EvidenceRef` edge (Issue 07).
-- **(4c)** Issue 09 references co-sign without pointing at OQ-3; add a one-line owner pointer.
+- **(1b)** Review/attestation shape seam resolved: separate append-only `act` facts with standardized predicate ids: `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, `attestation.readback`.
+- **(3b)** Resolved: Issue 12 promotion linkage uses `evidence: EvidenceRef[]`; `links.addresses` remains a distinct lifecycle/relationship link.
+- **(4c)** Issue 09 now points at the resolved separate-`act` review/attestation fact model.
 - **(6a)** `transform` block (`activity`/`tool`/`version`/`run_id`) is named in 07/13 but only `input_refs` is defined; 07 should restate or cite PRD §2.E for the rest.
-- **(6c)** Issue 13 points `quality` at Issue 07, which doesn't own it; should point at Issue 04 (which types `vital.sign.quality:String`).
+- **(6c)** Resolved: Issue 13 points `VitalSample.quality` at Issue 04, which types `vital.sign.quality:String`.
 - **(6b)** Issue 04's "declares cross-encounter status explicitly" should name it as Issue 01's open question.
 - **(2b)** Issue 11 doesn't consume 06's `device_import` origin label; optional completeness note.
 
-**Clean dimensions:** Dimension 3 (single evidence edge — no `references:string[]` reintroduced as contract; relationship links correctly distinguished), Dimension 4 (lifecycle↔certainty Resolved reconciliation; review-as-facts everywhere), Dimension 5 (all seven prerequisites, correct owners, PROPOSED service framing), and the multi-provider/multi-agent mandate (6e) are all internally coherent.
+**Clean dimensions:** Dimension 3 (single evidence edge — no `references:string[]` reintroduced as contract; relationship links correctly distinguished), Dimension 4 (lifecycle↔certainty Resolved reconciliation; review-as-facts everywhere), Dimension 5 (all seven prerequisites, correct owners, accepted ADR-promoted service-north-star framing), and the multi-provider/multi-agent mandate (6e) are all internally coherent.

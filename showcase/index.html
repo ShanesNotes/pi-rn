@@ -1,0 +1,2079 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>π-chart · v0.5 alpha clinical cockpit</title>
+<meta name="viewport" content="width=1480" />
+<meta name="description" content="Pi-chart v0.5 alpha: an agent-native clinical cockpit over durable chart memory, with ledger-backed provenance, public telemetry, and human-reviewed agent drafts." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;620;680;760&family=JetBrains+Mono:wght@400;500;620;760&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#171717; --ink-2:#48443f; --ink-3:#85807a; --ink-4:#c8c0b8;
+  --paper:#f2f0eb; --paper-2:#e7e3dc; --card:#fbfaf6;
+  --line:#171717; --hair:rgba(23,23,23,0.18); --grid:rgba(23,23,23,0.07);
+  --accent:#b3402f; --accent-soft:rgba(179,64,47,0.10);
+  --accent-2:#315f63; --amber:#bd7808; --amber-soft:#f8ecd5; --ok:#3d7c56;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans:"Inter Tight", Inter, ui-sans-serif, system-ui, sans-serif;
+  --bg-page: linear-gradient(180deg, #f8f6f1 0%, var(--paper) 38%, #ece8df 100%);
+  --shadow-panel: 0 1px 0 rgba(255,255,255,0.75) inset, 0 10px 24px rgba(32,28,24,0.045);
+  --shadow-stamp: 18px 24px 0 rgba(26,26,26,0.18);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: var(--sans); font-size: 13px; line-height: 1.35;
+  letter-spacing: -0.005em; color: var(--ink);
+  background: var(--bg-page) fixed;
+}
+
+/* ============================================================
+   STICKY NAV
+============================================================ */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(248,246,241,0.94);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: none;
+}
+.nav-inner {
+  width: 1480px; margin: 0 auto;
+  padding: 12px 40px;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.nav .brand {
+  font-size: 18px; font-weight: 620; color: var(--ink);
+  text-decoration: none;
+}
+.nav .brand .pi { font-family: var(--mono); font-weight: 760; }
+.nav .brand .crumb {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); margin-left: 12px;
+}
+.nav .links { display: flex; gap: 22px; }
+.nav .links a {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); text-decoration: none;
+}
+.nav .links a:hover { color: var(--accent); }
+.nav .stamp {
+  display: inline-block;
+  border: 1px solid var(--ok);
+  color: var(--ok);
+  padding: 3px 8px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background: var(--card);
+}
+
+/* ============================================================
+   PAGE + SECTION SHELL
+============================================================ */
+.page { width: 1480px; margin: 0 auto; padding: 0 40px; }
+section {
+  position: relative;
+  padding: 64px 0 56px;
+  border-top: 1px solid var(--hair);
+}
+section:first-of-type { border-top: 0; }
+.section-rule {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 0 0 18px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hair);
+}
+.section-rule .label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.section-rule .label b { color: var(--ink); font-weight: 620; }
+.section-rule .right {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  display: flex; gap: 14px; align-items: baseline;
+}
+.section-rule .right b { color: var(--ink); font-weight: 500; }
+
+/* ============================================================
+   STAMPS
+============================================================ */
+.stamp {
+  display: inline-block;
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background: var(--card);
+}
+.stamp.alert { border-color: var(--accent); color: var(--accent); }
+.stamp.ok    { border-color: var(--ok);     color: var(--ok); }
+.stamp.warn  { border-color: var(--amber);  color: var(--amber); }
+
+/* ============================================================
+   HERO
+============================================================ */
+#hero { padding: 56px 0 48px; border-top: 0; }
+.hero-watermark {
+  position: absolute;
+  right: 0; top: 24px;
+  font-family: var(--mono); font-weight: 760;
+  font-size: 360px; line-height: 1;
+  color: var(--ink); opacity: 0.035;
+  pointer-events: none; user-select: none; z-index: 0;
+}
+.hero-head {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1.5fr 1fr;
+  gap: 36px; align-items: end;
+  margin-bottom: 28px;
+}
+.hero-head h1 {
+  margin: 0;
+  font-size: 56px; font-weight: 680; letter-spacing: -0.015em;
+  line-height: 1.02;
+}
+.hero-head h1 .accent { color: var(--accent); }
+.hero-head h1 .pi { font-family: var(--mono); font-weight: 760; }
+.hero-head .lede {
+  font-size: 14.5px; line-height: 1.55; color: var(--ink-2);
+  margin: 0;
+}
+.hero-head .lede .pull {
+  display: block; padding-left: 12px;
+  border-left: 2px solid var(--ink);
+  margin-bottom: 12px;
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* ---- patient bar ---- */
+.patient-bar {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1.6fr 1.6fr 1.4fr 1.6fr 1.4fr 1fr;
+  border: 1px solid var(--line);
+  background: var(--card);
+  margin-bottom: 14px;
+}
+.patient-bar .cell { padding: 10px 14px; border-right: 1px solid var(--hair); }
+.patient-bar .cell:last-child { border-right: 0; }
+.patient-bar .k {
+  display: block; font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 4px;
+}
+.patient-bar .v { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+.patient-bar .acuity .v {
+  color: var(--accent); font-weight: 620;
+}
+
+/* ---- vitals row + agent rail ---- */
+.vitals-row {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 360px;
+  gap: 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-panel);
+  min-height: 220px;
+}
+.vitals-row .waveform-rack {
+  border: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+}
+.vitals-row .agent-rail {
+  border-left: 1px solid var(--hair);
+}
+.vital-tile {
+  padding: 14px 16px 12px;
+  border-right: 1px solid var(--hair);
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative;
+  background: var(--card);
+  transition: none;
+}
+.vital-tile .vt-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.vital-tile .vt-label {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.vital-tile .vt-alert {
+  display: none;
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 5px;
+  background: var(--card);
+}
+.vital-tile.alert {
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+.vital-tile.alert .vt-alert { display: inline-block; }
+.vital-tile.alert .vt-num { color: var(--accent); }
+.vital-tile .vt-num {
+  font-family: var(--mono); font-size: 36px;
+  font-weight: 620; letter-spacing: -0.01em;
+  color: var(--ink); margin: 8px 0 2px;
+  line-height: 1;
+}
+.vital-tile .vt-unit {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--ink-3); margin-bottom: 4px;
+}
+.vital-tile .vt-spark {
+  width: 100%; height: 32px; display: block;
+}
+.vital-tile .vt-spark polyline {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+}
+.vital-tile.alert .vt-spark polyline { stroke: var(--accent); stroke-width: 1.8; }
+
+/* agent rail */
+.agent-rail {
+  padding: 14px 16px;
+  background: #f7f4ee;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.agent-rail .ar-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hair);
+  margin-bottom: 10px;
+}
+.agent-rail .ar-label {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.agent-rail .ar-state {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--ink-4);
+  padding: 1px 6px;
+  background: var(--card);
+}
+.agent-rail.staged .ar-state {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+.agent-rail .ar-monitoring {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+.agent-rail.staged .ar-monitoring { display: none; }
+.agent-rail .ar-draft {
+  display: none;
+  flex: 1;
+  flex-direction: column; justify-content: space-between;
+}
+.agent-rail.staged .ar-draft { display: flex; }
+.agent-rail .ar-draft .draft-body {
+  font-family: var(--mono); font-size: 11.5px;
+  line-height: 1.55; color: var(--ink);
+}
+.agent-rail .ar-draft .draft-body .l { display: block; }
+.agent-rail .ar-draft .draft-body .l.evidence {
+  color: var(--ink-3); margin-top: 6px;
+  border-top: 1px dotted var(--ink-4); padding-top: 6px;
+}
+.agent-rail .ar-draft .draft-actions {
+  display: flex; gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hair);
+}
+.agent-rail .ar-draft .draft-actions .btn {
+  flex: 1;
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink); background: var(--card);
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  cursor: default; text-align: center;
+}
+.agent-rail .ar-draft .draft-actions .btn.primary {
+  background: var(--ink); color: var(--card);
+}
+.agent-rail .ar-caption {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.06em; color: var(--ink-3);
+  font-style: italic;
+  margin-top: 8px;
+  display: none;
+}
+.agent-rail.staged .ar-caption { display: block; }
+
+/* hero footnote / scroll cue */
+.hero-foot {
+  position: relative; z-index: 1;
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 14px;
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.06em; color: var(--ink-3);
+}
+.hero-foot .l { display: flex; gap: 18px; }
+.hero-foot .l b { color: var(--ink); font-weight: 500; }
+.hero-foot .r {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+
+/* ============================================================
+   §01 THE BET
+============================================================ */
+#bet { background: transparent; }
+#bet h2 {
+  margin: 0 0 16px;
+  font-size: 44px; font-weight: 680; letter-spacing: -0.012em;
+  line-height: 1.04;
+}
+#bet h2 .accent { color: var(--accent); }
+#bet .bet-grid {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 48px; align-items: start;
+}
+#bet .bet-prose p {
+  margin: 0 0 14px;
+  font-size: 15px; line-height: 1.6; color: var(--ink-2);
+  max-width: 64ch;
+}
+#bet .bet-prose p b { color: var(--ink); font-weight: 620; }
+#bet .pull-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 24px 26px;
+  box-shadow: var(--shadow-panel);
+}
+#bet .pull-card .pull-label {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 14px; display: block;
+}
+#bet .pull-card .pull-line {
+  font-family: var(--mono); font-size: 14px;
+  color: var(--ink); line-height: 1.6;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  font-weight: 500;
+}
+#bet .pull-card .pull-line .sep { color: var(--ink-3); margin: 0 8px; }
+
+/* ============================================================
+   §03 THE SYSTEM
+============================================================ */
+#system .bar {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  border: 1px solid var(--line);
+  background: var(--card);
+  margin-bottom: 18px;
+}
+#system .bar .cell {
+  padding: 14px 16px;
+  border-right: 1px solid var(--hair);
+}
+#system .bar .cell:last-child { border-right: 0; }
+#system .bar .k {
+  display: block; font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 6px;
+}
+#system .bar .name {
+  font-size: 18px; font-weight: 680; letter-spacing: -0.005em;
+  color: var(--ink); margin-bottom: 6px;
+}
+#system .bar .role {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  line-height: 1.4;
+}
+#system .system-grid {
+  display: grid; grid-template-columns: 1.5fr 1fr;
+  gap: 24px; align-items: start;
+}
+#system pre.boundary {
+  margin: 0;
+  font-family: var(--mono); font-size: 11px;
+  line-height: 1.55; color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+  white-space: pre;
+  overflow-x: auto;
+}
+#system .seam-rules {
+  display: grid; gap: 10px;
+}
+#system .seam-rules .seam {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 12px 14px;
+}
+#system .seam-rules .seam .k {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent); display: block; margin-bottom: 5px;
+}
+#system .seam-rules .seam .v {
+  font-size: 12.5px; color: var(--ink-2); line-height: 1.5;
+}
+#system .seam-rules .seam .v b { color: var(--ink); font-weight: 620; }
+
+/* ============================================================
+   GENERIC SUBPROJECT SECTION HEAD
+============================================================ */
+.sub-head {
+  display: grid; grid-template-columns: 1.3fr 1fr;
+  gap: 36px; align-items: end;
+  margin-bottom: 22px;
+}
+.sub-head h2 {
+  margin: 0;
+  font-size: 38px; font-weight: 680; letter-spacing: -0.012em;
+  line-height: 1.04;
+}
+.sub-head h2 .accent { color: var(--accent); }
+.sub-head .sub-meta {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+}
+.sub-head .sub-lede {
+  font-size: 14px; line-height: 1.55; color: var(--ink-2);
+  margin: 0; max-width: 56ch;
+  margin-left: auto;
+  text-align: right;
+}
+
+/* ============================================================
+   §04 LEDGER
+============================================================ */
+.two-col {
+  display: grid; grid-template-columns: 1fr 1.1fr;
+  gap: 28px; align-items: start;
+}
+.prose-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-panel);
+}
+.prose-card p {
+  margin: 0 0 12px;
+  font-size: 13.5px; line-height: 1.6; color: var(--ink-2);
+}
+.prose-card p:last-child { margin-bottom: 0; }
+.prose-card p b { color: var(--ink); font-weight: 620; }
+.prose-card .kicker {
+  display: block; font-family: var(--mono);
+  font-size: 9.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--accent);
+  margin-bottom: 8px;
+}
+
+/* path grid (kernel slices, milestones) */
+.path-wrap {
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-panel);
+}
+.path-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+}
+.path-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.path-grid .step {
+  padding: 12px 12px 14px;
+  border-right: 1px solid var(--hair);
+  min-height: 104px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.path-grid .step:last-child { border-right: 0; }
+.path-grid .step .num {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.path-grid .step .title {
+  font-family: var(--sans); font-size: 13px; font-weight: 620;
+  letter-spacing: -0.005em; color: var(--ink);
+  margin-top: 6px; line-height: 1.3;
+}
+.path-grid .step .state {
+  margin-top: 10px;
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.path-grid .step.done .num,
+.path-grid .step.done .state { color: var(--ok); }
+.path-grid .step.done { border-left: 2px solid var(--ok); }
+.path-grid .step.now {
+  border-left: 2px solid var(--amber);
+  background: var(--amber-soft);
+}
+.path-grid .step.now .num,
+.path-grid .step.now .state { color: var(--amber); }
+.path-grid .step.next {
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+.path-grid .step.next .num,
+.path-grid .step.next .state { color: var(--accent); }
+
+/* artifact link buttons */
+.link-row {
+  display: flex; gap: 10px; margin-top: 14px;
+}
+.link-row a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+.link-row a .arrow { color: var(--accent); font-weight: 620; }
+.link-row a:hover { background: #fff; }
+.link-row a:hover .arrow { color: var(--ink); }
+
+/* ============================================================
+   §05 SIM / EXAMPLE 3-COL
+============================================================ */
+.example {
+  display: grid; grid-template-columns: 1fr 1.1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-panel);
+}
+.example .col {
+  padding: 18px 20px;
+  border-right: 1px solid var(--hair);
+}
+.example .col:last-child { border-right: 0; }
+.example .col.center { background: #f7f4ee; }
+.example .col .k {
+  display: block;
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 12px;
+}
+.example .col h3 {
+  margin: 0 0 10px;
+  font-size: 16px; font-weight: 680; letter-spacing: -0.005em;
+}
+.example .col p {
+  margin: 0 0 10px;
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+}
+.example .col p b { color: var(--ink); font-weight: 620; }
+.example .col p:last-child { margin-bottom: 0; }
+.file-list {
+  list-style: none; margin: 0; padding: 0;
+}
+.file-list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--hair);
+  display: grid; grid-template-columns: auto 1fr;
+  gap: 10px; align-items: baseline;
+}
+.file-list li:first-child { border-top: 0; padding-top: 0; }
+.file-list li code {
+  font-family: var(--mono); font-size: 11.5px;
+  color: var(--ink); white-space: nowrap;
+}
+.file-list li .desc {
+  font-family: var(--mono); font-size: 10.5px;
+  color: var(--ink-3); line-height: 1.4;
+}
+
+/* ============================================================
+   §06 MONITOR — live waveform rack
+============================================================ */
+.waveform-rack {
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-panel);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.wave-row {
+  display: grid;
+  grid-template-columns: 138px 1fr 110px;
+  height: 72px;
+  border-bottom: 1px solid var(--hair);
+}
+.wave-row:last-child { border-bottom: 0; }
+.wave-label {
+  padding: 0 14px;
+  display: flex; flex-direction: column; justify-content: center;
+  border-right: 1px solid var(--hair);
+  background: var(--card);
+}
+.wave-label .wl-name {
+  font-family: var(--mono); font-size: 11.5px;
+  color: var(--ink); font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.wave-label .wl-rate {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  margin-top: 4px;
+}
+.wave-canvas {
+  display: block;
+  width: 100%; height: 72px;
+  background: var(--card);
+}
+.wave-numeric {
+  padding: 0 14px;
+  display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center;
+  border-left: 1px solid var(--hair);
+  background: var(--card);
+}
+.wave-numeric .wn-num {
+  font-family: var(--mono); font-size: 24px;
+  font-weight: 620; line-height: 1;
+  letter-spacing: -0.005em;
+}
+.wave-numeric .wn-unit {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  margin-top: 5px;
+}
+.wave-numeric.ecg .wn-num   { color: var(--ok); }
+.wave-numeric.abp .wn-num   { color: var(--accent); }
+.wave-numeric.pleth .wn-num { color: var(--accent-2); }
+.wave-numeric.co2 .wn-num   { color: var(--amber); }
+
+.wave-caption {
+  margin: 0 0 14px;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-3); line-height: 1.55;
+  letter-spacing: 0.04em;
+}
+.wave-caption b { color: var(--ink); font-weight: 500; }
+
+/* ============================================================
+   §02 PI-CHART FLAGSHIP
+============================================================ */
+#chart .chart-flagship-grid {
+  display: grid; grid-template-columns: 1.25fr 1fr;
+  gap: 24px; align-items: start;
+}
+#chart .prototype-card,
+#chart .docket-card,
+#chart .question-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-panel);
+}
+#chart .prototype-card { padding: 14px; }
+#chart .card-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 9px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--hair);
+}
+#chart .card-head .k {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+#chart .card-head .stamp { font-size: 9px; }
+#chart .mini-cockpit {
+  border: 1px solid var(--line);
+  background: #f7f4ee;
+  min-height: 436px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+}
+#chart .mini-docband {
+  display: flex; justify-content: space-between; align-items: end;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+#chart .mini-docband b { color: var(--ink); font-weight: 620; }
+#chart .mini-patient {
+  display: grid; grid-template-columns: 1.35fr .8fr .9fr .7fr;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+#chart .mini-patient div {
+  padding: 9px 10px; border-right: 1px solid var(--hair);
+  min-height: 58px;
+}
+#chart .mini-patient div:last-child { border-right: 0; }
+#chart .mini-patient .k,
+#chart .mini-label {
+  display:block; font-family: var(--mono); font-size: 8.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 4px;
+}
+#chart .mini-patient .v {
+  font-family: var(--mono); font-size: 11px; color: var(--ink);
+}
+#chart .mini-patient .signal .v { color: var(--accent); font-weight: 620; }
+#chart .mini-layout {
+  display: grid; grid-template-columns: 116px minmax(0,1fr) 186px;
+  gap: 8px; padding: 8px; min-height: 300px;
+}
+#chart .mini-nav,
+#chart .mini-main,
+#chart .mini-rail {
+  border: 1px solid var(--line); background: var(--card);
+}
+#chart .mini-nav { padding: 8px 0; }
+#chart .mini-nav span {
+  display: block; padding: 5px 9px;
+  font-size: 10px; color: var(--ink-2);
+  border-left: 2px solid transparent;
+}
+#chart .mini-nav span.on { background: var(--paper-2); border-left-color: var(--ink); font-weight: 620; }
+#chart .mini-nav span.alert { color: var(--accent); }
+#chart .mini-main { padding: 10px; }
+#chart .mini-vitals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+#chart .mini-vital {
+  border: 1px solid var(--hair); padding: 7px 8px; min-height: 60px;
+  background: #fffdf9;
+}
+#chart .mini-vital.signal { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+#chart .mini-num { font-family: var(--mono); font-size: 18px; font-weight: 620; line-height: 1; }
+#chart .mini-timeline { border: 1px solid var(--hair); }
+#chart .mini-row {
+  display: grid; grid-template-columns: 42px 58px 1fr;
+  gap: 7px; padding: 6px 8px;
+  border-bottom: 1px solid var(--grid);
+  font-size: 10.5px; align-items: baseline;
+}
+#chart .mini-row:last-child { border-bottom: 0; }
+#chart .mini-row.signal { color: var(--accent); background: var(--accent-soft); }
+#chart .mini-row .time,
+#chart .mini-row .tag { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+#chart .mini-row.signal .time,
+#chart .mini-row.signal .tag { color: var(--accent); }
+#chart .mini-rail { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+#chart .artifact {
+  border: 1px solid var(--hair); padding: 8px; background: #fffdf9;
+  font-size: 11px; line-height: 1.4;
+}
+#chart .artifact.signal { border-color: var(--accent); background: var(--accent-soft); }
+#chart .artifact .state {
+  display:block; font-family:var(--mono); font-size:8.5px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;
+}
+#chart .mini-commit {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 10px; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+  background: var(--card);
+}
+#chart .mini-commit b { color: var(--ink); }
+#chart .flagship-copy {
+  margin: 12px 2px 0;
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+}
+#chart .flagship-copy b { color: var(--ink); font-weight: 620; }
+#chart .side-stack { display: grid; gap: 14px; }
+#chart .docket-card,
+#chart .question-card { padding: 14px 16px; }
+#chart .docket-list,
+#chart .question-list { list-style: none; margin: 0; padding: 0; }
+#chart .docket-list li,
+#chart .question-list li {
+  display: grid; grid-template-columns: 34px 1fr;
+  gap: 10px; padding: 10px 0;
+  border-top: 1px solid var(--hair);
+  font-size: 12.5px; line-height: 1.45; color: var(--ink-2);
+}
+#chart .docket-list li:first-child,
+#chart .question-list li:first-child { border-top: 0; padding-top: 0; }
+#chart .docket-list .n,
+#chart .question-list .n {
+  font-family: var(--mono); font-size: 10px; color: var(--accent);
+  letter-spacing: 0.06em;
+}
+#chart .docket-list b,
+#chart .question-list b {
+  display:block; color: var(--ink); font-weight: 620;
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 2px;
+}
+#chart .link-row { margin-top: 12px; flex-wrap: wrap; }
+
+/* ============================================================
+   §07 AGENT
+============================================================ */
+#agent .agent-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; align-items: start;
+}
+#agent .agent-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-panel);
+}
+#agent .agent-card .ph {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 9px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--hair);
+}
+#agent .agent-card h3 {
+  margin: 0; font-size: 16px; font-weight: 680; letter-spacing: -0.005em;
+}
+#agent .agent-card .ct {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+#agent .agent-card.shipped .ct { color: var(--ok); }
+#agent .agent-card.pending .ct { color: var(--amber); }
+#agent .item-list {
+  list-style: none; margin: 0; padding: 0;
+}
+#agent .item-list li {
+  display: grid; grid-template-columns: 22px 1fr;
+  gap: 8px; align-items: baseline;
+  padding: 9px 0;
+  border-top: 1px solid var(--hair);
+  font-size: 12.5px; line-height: 1.5; color: var(--ink-2);
+}
+#agent .item-list li:first-child { border-top: 0; padding-top: 0; }
+#agent .item-list li .n {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+#agent .item-list li b {
+  display: block; color: var(--ink); font-weight: 620;
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 2px;
+}
+#agent .honest-line {
+  margin-top: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  font-family: var(--mono); font-size: 12px;
+  color: var(--ink-2); line-height: 1.5;
+}
+#agent .honest-line b { color: var(--ink); font-weight: 620; }
+
+/* ============================================================
+   §08 PATH
+============================================================ */
+
+/* ============================================================
+   §09 CLOSING
+============================================================ */
+#contact .closing-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+#contact .ccard {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-panel);
+}
+#contact .ccard .ph {
+  padding-bottom: 9px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--hair);
+}
+#contact .ccard h3 {
+  margin: 0; font-size: 17px; font-weight: 680;
+}
+#contact .ccard .audience {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent); display: block; margin-bottom: 4px;
+}
+#contact .ccard p {
+  margin: 0;
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+}
+#contact .ccard p b { color: var(--ink); font-weight: 620; }
+
+/* ============================================================
+   FOOT
+============================================================ */
+.foot {
+  margin-top: 48px;
+  padding: 18px 0 28px;
+  border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.foot .l { display: flex; gap: 18px; align-items: baseline; }
+.foot .r { display: flex; gap: 18px; align-items: baseline; }
+.foot b { color: var(--ink); font-weight: 500; }
+.foot .pi { font-family: var(--mono); font-weight: 760; color: var(--ink); }
+
+/* citations */
+.cite {
+  font-family: var(--mono); font-size: 11px;
+  border-bottom: 1px dotted var(--ink-4); color: var(--ink-2);
+}
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     STICKY NAV
+================================================================ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#hero">
+      <span class="pi">π</span>-chart
+      <span class="crumb">v0.5 alpha showcase</span>
+    </a>
+    <div class="links">
+      <a href="#bet">the bet</a>
+      <a href="#chart">flagship</a>
+      <a href="#system">the system</a>
+      <a href="#ledger">the kernel</a>
+      <a href="#sim">runtime</a>
+      <a href="#path">the path</a>
+      <a href="#contact">contact</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+
+<!-- ================================================================
+     HERO
+================================================================ -->
+<section id="hero">
+  <div class="hero-watermark">π</div>
+
+  <div class="hero-head">
+    <h1>
+      <span class="pi">π</span>-chart is the flagship:<br/>
+      a clinical cockpit for <span class="accent">two readers</span>.
+    </h1>
+    <p class="lede">
+      <span class="pull">v0.5 alpha · chart-first clinical cockpit</span>
+      <span class="pi" style="font-family:var(--mono);font-weight:760;">π</span>-chart
+      is the product surface: a bedside chart, shift brain, evidence map,
+      and agent review workspace over durable clinical memory. The rest of
+      the project exists to make that surface trustworthy: ledger identity,
+      public simulator telemetry, display-only monitor reads, and agent drafts
+      that stop at clinician review.
+    </p>
+  </div>
+
+  <!-- patient bar -->
+  <div class="patient-bar">
+    <div class="cell">
+      <span class="k">patient</span>
+      <span class="v">patient_002</span>
+    </div>
+    <div class="cell">
+      <span class="k">encounter</span>
+      <span class="v">enc_p002_001</span>
+    </div>
+    <div class="cell">
+      <span class="k">chart clock</span>
+      <span class="v" id="hero-clock">09:30 CT</span>
+    </div>
+    <div class="cell">
+      <span class="k">scenario</span>
+      <span class="v">septic_shock_recovery</span>
+    </div>
+    <div class="cell">
+      <span class="k">scope</span>
+      <span class="v">pi-rn · public telemetry</span>
+    </div>
+    <div class="cell acuity">
+      <span class="k">acuity</span>
+      <span class="v" id="hero-acuity">WATCHER</span>
+    </div>
+  </div>
+
+  <!-- bedside monitor + agent rail -->
+  <div class="vitals-row">
+    <div class="waveform-rack">
+      <div class="wave-row">
+        <div class="wave-label">
+          <span class="wl-name">ECG &middot; II</span>
+          <span class="wl-rate">25 mm/s</span>
+        </div>
+        <canvas class="wave-canvas" data-wave="ecg"></canvas>
+        <div class="wave-numeric ecg">
+          <span class="wn-num" data-wave-num="hr">82</span>
+          <span class="wn-unit">bpm</span>
+        </div>
+      </div>
+      <div class="wave-row">
+        <div class="wave-label">
+          <span class="wl-name">ABP</span>
+          <span class="wl-rate">arterial</span>
+        </div>
+        <canvas class="wave-canvas" data-wave="abp"></canvas>
+        <div class="wave-numeric abp">
+          <span class="wn-num" data-wave-num="abp">118/72</span>
+          <span class="wn-unit">mmHg</span>
+        </div>
+      </div>
+      <div class="wave-row">
+        <div class="wave-label">
+          <span class="wl-name">PLETH</span>
+          <span class="wl-rate">SpO&#8322;</span>
+        </div>
+        <canvas class="wave-canvas" data-wave="pleth"></canvas>
+        <div class="wave-numeric pleth">
+          <span class="wn-num" data-wave-num="spo2">97</span>
+          <span class="wn-unit">%</span>
+        </div>
+      </div>
+      <div class="wave-row">
+        <div class="wave-label">
+          <span class="wl-name">CO&#8322;</span>
+          <span class="wl-rate">capnogram</span>
+        </div>
+        <canvas class="wave-canvas" data-wave="co2"></canvas>
+        <div class="wave-numeric co2">
+          <span class="wn-num" data-wave-num="co2">38</span>
+          <span class="wn-unit">mmHg</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- agent rail -->
+    <div class="agent-rail">
+      <div class="ar-head">
+        <span class="ar-label">pi-agent · workspace</span>
+        <span class="ar-state">monitoring</span>
+      </div>
+
+      <div class="ar-monitoring">
+        observing vitals · no draft pending
+      </div>
+
+      <div class="ar-draft">
+        <div>
+          <div class="draft-body">
+            <span class="l">spo2 trending 98 → 91 over 6 minutes</span>
+            <span class="l">rr 14 → 22, no documented intervention</span>
+            <span class="l">hr climbing, bp drifting down</span>
+            <span class="l">recommend: reassess airway, escalate to MD</span>
+            <span class="l evidence">evidence: vitals/timeline.jsonl 09:24–09:30</span>
+          </div>
+          <div class="draft-actions">
+            <span class="btn">discard</span>
+            <span class="btn primary">stage for review</span>
+          </div>
+        </div>
+        <div class="ar-caption">
+          agent action ends here. charting requires a clinician.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-foot">
+    <div class="l">
+      <span><b>live demo</b> · synthetic ECG · ABP · pleth · capnogram + vitals, generated client-side</span>
+      <span>scripted watcher event at t=45s · loops every 75s</span>
+    </div>
+    <div class="r">↓ scroll · the bet</div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §01 THE BET
+================================================================ -->
+<section id="bet">
+  <div class="section-rule">
+    <span class="label">§01 · <b>the bet</b></span>
+    <span class="right"><span>why this exists</span></span>
+  </div>
+
+  <h2>
+    Clinical memory is the<br/>
+    <span class="accent">durable bet</span>.
+  </h2>
+
+  <div class="bet-grid">
+    <div class="bet-prose">
+      <p>
+        Modern charts are mutable rows behind vendor APIs. Audit trails are an
+        afterthought. AI-drafted clinical content arrives with no native way
+        to prove what it said, when, about whom — only legal disclaimers and
+        opaque telemetry.
+      </p>
+      <p>
+        We bet the durable surface is <b>clinical memory itself</b>: a
+        provenance-rich, append-only event log that gives a clinician or an
+        agent enough observable context to understand what happened, why it
+        mattered, what evidence supports it, and what remains uncertain.
+      </p>
+      <p>
+        The agent operates under <b>partial observability</b>. It sees what
+        the bedside team would see — monitor output, EHR data, assessment
+        findings — and never the hidden physiology underneath. The same chart
+        serves both readers. The same provenance protects both decisions.
+      </p>
+    </div>
+
+    <div class="pull-card">
+      <span class="pull-label">design principle</span>
+      <div class="pull-line">
+        the chart is canonical
+        <span class="sep">·</span>
+        current state is a query
+        <span class="sep">·</span>
+        derived summaries are disposable
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §02 PI-CHART FLAGSHIP
+================================================================ -->
+<section id="chart">
+  <div class="section-rule">
+    <span class="label">§02 · <b>pi-chart</b> · flagship v0.5 alpha</span>
+    <span class="right">
+      <span class="stamp warn">V0.5 ALPHA · COCKPIT FIRST</span>
+    </span>
+  </div>
+
+  <div class="sub-head">
+    <h2>The chart is the product.<br/>The agent is a <span class="accent">guest</span> in it.</h2>
+    <p class="sub-lede">
+      v0.5 alpha points pi-chart at a concrete surface: the clinical cockpit
+      plus Agent Canvas. It should help a bedside RN answer what changed,
+      what matters now, what evidence supports it, what remains open, and
+      which agent-drafted artifacts are safe to review.
+    </p>
+  </div>
+
+  <div class="chart-flagship-grid">
+    <div class="prototype-card">
+      <div class="card-head">
+        <span class="k">runnable product reference · v0.5 cockpit scaffold</span>
+        <span class="stamp warn">DIRECTIONAL · NOT AUTHORITY</span>
+      </div>
+
+      <div class="mini-cockpit" aria-label="pi-chart v0.5 cockpit scaffold preview">
+        <div class="mini-docband">
+          <span><b>π-chart</b> · cycle 0.5-12 · LIVE</span>
+          <span>as of <b>14:54:31</b></span>
+        </div>
+        <div class="mini-patient">
+          <div><span class="k">patient</span><span class="v">patient_002</span></div>
+          <div class="signal"><span class="k">acuity</span><span class="v">WATCHER</span></div>
+          <div><span class="k">encounter</span><span class="v">enc_p002_001</span></div>
+          <div><span class="k">gate</span><span class="v">RN SIGN</span></div>
+        </div>
+        <div class="mini-layout">
+          <div class="mini-nav">
+            <span class="on">Vitals</span>
+            <span class="alert">Labs</span>
+            <span>MAR</span>
+            <span>Notes</span>
+            <span>Orders</span>
+            <span>I&O</span>
+            <span>Events</span>
+          </div>
+          <div class="mini-main">
+            <div class="mini-vitals">
+              <div class="mini-vital"><span class="mini-label">HR</span><span class="mini-num">112</span></div>
+              <div class="mini-vital signal"><span class="mini-label">SpO₂</span><span class="mini-num">89%</span></div>
+              <div class="mini-vital signal"><span class="mini-label">RR</span><span class="mini-num">30</span></div>
+              <div class="mini-vital"><span class="mini-label">MAP</span><span class="mini-num">92</span></div>
+            </div>
+            <div class="mini-timeline">
+              <div class="mini-row signal"><span class="time">09:30</span><span class="tag">VITALS</span><span>SpO₂ 89 · RR 30 · watcher trigger</span></div>
+              <div class="mini-row"><span class="time">09:25</span><span class="tag">LAB</span><span>ABG/lactate resulted · evidence linked</span></div>
+              <div class="mini-row"><span class="time">09:20</span><span class="tag">NOTE</span><span>work-of-breathing note · source visible</span></div>
+              <div class="mini-row"><span class="time">09:10</span><span class="tag">ACTION</span><span>O₂ increased · reassess loop open</span></div>
+            </div>
+          </div>
+          <div class="mini-rail">
+            <div class="artifact signal"><span class="state">draft · needs review</span>SBAR respiratory escalation draft</div>
+            <div class="artifact"><span class="state">staged</span>handoff addendum with source refs</div>
+            <div class="artifact"><span class="state">blocked</span>MAR action requires scan + RN attestation</div>
+          </div>
+        </div>
+        <div class="mini-commit">
+          <span>chat is process · chartable output lands in scratchpad</span>
+          <span><b>chart 2 · sign</b></span>
+        </div>
+      </div>
+
+      <p class="flagship-copy">
+        This is the v0.5 alpha north star: a <b>chart-first cockpit</b>, not
+        a generic AI chat app. The prototype is static and fixture-backed,
+        but it captures the durable interaction contract: public telemetry
+        feeds vitals, chart projections organize clinical memory, and
+        pi-agent output remains draft material until a clinician commits it.
+      </p>
+      <div class="link-row">
+        <a href="../pi-chart/docs/prototypes/v0-5-cockpit/index.html"><span class="arrow">→</span> open v0.5 cockpit prototype</a>
+        <a href="../pi-chart/docs/design/v0-5-design-system/README.md"><span class="arrow">→</span> design system</a>
+      </div>
+    </div>
+
+    <div class="side-stack">
+      <div class="docket-card">
+        <div class="card-head">
+          <span class="k">what is on deck for v0.5 alpha</span>
+          <span class="stamp warn">DOCKET</span>
+        </div>
+        <ul class="docket-list">
+          <li><span class="n">01</span><div><b>stabilize the cockpit language</b> Preserve paper/scratchpad visual grammar, patient strip, vitals, timeline, evidence drill-down, and Agent Canvas review rail.</div></li>
+          <li><span class="n">02</span><div><b>prove the ledger kernel</b> Canonical bytes, record hash, append-only sequence, predicate admission, and bitemporal read live in pi-ledger.</div></li>
+          <li><span class="n">03</span><div><b>bridge chart to ledger</b> pi-chart consumes pi-ledger through an adapter only after kernel evidence and readiness gates are green.</div></li>
+          <li><span class="n">04</span><div><b>fill the broad EHR skeleton</b> Flowsheets/vitals, nursing assessment, notes, orders/MAR, labs/diagnostics, care plan, open loops, and handoff.</div></li>
+          <li><span class="n">05</span><div><b>wire public telemetry</b> pi-sim stays hidden; pi-monitor and chart-side adapters read only the public telemetry lane.</div></li>
+          <li><span class="n">06</span><div><b>ship human-reviewed agent drafts</b> Agent output becomes proposed chart material, source-linked and review-gated. No silent accepted writes.</div></li>
+        </ul>
+      </div>
+
+      <div class="question-card">
+        <div class="card-head">
+          <span class="k">clinical questions v0.5 must answer</span>
+        </div>
+        <ul class="question-list">
+          <li><span class="n">Q1</span><div><b>orient</b> Who is this patient, encounter, clock, and current safety frame?</div></li>
+          <li><span class="n">Q2</span><div><b>trajectory</b> What changed physiologically, and what source proves it?</div></li>
+          <li><span class="n">Q3</span><div><b>obligations</b> What is due, overdue, blocked, or clinically risky?</div></li>
+          <li><span class="n">Q4</span><div><b>evidence</b> Which notes, labs, vitals, actions, and reviews support the current story?</div></li>
+          <li><span class="n">Q5</span><div><b>review boundary</b> What can pi-agent draft, and what must a clinician sign?</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §03 THE SYSTEM
+================================================================ -->
+<section id="system">
+  <div class="section-rule">
+    <span class="label">§03 · <b>the system</b></span>
+    <span class="right"><span>flagship first · supporting seams</span></span>
+  </div>
+
+  <div class="bar">
+    <div class="cell">
+      <span class="k">flagship</span>
+      <div class="name">pi-chart</div>
+      <div class="role">chart / EHR truth substrate</div>
+    </div>
+    <div class="cell">
+      <span class="k">kernel</span>
+      <div class="name">pi-ledger</div>
+      <div class="role">cryptographic claim identity</div>
+    </div>
+    <div class="cell">
+      <span class="k">runtime</span>
+      <div class="name">pi-sim</div>
+      <div class="role">hidden patient · public telemetry</div>
+    </div>
+    <div class="cell">
+      <span class="k">consumer</span>
+      <div class="name">pi-monitor</div>
+      <div class="role">display-only contract enforcement</div>
+    </div>
+    <div class="cell">
+      <span class="k">workspace</span>
+      <div class="name">pi-agent</div>
+      <div class="role">bounded clinician-agent surface</div>
+    </div>
+  </div>
+
+  <div class="system-grid">
+    <pre class="boundary">pi-sim hidden runtime
+  └─ public telemetry contract owned producer-side
+       ├─ pi-monitor reads display-only telemetry
+       ├─ pi-chart may ingest public telemetry through explicit adapters
+       └─ pi-agent may read only explicitly exposed clinical surfaces
+
+pi-chart chart / EHR truth
+  ├─ cockpit · flowsheets · timeline · open loops · evidence · handoff
+  ├─ consumes pi-ledger through explicit adapters when kernel is ready
+  ├─ consumes public telemetry through explicit adapters when charting seam is ready
+  └─ exposes bounded context to pi-agent
+
+pi-ledger cryptographic claim-ledger kernel
+  └─ reusable canonicalization · hash · append-order · bitemporal primitives
+
+pi-agent bounded workspace
+  └─ drafts proposals against chart-visible context; clinician commits</pre>
+
+    <div class="seam-rules">
+      <div class="seam">
+        <span class="k">seam · public contract</span>
+        <div class="v"><b>pi-sim publishes; pi-monitor and pi-chart consume.</b> The producer owns the schema; consumers measure themselves against it.</div>
+      </div>
+      <div class="seam">
+        <span class="k">seam · ledger adapter</span>
+        <div class="v"><b>pi-chart consumes pi-ledger through explicit adapters.</b> The kernel never imports chart, patient, or UI assumptions.</div>
+      </div>
+      <div class="seam">
+        <span class="k">seam · agent boundary</span>
+        <div class="v"><b>pi-agent sees only what bedside sees.</b> Hidden physiology, scenario state, and validation oracles stay private.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §04 PI-LEDGER
+================================================================ -->
+<section id="ledger">
+  <div class="section-rule">
+    <span class="label">§04 · <b>pi-ledger</b> · supporting kernel</span>
+    <span class="right">
+      <span class="stamp warn">KERNEL · ACTIVE BUILDOUT</span>
+    </span>
+  </div>
+
+  <div class="sub-head">
+    <h2>Identity is <span class="accent">cryptographic</span>.</h2>
+    <p class="sub-lede">
+      Every clinical claim becomes deterministic bytes, then a
+      <span class="cite">sha256:&lt;hex&gt;</span> record hash, then an
+      append-only ledger entry. pi-chart, the agent, and any future access
+      surface stand on the same identity guarantee.
+    </p>
+  </div>
+
+  <div class="path-wrap" style="margin-bottom: 14px;">
+    <div class="path-grid cols-6">
+      <div class="step done">
+        <span class="num">canonical bytes</span>
+        <span class="title">deterministic representation of any claim</span>
+        <span class="state">module · live</span>
+      </div>
+      <div class="step done">
+        <span class="num">record hash</span>
+        <span class="title">tamper-evident identity · sha256:&lt;hex&gt;</span>
+        <span class="state">module · live</span>
+      </div>
+      <div class="step done">
+        <span class="num">claim shape</span>
+        <span class="title">smallest acceptable shape, validated</span>
+        <span class="state">module · live</span>
+      </div>
+      <div class="step done">
+        <span class="num">append ledger</span>
+        <span class="title">patient-scoped, hash-chained, append-only</span>
+        <span class="state">module · live</span>
+      </div>
+      <div class="step done">
+        <span class="num">predicate registry</span>
+        <span class="title">vocabulary of clinical claims · admitted by policy</span>
+        <span class="state">module · live</span>
+      </div>
+      <div class="step done">
+        <span class="num">bitemporal read</span>
+        <span class="title">what was true at X, as known at Y</span>
+        <span class="state">module · live</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="prose-card">
+    <span class="kicker">why a separate kernel</span>
+    <p>
+      The cryptographic substrate is built as a <b>sibling subproject</b>, not
+      a feature of the chart. The chart, the agent harness, a future access
+      plane, and any future runtime stand on the same identity guarantee
+      &mdash; and a TypeScript port, a WASM build, or a CLI binding can
+      prove it agrees with the kernel by matching one golden hash.
+    </p>
+    <p>
+      Same claim &rarr; same bytes &rarr; same hash. Across runs, machines,
+      and implementations. The kernel is hardening across multiple axes
+      &mdash; tighter type guarantees, stricter time semantics, cleaner
+      separation between clinical vocabulary policy and append &mdash; while
+      the foundational identity guarantees stay stable.
+    </p>
+
+    <div class="link-row">
+      <a href="../pi-ledger/docs/k0-overview.html"><span class="arrow">→</span> deeper · canonicalization</a>
+      <a href="../pi-ledger/docs/k2-overview.html"><span class="arrow">→</span> deeper · record hash &amp; golden vectors</a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §05 PI-SIM
+================================================================ -->
+<section id="sim">
+  <div class="section-rule">
+    <span class="label">§05 · <b>pi-sim</b> · hidden runtime</span>
+    <span class="right">
+      <span class="stamp ok">RUNTIME · STABLE</span>
+    </span>
+  </div>
+
+  <div class="sub-head">
+    <h2>The patient is <span class="accent">hidden</span>.<br/>Only telemetry is public.</h2>
+    <p class="sub-lede">
+      A scenario-driven simulator generates synthetic ICU encounters &mdash;
+      vitals, alarms, assessment findings &mdash; while keeping ground truth
+      private. Consumers see what a bedside team would see. Nothing more.
+    </p>
+  </div>
+
+  <div class="example">
+    <div class="col">
+      <span class="k">01 · hidden runtime</span>
+      <h3>What stays private.</h3>
+      <p>
+        Provider routing, scenario time, latent physiology, validation
+        oracles. The Pulse provider runs under a Docker shim; a scripted
+        provider runs Docker-free for tests and demos.
+      </p>
+      <p>
+        <b>Not exported. Not inspectable.</b> Sibling consumers must never
+        import <span class="cite">scripts/</span> or <span class="cite">pulse/</span>.
+      </p>
+    </div>
+
+    <div class="col center">
+      <span class="k">02 · public contract</span>
+      <h3>What every consumer sees.</h3>
+      <ul class="file-list">
+        <li>
+          <code>vitals/current.json</code>
+          <span class="desc">latest scalar frame · hr · spo2 · rr · bp · temp · etco2</span>
+        </li>
+        <li>
+          <code>vitals/timeline.jsonl</code>
+          <span class="desc">append-friendly history of frames</span>
+        </li>
+        <li>
+          <code>vitals/events.jsonl</code>
+          <span class="desc">actions · alarms · assessment requests</span>
+        </li>
+        <li>
+          <code>vitals/waveforms/</code>
+          <span class="desc">optional ECG · ABP · pleth · capnogram</span>
+        </li>
+        <li>
+          <code>encounter/current.json</code>
+          <span class="desc">identity · phase · scenario context</span>
+        </li>
+        <li>
+          <code>assessments/current.json</code>
+          <span class="desc">reveal-only findings, after request</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <span class="k">03 · the bet</span>
+      <h3>Why partial observability.</h3>
+      <p>
+        Real clinicians learn from incomplete information &mdash; what a
+        monitor shows, what a nurse observes on bedside exam, what arrives
+        async from labs. Real patient data is legally fenced; static synthetic
+        data is too thin.
+      </p>
+      <p>
+        pi-sim generates <b>coherent, strategically-timed encounters</b>
+        where ground truth stays hidden for blind validation. Demo scenario:
+        <span class="cite">patient_002_septic_shock_recovery</span> &mdash;
+        64 hours of trajectory, scriptable from minute one.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §06 PI-MONITOR
+================================================================ -->
+<section id="monitor">
+  <div class="section-rule">
+    <span class="label">§06 · <b>pi-monitor</b> · display-only consumer</span>
+    <span class="right">
+      <span class="stamp ok">RUST · DISPLAY LAYER · SHIPPED</span>
+    </span>
+  </div>
+
+  <div class="sub-head">
+    <h2>The monitor <span class="accent">reads</span>.<br/>It does not write.</h2>
+    <p class="sub-lede">
+      The bedside monitor at the top of this page is an illustration of
+      what pi-monitor renders &mdash; a native Rust display layer that
+      consumes the public telemetry contract and shows vitals, waveforms,
+      and alarms in a terminal, a static HTML snapshot, or a kiosk window.
+      No chart truth. No simulator mutation.
+    </p>
+  </div>
+
+  <div class="prose-card">
+    <p>
+      A display-only consumer is the <b>reference enforcement</b> of the
+      public contract. By owning only presentation, pi-monitor proves the
+      producer can be used independently and forces early detection of schema
+      drift, freshness gaps, and waveform availability holes &mdash; before
+      any chart-side adapter has to absorb them.
+    </p>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §07 PI-AGENT
+================================================================ -->
+<section id="agent">
+  <div class="section-rule">
+    <span class="label">§07 · <b>pi-agent</b> · draft workspace inside the chart</span>
+    <span class="right">
+      <span class="stamp warn">ALPHA TARGET · REVIEW-GATED</span>
+    </span>
+  </div>
+
+  <div class="sub-head">
+    <h2>The agent does not replace the chart.<br/>It <span class="accent">works inside</span> chart memory.</h2>
+    <p class="sub-lede">
+      For v0.5 alpha, pi-agent is presented through the Agent Canvas: a bounded
+      workbench for organizing context, drafting handoff/SBAR/addenda, and
+      surfacing open loops. The chart remains canonical. Drafts become chart
+      truth only through clinician review and commit.
+    </p>
+  </div>
+
+  <div class="agent-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+    <div class="agent-card shipped">
+      <div class="ph">
+        <h3>What the agent reads</h3>
+        <span class="ct">bounded context</span>
+      </div>
+      <ul class="item-list">
+        <li><span class="n">01</span><div><b>current safety frame</b> Patient, encounter, as-of chart clock, active constraints, watcher state, and open obligations.</div></li>
+        <li><span class="n">02</span><div><b>source-linked projections</b> Timeline, trend, evidence chain, open loops, narrative, and future ledger-backed ContextPacket surfaces.</div></li>
+        <li><span class="n">03</span><div><b>public observations only</b> Monitor telemetry and charted bedside findings. No hidden simulator physiology, scenario oracle, or raw patient-directory spelunking.</div></li>
+        <li><span class="n">04</span><div><b>freshness boundaries</b> If vitals shift or source claims are revised, draft artifacts become stale instead of silently staying trusted.</div></li>
+      </ul>
+    </div>
+
+    <div class="agent-card pending">
+      <div class="ph">
+        <h3>What the agent creates</h3>
+        <span class="ct">scratchpad artifacts</span>
+      </div>
+      <ul class="item-list">
+        <li><span class="n">01</span><div><b>handoff draft</b> A source-linked summary of what changed, what is open, and what the next clinician must watch.</div></li>
+        <li><span class="n">02</span><div><b>SBAR / escalation draft</b> Structured communication that cites vitals, labs, notes, and active obligations.</div></li>
+        <li><span class="n">03</span><div><b>review prompts</b> “This result is unreviewed,” “this reassessment loop is due,” “this medication action is blocked by scan/attestation.”</div></li>
+        <li><span class="n">04</span><div><b>not final clinical write</b> Generated output is a proposal. The Chart / sign gate belongs to the clinician-facing chart workflow.</div></li>
+      </ul>
+    </div>
+
+    <div class="agent-card pending">
+      <div class="ph">
+        <h3>What remains blocked</h3>
+        <span class="ct">safety boundary</span>
+      </div>
+      <ul class="item-list">
+        <li><span class="n">01</span><div><b>no direct accepted writes</b> The alpha path deliberately avoids silent agent mutation of chart truth.</div></li>
+        <li><span class="n">02</span><div><b>no MAR administration</b> Medication administration stays behind bedside scan, patient scan / two-ID workflow, and RN attestation.</div></li>
+        <li><span class="n">03</span><div><b>no hidden-state advantage</b> The harness only works if the agent sees what the bedside team could see.</div></li>
+        <li><span class="n">04</span><div><b>no separate clinical memory</b> Long-horizon context routes back through chart memory and future ledger-backed packets, not an opaque side database.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="honest-line">
+    <b>Alpha stance:</b> pi-agent is valuable because pi-chart makes it safe to
+    be useful. The showcase should sell the chart cockpit first: source-linked
+    clinical memory, then review-gated agent assistance.
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §08 THE PATH
+================================================================ -->
+<section id="path">
+  <div class="section-rule">
+    <span class="label">§08 · <b>the path</b></span>
+    <span class="right"><span>v0.5 alpha · chart-first sequence</span></span>
+  </div>
+
+  <div class="sub-head">
+    <h2>The path to <span class="accent">v0.5 alpha</span>.</h2>
+    <p class="sub-lede">
+      The sequence is chart-first: keep the cockpit concrete, prove the
+      ledger underneath, then connect public telemetry and agent review
+      without violating hidden-state or clinician-signature boundaries.
+    </p>
+  </div>
+
+  <div class="path-wrap">
+    <div class="path-grid cols-6">
+      <div class="step now">
+        <span class="num">01 · NOW</span>
+        <span class="title">pi-chart v0.5 cockpit · reviewable flagship prototype</span>
+        <span class="state">live reference</span>
+      </div>
+      <div class="step next">
+        <span class="num">02 · NEXT</span>
+        <span class="title">pi-ledger K0-K6 · canonical claim identity</span>
+        <span class="state">active kernel</span>
+      </div>
+      <div class="step">
+        <span class="num">03</span>
+        <span class="title">pi-chart ↔ pi-ledger adapter · read/projection proof</span>
+        <span class="state">gated</span>
+      </div>
+      <div class="step">
+        <span class="num">04</span>
+        <span class="title">public telemetry lane · monitor + chart consumer seams</span>
+        <span class="state">queued</span>
+      </div>
+      <div class="step">
+        <span class="num">05</span>
+        <span class="title">pi-agent alpha · draft workspace over ContextPacket</span>
+        <span class="state">queued</span>
+      </div>
+      <div class="step">
+        <span class="num">06</span>
+        <span class="title">clinical shadow demo · draft → review → committed proof</span>
+        <span class="state">queued</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     §09 CONTACT
+================================================================ -->
+<section id="contact">
+  <div class="section-rule">
+    <span class="label">§09 · <b>three conversations</b></span>
+    <span class="right"><span>who this is for</span></span>
+  </div>
+
+  <div class="sub-head">
+    <h2>Three conversations <span class="accent">we want</span> to have.</h2>
+    <p class="sub-lede">
+      The substrate work is public. The pitch is not the deck &mdash; it is
+      the artifacts the deck links to. Pull them, push back, sit down.
+    </p>
+  </div>
+
+  <div class="closing-grid">
+    <div class="ccard">
+      <div class="ph">
+        <span class="audience">clinicians</span>
+        <h3>Sit with us for an afternoon.</h3>
+      </div>
+      <p>
+        Show us the two charts you keep open. Show us the workflow that
+        wastes the most time. The substrate is built to absorb your honest
+        answer, not a polished requirement doc.
+      </p>
+    </div>
+    <div class="ccard">
+      <div class="ph">
+        <span class="audience">investors</span>
+        <h3>Talk substrate, not surface.</h3>
+      </div>
+      <p>
+        The demo is pi-chart. The moat is the memory substrate underneath it:
+        public telemetry, cryptographic claim identity, and review-gated
+        agent output. Ask how the chart becomes the durable product.
+      </p>
+    </div>
+    <div class="ccard">
+      <div class="ph">
+        <span class="audience">engineers · advisors</span>
+        <h3>The kernels are public.</h3>
+      </div>
+      <p>
+        Pull the kernel deep-dives. Walk the boundary map. Push back on the
+        seams. The contracts are load-bearing &mdash; we want them
+        stress-tested.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<footer class="foot">
+  <div class="l">
+    <span><span class="pi">π</span>-chart · agent-native clinical memory</span>
+  </div>
+  <div class="r">
+    <span>artifact <b>v0.5 cockpit</b></span>
+    <span>repo <b>pi-rn</b></span>
+  </div>
+</footer>
+
+</main>
+
+<!-- ================================================================
+     STREAMING VITALS DEMO ENGINE
+     vanilla js · 2s tick · 75s loop · scripted watcher arc
+================================================================ -->
+<script>
+(() => {
+  const SEED = { hr: 84, spo2: 98, rr: 14, bp_sys: 118, bp_dia: 72, temp_c: 36.9, etco2: 38 };
+  const HISTORY_KEYS = ['hr', 'spo2', 'rr', 'bp_sys', 'temp_c'];
+  const TILES = [
+    { key: 'hr',     fmt: s => s.hr.toFixed(0),                                 alert: s => s.hr > 120 || s.hr < 50 },
+    { key: 'spo2',   fmt: s => s.spo2.toFixed(0),                               alert: s => s.spo2 < 92 },
+    { key: 'rr',     fmt: s => s.rr.toFixed(0),                                 alert: s => s.rr > 22 || s.rr < 10 },
+    { key: 'bp_sys', fmt: s => `${s.bp_sys.toFixed(0)}/${s.bp_dia.toFixed(0)}`, alert: s => s.bp_sys < 95 },
+    { key: 'temp_c', fmt: s => s.temp_c.toFixed(1),                             alert: s => s.temp_c > 38.5 }
+  ];
+
+  let state = Object.assign({}, SEED);
+  let history = {}; for (const k of HISTORY_KEYS) history[k] = [];
+  let tick = 0;
+  let phase = 'baseline';
+  let alertShown = false;
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const j = r => (Math.random() - 0.5) * r;
+
+  function jitter() {
+    state.hr     += j(2);
+    state.spo2   += j(0.4);
+    state.rr     += j(0.3);
+    state.bp_sys += j(2);
+    state.bp_dia += j(1.5);
+    state.temp_c += j(0.05);
+    state.etco2  += j(0.5);
+
+    if (phase === 'drift' || phase === 'alert') {
+      state.spo2   -= 0.32;
+      state.rr     += 0.18;
+      state.hr     += 0.55;
+      state.bp_sys -= 0.7;
+      state.bp_dia -= 0.45;
+      state.etco2  -= 0.45;
+    }
+
+    state.hr     = clamp(state.hr,     50, 160);
+    state.spo2   = clamp(state.spo2,   80, 100);
+    state.rr     = clamp(state.rr,      8,  35);
+    state.bp_sys = clamp(state.bp_sys, 70, 200);
+    state.bp_dia = clamp(state.bp_dia, 40, 110);
+    state.temp_c = clamp(state.temp_c, 35.5, 39.5);
+    state.etco2  = clamp(state.etco2,  18,  60);
+  }
+
+  function pushHistory() {
+    for (const k of HISTORY_KEYS) {
+      history[k].push(state[k]);
+      if (history[k].length > 30) history[k].shift();
+    }
+  }
+
+  function renderTiles() {
+    for (const t of TILES) {
+      const el = document.querySelector(`[data-tile="${t.key}"]`);
+      if (!el) continue;
+      el.querySelector('.vt-num').textContent = t.fmt(state);
+      el.classList.toggle('alert', t.alert(state));
+    }
+  }
+
+  function renderSparklines() {
+    for (const t of TILES) {
+      const el = document.querySelector(`[data-tile="${t.key}"] .vt-spark polyline`);
+      if (!el) continue;
+      const h = history[t.key];
+      if (h.length < 2) { el.setAttribute('points', ''); continue; }
+      let min = Infinity, max = -Infinity;
+      for (const v of h) { if (v < min) min = v; if (v > max) max = v; }
+      const range = Math.max(max - min, 0.1);
+      const w = 100, ht = 32;
+      let pts = '';
+      for (let i = 0; i < h.length; i++) {
+        const x = (i / (h.length - 1)) * w;
+        const y = ht - ((h[i] - min) / range) * (ht - 4) - 2;
+        pts += `${x.toFixed(1)},${y.toFixed(1)} `;
+      }
+      el.setAttribute('points', pts.trim());
+    }
+  }
+
+  function renderHeader() {
+    const acuity = document.getElementById('hero-acuity');
+    if (!acuity) return;
+    if (phase === 'alert') {
+      acuity.textContent = 'CRITICAL';
+      acuity.style.color = 'var(--accent)';
+    } else if (phase === 'drift') {
+      acuity.textContent = 'WATCHER';
+      acuity.style.color = 'var(--accent)';
+    } else {
+      acuity.textContent = 'STABLE';
+      acuity.style.color = 'var(--ok)';
+    }
+  }
+
+  function showAgentDraft() {
+    alertShown = true;
+    const rail = document.querySelector('.agent-rail');
+    if (rail) rail.classList.add('staged');
+  }
+
+  function hideAgentDraft() {
+    alertShown = false;
+    const rail = document.querySelector('.agent-rail');
+    if (rail) rail.classList.remove('staged');
+  }
+
+  function resetState() {
+    state = Object.assign({}, SEED);
+    for (const k of HISTORY_KEYS) history[k] = [];
+    hideAgentDraft();
+    // pre-warm so sparklines aren't empty
+    for (let i = 0; i < 18; i++) { jitter(); pushHistory(); }
+  }
+
+  // ============================================================
+  // WAVEFORM SYNTHESIS — minimal but believable bedside traces
+  // ============================================================
+  function gauss(p, c, w) {
+    const d = (p - c) / w;
+    return Math.exp(-d * d);
+  }
+
+  function ecgWave(t, hr) {
+    const cyc = 60 / Math.max(hr, 30);
+    const p = (t % cyc) / cyc;
+    let v = 0;
+    v += 0.15 * gauss(p, 0.10, 0.025);   // P
+    v -= 0.40 * gauss(p, 0.20, 0.012);   // Q
+    v += 1.20 * gauss(p, 0.22, 0.013);   // R
+    v -= 0.50 * gauss(p, 0.25, 0.012);   // S
+    v += 0.30 * gauss(p, 0.50, 0.06);    // T
+    return v;
+  }
+
+  function abpWave(t, hr) {
+    const cyc = 60 / Math.max(hr, 30);
+    const p = (t % cyc) / cyc;
+    const upstroke = gauss(p, 0.15, 0.06);
+    const dicrotic = 0.25 * gauss(p, 0.40, 0.07);
+    const decline = Math.max(0, 1 - p * 1.4);
+    return ((upstroke + dicrotic) * decline) * 0.85 + 0.05;
+  }
+
+  function plethWave(t, hr, spo2) {
+    const cyc = 60 / Math.max(hr, 30);
+    const p = (t % cyc) / cyc;
+    const upstroke = gauss(p, 0.18, 0.10);
+    const second = 0.4 * gauss(p, 0.45, 0.18);
+    const decline = Math.max(0, 1 - p * 1.2);
+    // SpO2 falls -> perfusion drops -> smaller pleth amplitude
+    const ampScale = Math.max(0.35, (spo2 - 88) / 12);
+    return ((upstroke + second) * decline) * ampScale * 0.65 + 0.08;
+  }
+
+  function co2Wave(t, rr) {
+    const cyc = 60 / Math.max(rr, 5);
+    const p = (t % cyc) / cyc;
+    if (p < 0.05) return 0.05 + (p / 0.05) * 0.65;            // upstroke
+    if (p < 0.50) return 0.70 + (p - 0.05) * 0.10;            // alveolar plateau
+    if (p < 0.60) return 0.745 - ((p - 0.50) / 0.10) * 0.69;  // inspiration drop
+    return 0.05;                                              // baseline
+  }
+
+  // ============================================================
+  // WAVEFORM CHANNEL — Canvas sweep renderer
+  // ============================================================
+  class Waveform {
+    constructor(canvas, color, gen, opts) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.color = color;
+      this.gen = gen;
+      this.amplitude = opts.amplitude || 0.4;
+      this.offset = opts.offset || 0;
+      this.pxPerSec = opts.pxPerSec || 150;
+      this.lastFrame = performance.now() / 1000;
+      this.cursor = 0;
+      this.buffer = null;
+      this.w = 0; this.h = 0; this.bufferSize = 0;
+      this.resize();
+    }
+
+    resize() {
+      const rect = this.canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      this.canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+      this.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.w = rect.width;
+      this.h = rect.height;
+      this.bufferSize = Math.max(2, Math.floor(this.w));
+      this.buffer = new Float32Array(this.bufferSize);
+      this.cursor = 0;
+    }
+
+    tick(now) {
+      if (!this.buffer) this.resize();
+      const tNow = now / 1000;
+      const dt = Math.max(0, Math.min(0.1, tNow - this.lastFrame));
+      this.lastFrame = tNow;
+      let n = Math.floor(dt * this.pxPerSec);
+      if (n < 1) return;
+      if (n > this.bufferSize / 2) n = Math.floor(this.bufferSize / 2);
+
+      for (let i = 0; i < n; i++) {
+        const sampleTime = tNow - (n - i - 1) / this.pxPerSec;
+        this.buffer[this.cursor] = this.gen(sampleTime);
+        this.cursor = (this.cursor + 1) % this.bufferSize;
+      }
+      this.render();
+    }
+
+    render() {
+      const ctx = this.ctx;
+      ctx.clearRect(0, 0, this.w, this.h);
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      const yMid = this.h / 2 + this.h * this.offset;
+      const ampPx = this.h * this.amplitude;
+      const gap = 14;
+
+      // segment 1 — [0..cursor)
+      if (this.cursor > 1) {
+        ctx.beginPath();
+        ctx.moveTo(0, yMid - this.buffer[0] * ampPx);
+        for (let i = 1; i < this.cursor; i++) {
+          ctx.lineTo(i, yMid - this.buffer[i] * ampPx);
+        }
+        ctx.stroke();
+      }
+
+      // segment 2 — [cursor+gap..end)
+      const start = this.cursor + gap;
+      if (start < this.bufferSize - 1) {
+        ctx.beginPath();
+        ctx.moveTo(start, yMid - this.buffer[start] * ampPx);
+        for (let i = start + 1; i < this.bufferSize; i++) {
+          ctx.lineTo(i, yMid - this.buffer[i] * ampPx);
+        }
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Optional live wiring (uncomment if a checked-out repo + running pi-sim is available):
+  // const FROM = '../pi-sim/vitals/current.json';
+  // setInterval(() => {
+  //   fetch(FROM).then(r => r.json()).then(frame => {
+  //     state.hr = frame.hr; state.spo2 = frame.spo2; state.rr = frame.rr;
+  //     state.bp_sys = frame.bp_sys; state.bp_dia = frame.bp_dia; state.temp_c = frame.temp_c;
+  //     pushHistory(); renderTiles(); renderSparklines();
+  //   }).catch(() => {});
+  // }, 1000);
+
+  // Pre-warm baseline so first paint isn't flat
+  for (let i = 0; i < 18; i++) { jitter(); pushHistory(); }
+  renderTiles(); renderSparklines(); renderHeader();
+
+  // ============================================================
+  // INIT WAVEFORM CHANNELS + animation loop
+  // ============================================================
+  const COLORS = {
+    ecg:   '#3d7c56',  // --ok
+    abp:   '#b3402f',  // --accent
+    pleth: '#315f63',  // --accent-2
+    co2:   '#bd7808'   // --amber
+  };
+  const waves = [];
+  const ecgEl   = document.querySelector('[data-wave="ecg"]');
+  const abpEl   = document.querySelector('[data-wave="abp"]');
+  const plethEl = document.querySelector('[data-wave="pleth"]');
+  const co2El   = document.querySelector('[data-wave="co2"]');
+
+  if (ecgEl)   waves.push(new Waveform(ecgEl,   COLORS.ecg,   t => ecgWave(t, state.hr),               { amplitude: 0.30, offset: 0.05, pxPerSec: 160 }));
+  if (abpEl)   waves.push(new Waveform(abpEl,   COLORS.abp,   t => abpWave(t, state.hr),               { amplitude: 0.55, offset: 0.20, pxPerSec: 160 }));
+  if (plethEl) waves.push(new Waveform(plethEl, COLORS.pleth, t => plethWave(t, state.hr, state.spo2), { amplitude: 0.55, offset: 0.20, pxPerSec: 160 }));
+  if (co2El)   waves.push(new Waveform(co2El,   COLORS.co2,   t => co2Wave(t, state.rr),               { amplitude: 0.55, offset: 0.25, pxPerSec: 160 }));
+
+  function updateWaveNumerics() {
+    const hrEl   = document.querySelector('[data-wave-num="hr"]');
+    const abpN   = document.querySelector('[data-wave-num="abp"]');
+    const spo2El = document.querySelector('[data-wave-num="spo2"]');
+    const co2N   = document.querySelector('[data-wave-num="co2"]');
+    if (hrEl)   hrEl.textContent   = state.hr.toFixed(0);
+    if (abpN)   abpN.textContent   = `${state.bp_sys.toFixed(0)}/${state.bp_dia.toFixed(0)}`;
+    if (spo2El) spo2El.textContent = state.spo2.toFixed(0);
+    if (co2N)   co2N.textContent   = state.etco2.toFixed(0);
+  }
+  updateWaveNumerics();
+
+  let lastNumericUpdate = 0;
+  function tickWaves(now) {
+    for (const w of waves) w.tick(now);
+    if (now - lastNumericUpdate > 250) {
+      updateWaveNumerics();
+      lastNumericUpdate = now;
+    }
+    requestAnimationFrame(tickWaves);
+  }
+  requestAnimationFrame(tickWaves);
+
+  window.addEventListener('resize', () => {
+    for (const w of waves) w.resize();
+  });
+
+  setInterval(() => {
+    tick++;
+
+    if (tick === 22) phase = 'drift';
+    if (state.spo2 < 92 && !alertShown) { phase = 'alert'; showAgentDraft(); }
+    if (tick > 75) { tick = 0; phase = 'baseline'; resetState(); }
+
+    jitter(); pushHistory();
+    renderTiles(); renderSparklines(); renderHeader();
+  }, 2000);
+})();
+</script>
+
+</body>
+</html>

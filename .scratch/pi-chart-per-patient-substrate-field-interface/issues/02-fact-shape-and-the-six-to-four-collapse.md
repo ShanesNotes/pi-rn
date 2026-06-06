@@ -41,7 +41,7 @@ All 9 source `EventType` members (`ClinicalType` ×6 + `StructuralType` ×3) map
 | 2 | `assessment` | clinical | `interpretation` | Direct: a clinician/agent interpretation of observations (problem, impression, trend, working diagnosis). |
 | 3 | `intent` | clinical | `act` | Orders/plans/goals are speech-acts that direct future care. |
 | 4 | `action` | clinical | `act` | A performed act (administration, specimen collection, intervention, review). |
-| 5 | `communication` | clinical | **`act`** *(orderable)* / `context` / `observation` *(otherwise)* | **Resolved below.** No native kernel shape; assigned per communication subtype. |
+| 5 | `communication` | clinical | **`act`** *(orderable)* / `context` *(otherwise)* | **Resolved below.** No native kernel shape; orderable communications are acts; narrative/report communications are context. Discrete findings mentioned in them become separate observation facts. |
 | 6 | `artifact_ref` | clinical | **no substrate shape — resolves to `evidence`/`source` ref, not a fact** | **Resolved below.** Report visuals/documents are evidence, not substrate (ADR 018 pts 5–7; accepted "report visuals as evidence not substrate"). |
 | 7 | `subject` | structural | `context` | Patient-level standing fact (banner identity, demographics). |
 | 8 | `encounter` | structural | `context` | Encounter-level standing fact (current visit, admission/transfer context). |
@@ -49,9 +49,9 @@ All 9 source `EventType` members (`ClinicalType` ×6 + `StructuralType` ×3) map
 
 No source type is left unmapped. Five map directly (1,2,3,4 by kind; 7,8,9 to `context`); two require the explicit resolutions below.
 
-### Sub-case — `observation + subtype=context_segment` (the `context.segment` predicate)
+### Sub-case — `observation + subtype=context_segment` (the `observation.context_segment` predicate)
 
-Row 1 maps `type=observation` to `factShape=observation` generically. One observation sub-type, `context_segment` (the narrative *context axis* segment), is projected by issue 03 to a predicate in the `context.*` namespace (`context.segment`) — a namespace-vs-shape tension: a `context`-named predicate carrying an `observation` shape reads as a `ShapeMismatch` risk to a registry author. **This issue is the shape owner and owns the resolution** (open question 4). Issues 03/04 must inherit 02's choice rather than each carry an independent `†`/OQ-2.
+Row 1 maps `type=observation` to `factShape=observation` generically. The narrative context-axis subtype `context_segment` remains an observation-shaped charted clinical fact, but its predicate is renamed to `observation.context_segment`. This preserves the existing observation-type authoring path while removing the old namespace-vs-shape mismatch created by `context.segment` carrying `shape=observation`. Issues 03/04 inherit this choice; they must not carry an independent `†`/OQ-2 for this seam.
 
 ## Resolution A — `communication` (assigned a shape; never "no shape")
 
@@ -60,11 +60,11 @@ Per the PRD Implementation Decision, `communication` **must be assigned a shape*
 | Communication subtype (observed in corpus) | → `factShape` | Why |
 | --- | --- | --- |
 | `verbal_order`, `telephone_order` | `act` | Orderable communications carry the force of an order (a speech-act directing care) until co-signed; same shape as `intent`. |
-| `readback`, `co_sign`, `attestation` of an order | `act` | Confirms/ratifies an orderable act. (Attestation of a *non-act* fact is a separate review fact — see issue 10.) |
+| `readback`, `co_sign`, `attestation` of an order | `act` | Confirms/ratifies an orderable act. Review/attestation is modeled as a separate append-only `act` fact, not a mutation of the target (Issue 10). |
 | `sbar`, `handoff`, `consult_note`, `discharge_summary`, `ed_provider_note`, `ed_triage_note`, `outpatient_visit_note`, `advance_care_planning`, `notification`, `family_update`, `message`, `call` | `context` | Narrative/communication context that orients care without being an observation or an act. |
-| `radiology_report`, `echo_report`, `lab_report`-as-narrative (the *interpretation* text, e.g. an impression) | `observation` *(if it asserts a measured finding)* or `context` *(if purely narrative)* | A report that asserts a discrete clinical finding behaves as an observation; the rendered report **image/PDF** is evidence (Resolution B), not the fact. |
+| `radiology_report`, `echo_report`, `lab_report`-as-narrative (the *interpretation* text, e.g. an impression) | `context` for the communication/narrative itself; separate `observation` facts for discrete findings | A report/note can mention clinical facts in passing, but the communication remains source/context. A discrete observation such as EF comes from the ordered diagnostic result and cardiologist/lab read as its own observation fact, with the report/note/artifact as evidence (Resolution B). |
 
-**Default when subtype is unknown/missing:** `context` (the safe, non-actionable, non-asserting shape). A communication never defaults to `act` or `observation` without an explicit orderable/finding subtype, so an unrecognized communication cannot silently acquire order force.
+**Default when subtype is unknown/missing:** `context` (the safe, non-actionable, non-asserting shape). A communication never defaults to `act` or directly to `observation`; order force requires an explicit orderable subtype, and discrete clinical findings are extracted/represented as separate observation facts with source/evidence links.
 
 ## Resolution B — `artifact_ref` and report-visual content (evidence, not substrate)
 
@@ -101,10 +101,10 @@ This keeps a single rule ("a report visual is evidence for a fact, not a fact") 
 
 ## Open questions for the architect
 
-1. **Report-with-finding shape (Resolution A, report rows):** when a `radiology_report`/`echo_report` communication asserts a discrete measured finding (e.g. "EF 30%"), do we (a) shape the communication itself as `observation`, or (b) keep the communication as `context` and require a *separate* `observation` fact for the finding (cleaner predicate typing, but two facts per report)? The PRD assigns communications a shape but does not pick (a) vs (b). Leaving this as `open-question`; issue 03/04 assume (b) — finding becomes its own `observation` fact — unless the architect chooses (a).
-2. **Co-sign/attestation of an `act` vs review fact:** Resolution A shapes order co-sign/readback as `act`, but issue 10 models Reviewed/Verified/Signed/Co-signed as **separate review facts**. Is order co-sign an `act` fact or a review fact? Surfaced as an explicit seam between this issue and issue 10 for the architect to settle (PRD §2.F leaves attestation modeling to issue 10).
+1. **RESOLVED — report-with-finding shape:** keep the communication/narrative as `context`; represent each discrete measured finding as a separate `observation` fact. Example: an echo report mention of "EF 30%" is evidence/source context; the authoritative EF observation comes from the ordered echocardiogram and cardiologist read. Narrative notes may mention clinical facts in passing with marginal evidentiary weight, but those mentions do not themselves become the documentation authority for the fact.
+2. **RESOLVED — co-sign/attestation shape:** order co-sign/readback and Reviewed/Verified/Signed/Co-signed are separate append-only review/attestation facts with `factShape=act`. They are accountable clinical actions, not mutable fields on the target and not diagnosis/certainty interpretations. Issues 03/04/10 inherit this review-axis choice.
 3. **Structural `subject`/`encounter` as one `context` shape vs distinct predicates:** all three structural types collapse to `context`; the distinction survives only in `predicateId` (issue 03). Confirm the architect wants no shape-level distinction among them (assumed yes per PRD).
-4. **`context_segment` shape (resolves the 02/03/04 dangling `†`):** an `observation + context_segment` fact is recorded as an observation-*type* fact but is narrative *context*. Either (a) keep `factShape=observation` and **rename the predicate** `context.segment → observation.context_segment` so namespace matches shape (lighter — no reclassification of existing observation rows; my lean), or (b) set `factShape=context` and keep the `context.segment` predicate name (semantically truer to "context", but reshapes the fact). Both remove the mismatch. Architect picks; issues 03/04 inherit this OQ and must reference it rather than carry their own.
+4. **RESOLVED — `context_segment` shape/name:** keep `factShape=observation` and rename the predicate `context.segment → observation.context_segment`. Rationale: lighter migration, no reclassification of existing observation rows, and predicate namespace now matches the kernel shape expected by the registry. Issues 03/04 inherit this resolved choice.
 
 ## Blocked by
 
@@ -113,6 +113,6 @@ None — can start immediately. Issues 03 and 04 depend on this table.
 ## Boundary register
 
 - SPEC artifact only: no `pi-chart/src/` edits, no fixture migration.
-- No kernel widening; no Rust↔TS integration-mechanism choice; no backend/vector/OpenBrain/retrieval/runtime/access-plane selection; no hidden `pi-sim` coupling.
+- No kernel widening; accepted clinical-truth-service/access north star only; no storage/backend-framework/vector/OpenBrain/retrieval/runtime/full-access-plane selection; no hidden `pi-sim` coupling.
 - Connectors over this substrate stay `(patientId, encounterId, asOf)`-parameterized and never hardcode a patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).
-- Where a downstream slice depends on the shared clinical-truth service hosting this at scale, that is the **proposed, not-yet-accepted** runtime (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, proposed); this shape spec is transport-agnostic and does not assume it.
+- Where a downstream slice depends on the shared clinical-truth service hosting this at scale, that is the **accepted north star, ADR-promoted** runtime (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted); this shape spec is transport-agnostic and does not assume it.

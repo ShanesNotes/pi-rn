@@ -19,6 +19,8 @@ import {
 } from "../time.js";
 import { patientRoot } from "../types.js";
 import {
+  activeChartEvents,
+  eventMatchesEncounter,
   isCorrected,
   isSuperseded,
   loadContext,
@@ -165,16 +167,13 @@ function collectProblems(
   ctx: ActiveContextReady,
   encounterId?: string,
 ): EventEnvelope[] {
-  const out: EventEnvelope[] = [];
-  for (const ev of ctx.events) {
-    if (ev.type !== "assessment") continue;
-    if (ev.subtype !== "problem") continue;
-    if (!eventMatchesEncounter(ev, encounterId)) continue;
-    if (ev.status !== "active") continue;
-    if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
-    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
-    out.push(ev);
-  }
+  const out = activeChartEvents(ctx, {
+    encounterId,
+    type: "assessment",
+    subtype: "problem",
+    statuses: ["active"],
+    requireEffectiveCoverage: true,
+  });
   out.sort((a, b) =>
     (eventStartIso(a) ?? "").localeCompare(eventStartIso(b) ?? "") ||
     a.id.localeCompare(b.id),
@@ -186,14 +185,11 @@ function collectObservations(
   ctx: ActiveContextReady,
   encounterId?: string,
 ): EventEnvelope[] {
-  const out: EventEnvelope[] = [];
-  for (const ev of ctx.events) {
-    if (ev.type !== "observation") continue;
-    if (!eventMatchesEncounter(ev, encounterId)) continue;
-    if (isSuperseded(ev, ctx) || isCorrected(ev, ctx)) continue;
-    if (!eventCoversAsOf(ev, ctx.asOfMs)) continue;
-    out.push(ev);
-  }
+  const out = activeChartEvents(ctx, {
+    encounterId,
+    type: "observation",
+    requireEffectiveCoverage: true,
+  });
   out.sort((a, b) =>
     (eventStartIso(a) ?? "").localeCompare(eventStartIso(b) ?? "") ||
     a.id.localeCompare(b.id),
@@ -225,13 +221,6 @@ function collectActiveContextSegments(
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, value]) => [key, value.event]),
   );
-}
-
-function eventMatchesEncounter(
-  ev: EventEnvelope,
-  encounterId: string | undefined,
-): boolean {
-  return !encounterId || typeof ev.encounter_id !== "string" || ev.encounter_id === encounterId;
 }
 
 function selectContested(

@@ -32,7 +32,7 @@ The actual clinical fact today lives in `data: Record<string, unknown>` — a sc
 | Current pi-chart representation | `data?: Record<string, unknown>` (loose; ~20 magic keys) |
 | Kernel-Claim target | **`object`** — kernel `validate_object` enforces the predicate's typed `RequiredFields`: `MissingObjectField` if a required key absent, `InvalidObjectField` if wrong JSON type (ledger-core public interface; `predicates::PredicateDefinition`). |
 
-**Cross-cutting (per PRD, do not re-decide):** `encounterId` is **not** in `subject`; it is a predicate `RequiredField` in `object` (`object.encounterId: String`) — per the PRD Impl. Decision ("`encounterId` maps to kernel `object.encounterId:string`"; issue 01). Every clinical/structural predicate below therefore additionally requires `encounterId: String` (or declares cross-encounter status explicitly). Identity/time/actor/source/integrity are **not** object fields — they are top-level Claim fields owned by issues 01/05/06/07/08/09. The `object` carries only clinical content.
+**Cross-cutting (per PRD, do not re-decide):** `encounterId` is **not** in `subject`; it is a predicate `RequiredField` in `object` (`object.encounterId: String`) — per the PRD Impl. Decision ("`encounterId` maps to kernel `object.encounterId:string`"; issue 01). Every clinical/structural predicate below therefore additionally requires `encounterId: String` (or declares cross-encounter status explicitly; the declaration field name/shape remains Issue 01's open question). Identity/time/actor/source/integrity are **not** object fields — they are top-level Claim fields owned by issues 01/05/06/07/08/09. The `object` carries only clinical content.
 
 ## Per-predicate typed `object` (RequiredFields)
 
@@ -44,7 +44,7 @@ Keyed by issue 03's `predicateId` (shape = issue 02 `factShape`). `R` = required
 | `lab.result` (obs) | `code:String`, `value:(Number\|String)`, `unit:String`, `encounterId:String` | `resulted_at:String`, `reference_range:String`, `finding_state:String` | `data.name`, `data.value`, `data.unit`, `data.resulted_at` |
 | `exam.finding` (obs) | `code:String`, `finding_state:String`, `encounterId:String` | `description:String`, `value:String` | `data.name`, `data.finding_state`, `data.description` |
 | `io.measurement` (obs) | `code:String`, `value:Number`, `unit:String`, `encounterId:String` | `direction:String` | `data.name`, `data.value`, `data.unit` |
-| `context.segment` (obs†) | `segment_type:String`, `summary:String`, `encounterId:String` | — | `data.segment_type`, `data.summary` |
+| `observation.context_segment` (obs) | `segment_type:String`, `summary:String`, `encounterId:String` | — | `data.segment_type`, `data.summary` |
 | `assessment.problem` (interp) | `name:String`, `encounterId:String` | `summary:String`, `differential:Array`, `uncertainty:String`, `status_detail:String` | `data.name`, `data.summary`, `data.differential`, `data.uncertainty`, `data.status_detail` |
 | `assessment.impression` (interp) | `impression:String`, `encounterId:String` | `summary:String`, `differential:Array`, `rationale:String`, `limitations:String` | `data.impression`, `data.summary`, `data.differential`, `data.rationale`, `data.limitations` |
 | `assessment.trend` (interp) | `metric:String`, `summary:String`, `encounterId:String` | `direction:String`, `basis:String` | `data.summary`, `data.basis` |
@@ -54,7 +54,7 @@ Keyed by issue 03's `predicateId` (shape = issue 02 `factShape`). `R` = required
 | `order.disposition` (act) | `name:String`, `encounterId:String` | `due_by:String`, `rationale:String` | `data.name`, `data.due_by`, `data.rationale` |
 | `act.medication_administration` (act) | `name:String`, `encounterId:String` | `value:Number`, `unit:String`, `outcome:String`, `status_detail:String`, `on_behalf_of:String` | `data.name`, `data.value`, `data.unit`, `data.outcome`, `data.status_detail`, `data.on_behalf_of` |
 | `act.specimen_collection` / `act.imaging_acquired` / `act.intervention` / `act.evaluation` / `act.pharmacy_verification` / `act.transfer` (act) | `action:String`, `encounterId:String` | `outcome:String`, `status_detail:String`, `note_ref:String` | `data.action`, `data.outcome`, `data.status_detail`, `data.note_ref` |
-| `review.result` / `comm.cosign` (act‡) | `action:String`, `encounterId:String` | `attests_to:Array`, `attestation_role:String`, `review:Object`, `reviewed_refs:Array`, `verified_at:String`, `closes:Array` | `data.action`, `data.attests_to`, `data.attestation_role`, `data.review`, `data.reviewed_refs`, `data.verified_at`, `data.closes` |
+| `review.reviewed` / `review.verified` / `attestation.signed` / `attestation.cosigned` / `attestation.readback` (act‡) | `action:String`, `encounterId:String` | `attestation_role:String`, `review:Object`, `verified_at:String`, `closes:Array` | `data.action`, `data.attestation_role`, `data.review`, `data.verified_at`, `data.closes`; target links from `data.attests_to`/`data.reviewed_refs` move to `evidence: EvidenceRef[]` |
 | `comm.note` (context) | `summary:String`, `encounterId:String` | `audience:String`, `note_ref:String` | `data.summary`, `data.audience`, `data.note_ref` |
 | `context.patient` (context) | `name:String` | `description:String` | `data.name` (subject demographics) |
 | `context.encounter` (context) | `encounterId:String` | `summary:String` | (encounter metadata) |
@@ -64,7 +64,9 @@ Keyed by issue 03's `predicateId` (shape = issue 02 `factShape`). `R` = required
 | generic catch-alls (`*.generic`) | `summary:String`, `encounterId:String` | (free `notes:String`) | fallback for unknown `subtype` (issue 03 totality) |
 | `artifact_ref` | — **no object, no Claim** (evidence; issue 02 Res. B) | — | resolves to `EvidenceRef` (issue 07) |
 
-† `context.segment` shape is OQ-2 (issue 03). ‡ `review.result`/`comm.cosign` may be review facts (issue 10, OQ-3).
+Report/note findings decision: report/note communications remain source/context; discrete findings from ordered diagnostic/lab/read sources become separate observation facts using whichever observation predicate the registry owns. This issue does not invent a new diagnostic predicate before Issue 03 registry resolution.
+
+† `context_segment` shape/name is resolved by Issues 02/03 as `observation.context_segment` with `factShape=observation`. Cross-encounter declaration field name/shape is Issue 01's open question. ‡ Review/attestation facts are resolved as separate `act` facts by Issue 10; Issue 03 standardizes exact predicate ids.
 
 ## Every current `data.*` consumer key — accounted-for or deferred
 
@@ -75,7 +77,7 @@ Full disposition of the ~20+ magic keys observed in `src/` (no silent dead key):
 | `data.name` | accounted | `object.code`/`object.name` per predicate |
 | `data.value` / `data.unit` | accounted | `object.value` / `object.unit` |
 | `data.summary` / `data.impression` / `data.goal` / `data.action` | accounted | predicate-specific object fields above |
-| `data.segment_type` | accounted | `context.segment.segment_type` |
+| `data.segment_type` | accounted | `observation.context_segment.segment_type` |
 | `data.due_by` | accounted | `order.*.due_by` |
 | `data.required_cadence` | accounted | `plan.monitoring.required_cadence` |
 | `data.differential` / `data.uncertainty` / `data.limitations` / `data.rationale` / `data.rationale_text` | accounted | `assessment.*` fields; **`certainty` reconnection is issue 10** (these inform `certainty`, not duplicate it) |
@@ -87,7 +89,8 @@ Full disposition of the ~20+ magic keys observed in `src/` (no silent dead key):
 | `data.audience` | accounted | `comm.note.audience` |
 | `data.on_behalf_of` | accounted | `order.*`/`act.medication_administration.on_behalf_of` |
 | `data.note_ref` | accounted | `*.note_ref` (cross-ref to a note fact) |
-| `data.attests_to` / `data.attestation_role` / `data.review` / `data.reviewed_refs` / `data.closes` | accounted-**pending issue 10** | `review.result`/`comm.cosign` object fields **or** review-fact fields (OQ-3); listed in both, final home = issue 10 |
+| `data.attests_to` / `data.reviewed_refs` | accounted via `evidence` | target linkage for review/attestation facts; do not duplicate in object fields |
+| `data.attestation_role` / `data.review` / `data.closes` | accounted | review/attestation `act` object details (Issue 10); predicate ids standardized by Issue 03 |
 | `data.origin` | **deferred** | provenance/source — issue 06 (`source`/`actor`), not a clinical object field |
 | `data.path` | **deferred** | artifact/note file path — issue 07 (`EvidenceRef.ref`) / issue 13 (export crosswalk), not a Claim object field |
 | `data.event` / `data.nested` | **deferred** | structural/back-compat wrappers — issue 13 round-trip, not promoted |
@@ -101,7 +104,7 @@ Full disposition of the ~20+ magic keys observed in `src/` (no silent dead key):
 - **Typed `object` is what makes high-volume writes validatable cheaply:** `validate_object` is a per-fact check against a predicate definition — no cross-fact read — so it scales horizontally with concurrent writers; a schema-less `data` bag would force consumers to defensively re-parse every read.
 - **Multi-provider field growth:** predicate objects grow by adding optional fields, never by mutating existing facts (append-only). A new specialty needing a new field adds it as an optional on a new/extended predicate in the registry (issue 03), so many providers can enrich the same predicate family without breaking prior facts.
 - **Correction-by-new-fact:** because the object is typed and the predicate is deterministic, a correcting agent (issue 10) can emit a new fact with the same `predicateId` and a corrected `object` rather than mutating — safe under concurrent authorship.
-- Where `validate_object` runs inside the shared clinical-truth service rather than client-side, that is the **proposed, not-yet-accepted** runtime (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, proposed). This object contract is transport-agnostic.
+- Where `validate_object` runs inside the shared clinical-truth service rather than client-side, that is the **accepted north star, ADR-promoted** runtime (`.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted). This object contract is transport-agnostic.
 
 ## Kernel-mapping note
 
@@ -123,7 +126,7 @@ Full disposition of the ~20+ magic keys observed in `src/` (no silent dead key):
 
 ## Open questions for the architect
 
-1. **OQ-3 (shared with issues 03/10):** do `attests_to` / `attestation_role` / `review` / `reviewed_refs` / `verified_at` / `closes` live as `review.result`/`comm.cosign` **object fields**, or as fields of **separate review facts** (issue 10)? Listed in both pending the architect's review-axis decision; do not duplicate at implementation time.
+1. **RESOLVED (shared with issues 03/07/10):** `attests_to` / `reviewed_refs` are target links and therefore converge on the single `evidence: EvidenceRef[]` edge, not object fields. `attestation_role`, `review`, `verified_at`, and `closes` remain review/attestation `act` object details. Do not duplicate target linkage in both evidence and object fields.
 2. **`status_detail` typing:** today `status_detail` is a validator-gated free string with per-`(type,subtype)` allowed values. Should each predicate declare an **enum** of allowed `status_detail` values in the registry (stronger typing) or keep it `String` with chart-side validation? Assumed `String` here; flagged for the architect.
 3. **`code` coding system:** `vital.sign.code`/`lab.result.code` are typed `String` but no coding-system (LOINC/SNOMED) is mandated. Mandating a coding system is a larger ontology decision (PRD Out of Scope: no drug dictionary/ontology). Surfaced, not decided — assumed opaque `String` for now.
 4. **`differential` element type:** `assessment.*.differential` is typed `Array`; element shape (free strings vs `{name, likelihood}` objects) is left open pending the certainty-surface reconnection (issue 10).
@@ -136,5 +139,5 @@ Full disposition of the ~20+ magic keys observed in `src/` (no silent dead key):
 ## Boundary register
 
 - SPEC artifact only: no `pi-chart/src/` edits, no fixture migration.
-- No kernel widening; no Rust↔TS integration-mechanism choice; no backend/vector/OpenBrain/retrieval/runtime/access-plane selection; no hidden `pi-sim` coupling (hidden-sim keys explicitly rejected as substrate).
+- No kernel widening; accepted clinical-truth-service/access north star only; no storage/backend-framework/vector/OpenBrain/retrieval/runtime/full-access-plane selection; no hidden `pi-sim` coupling (hidden-sim keys explicitly rejected as substrate).
 - Connectors stay `(patientId, encounterId, asOf)`-parameterized and never hardcode a patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).

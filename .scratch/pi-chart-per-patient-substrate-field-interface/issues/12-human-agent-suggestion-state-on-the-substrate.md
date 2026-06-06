@@ -30,7 +30,7 @@ A Pi suggestion is itself a **charted-clinical-fact instance** (append-only), no
 | State | Meaning | Who sets it | How recorded |
 | --- | --- | --- | --- |
 | Suggested | Pi-authored provisional fact; advisory only | Pi agent (any run) | The suggestion fact itself (authority=`Suggested`) |
-| Added (promoted) | Clinician turned it into a clinician-owned care item | Human only | **Separate** clinician-authored fact linking the suggestion (`links.supports`/`addresses`) |
+| Added (promoted) | Clinician turned it into a clinician-owned care item | Human only | **Separate** clinician-authored fact linking the suggestion through `evidence: EvidenceRef[]`; retain `links.addresses` only if the human action addresses a specific suggested work item |
 | Modified | Clinician altered then owned it | Human only | Separate clinician-authored fact |
 | Dismissed | Clinician declined it | Human only | Separate clinician-authored fact (provenance preserved) |
 | Disabled (suppressed) | Suggestion class turned off | Human / config | View-level suppression; suggestion facts not surfaced |
@@ -58,7 +58,7 @@ A Suggested fact's posture is **never mutated** by promotion/dismissal. Promotio
 
 ## Kernel-mapping note
 
-The suggestion state is **chart-internal — no direct kernel field**. A Suggested fact, if it were ever projected to the kernel, would still be an ordinary Claim with its own `id`, `actor` (agent run), `source` (chart provenance — not a kernel field), `predicateId`/`factShape`, typed `object`, canonical-UTC `time`, and `integrity`. But the **accepted-write boundary is enforced upstream of the kernel**: under the **PROPOSED shared clinical-truth service** (gRPC/UDS, contract-first — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, *proposed, pending architect acceptance*), agent suggestions are **not** sent through the append path; only human-promoted, sanctioned writes reach admission. The kernel is **not widened** to model "suggested" — provisionality is a chart/runtime concern. Promotion/dismissal/modification facts map as ordinary Claims (act/context). The kernel's own boundary (`pi-agent` has no direct accepted-write authority) is the backstop.
+The suggestion state is **chart-internal — no direct kernel field**. A Suggested fact, if it were ever projected to the kernel, would still be an ordinary Claim with its own `id`, `actor` (agent run), `source` (chart provenance — not a kernel field), `predicateId`/`factShape`, typed `object`, canonical-UTC `time`, and `integrity`. But the **accepted-write boundary is enforced upstream of the kernel**: under the **accepted shared clinical-truth service north star** (contract-first; private/internal service; private/local gRPC/UDS first transport — `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md`, *accepted north star, ADR-promoted*), agent suggestions are **not** sent through the append path; only human-promoted, sanctioned writes reach admission. The kernel is **not widened** to model "suggested" — provisionality is a chart/runtime concern. Promotion/dismissal/modification facts map as ordinary Claims (act/context). The kernel's own boundary (`pi-agent` has no direct accepted-write authority) is the backstop.
 
 ## Connector contract
 
@@ -72,7 +72,7 @@ Any connector reading suggestion state stays `(patientId, encounterId, asOf)`-pa
 - [ ] States suggestions are **disable-able** (view-level suppression; substrate unchanged).
 - [ ] Includes negative cases: **no autonomous accepted-write** and **no autonomous task completion** (and no autonomous Reviewed/Verified/Signed/handoff).
 - [ ] States the boundary holds for **many concurrent agents** — concurrency does not confer authority.
-- [ ] Carries a kernel-mapping note: chart-internal; accepted-write boundary enforced upstream of the kernel; kernel not widened; cites the **proposed** clinical-truth service.
+- [ ] Carries a kernel-mapping note: chart-internal; accepted-write boundary enforced upstream of the kernel; kernel not widened; cites the **accepted** clinical-truth service north star.
 - [ ] Connector signature `(patientId, encounterId, asOf)`, no hardcoded patient.
 - [ ] Reconciliation posture (adopt) and `Status: ready-for-agent` present.
 
@@ -83,5 +83,5 @@ Any connector reading suggestion state stays `(patientId, encounterId, asOf)`-pa
 ## Blocked by
 
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/06-source-authorship-and-provenance-vocabulary.md` (source=`Suggested by Pi`; consumed `run_id`)
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-as-separate-facts.md` (separate-fact discipline; Done vs Charted)
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-attestation-as-separate-facts.md` (separate-fact discipline; Done vs Charted)
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/11-projection-facing-fields-authority-attention-timing-access-tier.md` (the explicit `Suggested` authority posture)

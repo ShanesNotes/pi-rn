@@ -61,10 +61,10 @@ Rules (from CONTEXT.md + terminology map, restated as field-contract):
 
 ## Kernel-mapping note
 
-- A **review/attestation fact is itself a Claim.** Its `factShape` is most naturally `act` (an attestation is an action taken) or `interpretation` (a judgment about the target); its `predicateId` (e.g. `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`) must be a registered predicate whose declared shape equals `factShape` (Issue 03). Its link to the target rides the **one** evidence edge (`EvidenceRef`, Issue 07), role `primary`/`confirmatory`, NOT `revises` — a review is **not** a correction and must not be Revision-admissible plumbing (it asserts nothing wrong about the target).
+- A **review/attestation fact is itself an `act` Claim**. The reviewed target may be an observation or interpretation, but the review/verification/signature is an accountable clinical action. Its `predicateId` is one of the standardized act-shaped review/attestation predicates owned by Issue 03: `review.reviewed`, `review.verified`, `attestation.signed`, `attestation.cosigned`, or `attestation.readback`. Its link to the target rides the **one** evidence edge (`evidence: EvidenceRef[]`, Issue 07), role `primary`/`confirmatory`, NOT object fields such as `attests_to`/`reviewed_refs` and NOT `revises` — a review is **not** a correction and must not be Revision-admissible plumbing (it asserts nothing wrong about the target).
 - The reviewing **`actor`** maps to kernel `actor`; the verification **`source`** (e.g. bedside/monitor) maps to the controlled provenance vocabulary (Issue 06). Source (origin of the verification) stays separable from actor (who attested) and authority (Reviewed vs Signed).
 - `certainty` (epistemic modality) and graded clinical certainty are **chart-internal — no direct kernel field**; they inform the choice of `predicateId`/`object`/`factShape` of the *assessment* fact. The kernel sees the resulting Claim, not a `certainty` column.
-- **Append-only, never mutate:** consistent with the kernel ("prior entry remains append-only history"), review facts and certainty changes are new Claims; the original assessment/observation is never edited. This is what lets concurrent multi-clinician review at volume be safe — assuming the **proposed, not-yet-accepted** shared clinical-truth service runtime; cite `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (proposed).
+- **Append-only, never mutate:** consistent with the kernel ("prior entry remains append-only history"), review facts and certainty changes are new Claims; the original assessment/observation is never edited. This is what lets concurrent multi-clinician review at volume be safe — assuming the **accepted north star, ADR-promoted** shared clinical-truth service runtime; cite `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` (accepted north star).
 
 ## Connector parameterization
 
@@ -77,7 +77,7 @@ uncertaintyLabel(patientId, encounterId, asOf) -> { factId, label }             
 
 ## Open questions for the architect (do NOT pre-answer)
 
-- **OQ-1 (revise/open-question):** Is a review/attestation fact's `factShape` `act` or `interpretation`? An attestation is arguably an act (something a clinician *did*), but a "Reviewed/Verified" judgment about a target is arguably an interpretation. This sets the registered predicate's declared shape (Issue 03). Surface for decision; do not silently pick.
+- **RESOLVED — review/attestation `factShape`:** `act`. Reviewed, Verified, Signed, and Co-signed are accountable clinical actions. The target may be an observation or interpretation, but the review fact itself is not a diagnosis/certainty interpretation.
 - **OQ-2 (open-question):** Does graded clinical certainty live as **distinct predicates** (`assessment.concern` / `assessment.uncertain` / `assessment.working-diagnosis`) or as **one assessment predicate with a typed `object.certainty` field**? The former makes the certainty axis a `predicateId` projection; the latter keeps one predicate with graded content. Recommend distinct predicates for deterministic projection, but this couples to Issue 03/04 — needs joint sign-off.
 - **OQ-3 (open-question):** The relationship between epistemic `certainty` (modality) and graded clinical certainty (confidence) — are they two independent fields kept both, or does one subsume the other? They are currently conflated under one word. The spec treats them as two axes; confirm both are retained or collapse them deliberately.
 - **OQ-4 (defer-candidate):** Co-sign workflow depth (countersign chains, who may co-sign what) is real but risks pulling in role-registry/authority-engine scope explicitly **out of scope** in the PRD. Recommend `defer` co-sign *authorization rules* to a later slice; this issue only models Co-signed as a *separate fact shape*, not the authorization policy.
@@ -94,14 +94,14 @@ uncertaintyLabel(patientId, encounterId, asOf) -> { factId, label }             
 - [ ] States the review-state label set (Needs review / Source mismatch / May be outdated / Report only / Source needed) is a **review prompt, not a truth decision**; Reconcile/Resolve stay clinician-owned.
 - [ ] States review facts ride the **one evidence edge** (`EvidenceRef`, Issue 07), NOT `revises` (a review is not a correction).
 - [ ] States review facts from **many distinct clinicians/agents compose** (fan-in, not a mutable counter) and keeps **source/actor/authority separable** per review fact.
-- [ ] Surfaces **OQ-1–OQ-4** as explicit open questions for the architect (no invented answers).
+- [ ] Records review/attestation `factShape=act` as resolved, while keeping the remaining certainty/co-sign-depth questions explicit for the architect.
 - [ ] Connector examples stay `(patientId, encounterId, asOf)`-parameterized with no hardcoded patient (demo `patient_002`/`enc_p002_001`; regression `patient_001`).
-- [ ] Marks shared-truth-service-dependent claims as assuming the **proposed** clinical-truth-service runtime and cites the proposal doc.
+- [ ] Marks shared-truth-service-dependent claims as assuming the **accepted ADR-promoted clinical-truth-service north star** and cites the accepted service ADRs/proposal.
 
 ## Blocked by
 
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicateId-projection-and-production-registry.md` — assessment-certainty predicates and review/attestation predicates need ids + declared shapes.
-- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/04-typed-object-per-predicate.md` — graded-certainty content moves from `data.differential`/`data.uncertainty` into a typed `object`.
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicate-id-projection-and-production-registry.md` — assessment-certainty predicates and review/attestation predicates need ids + declared shapes.
+- `.scratch/pi-chart-per-patient-substrate-field-interface/issues/04-typed-object-per-predicate-replacing-magic-key-data.md` — graded-certainty content moves from `data.differential`/`data.uncertainty` into a typed `object`.
 - `.scratch/pi-chart-per-patient-substrate-field-interface/issues/07-unified-evidence-edge-and-dead-field-closure.md` — review facts link to their target via the one `EvidenceRef` edge.
 
 ## Related (consistency)

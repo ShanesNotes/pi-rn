@@ -14,6 +14,7 @@ import {
 } from "../fs-util.js";
 import {
   chartClock,
+  eventCoversAsOf,
   eventStartDate,
 } from "../time.js";
 import { patientRoot } from "../types.js";
@@ -181,6 +182,47 @@ export function isVisibleAsOf(ev: EventEnvelope, ctx: ActiveContext): boolean {
  * correction whose own `effective_at` is on or before `asOfMs`.
  * Excludes chain links whose supersessor isn't yet effective.
  */
+
+export interface ActiveVisibilityOptions {
+  encounterId?: string;
+  type?: string;
+  subtype?: string;
+  statuses?: readonly string[];
+  requireEffectiveCoverage?: boolean;
+  excludeReplaced?: boolean;
+}
+
+export function eventMatchesEncounter(
+  ev: EventEnvelope,
+  encounterId: string | undefined,
+): boolean {
+  return !encounterId || typeof ev.encounter_id !== "string" || ev.encounter_id === encounterId;
+}
+
+export function isActiveChartEvent(
+  ev: EventEnvelope,
+  ctx: ActiveContext,
+  options: ActiveVisibilityOptions = {},
+): boolean {
+  if (options.type && ev.type !== options.type) return false;
+  if (options.subtype && ev.subtype !== options.subtype) return false;
+  if (!eventMatchesEncounter(ev, options.encounterId)) return false;
+  if (options.statuses && !options.statuses.includes(ev.status)) return false;
+  if (!isVisibleAsOf(ev, ctx)) return false;
+  if (options.requireEffectiveCoverage && !eventCoversAsOf(ev, ctx.asOfMs)) return false;
+  if (options.excludeReplaced !== false && (isSuperseded(ev, ctx) || isCorrected(ev, ctx))) {
+    return false;
+  }
+  return true;
+}
+
+export function activeChartEvents(
+  ctx: ActiveContext,
+  options: ActiveVisibilityOptions = {},
+): EventEnvelope[] {
+  return ctx.events.filter((ev) => isActiveChartEvent(ev, ctx, options));
+}
+
 export function isSuperseded(ev: EventEnvelope, ctx: ActiveContext): boolean {
   return findReplacement(ev.id, ctx, "supersedes") !== null;
 }

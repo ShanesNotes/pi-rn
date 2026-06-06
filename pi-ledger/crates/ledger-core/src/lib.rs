@@ -18,6 +18,7 @@
 pub mod admission;
 pub mod canonical;
 pub mod claim;
+pub mod conformance;
 pub mod fixture;
 pub mod hash;
 pub mod ledger;

@@ -75,7 +75,7 @@ This is a terminology handoff for designers and future PRD/issues. It does not a
 
 ## Boundaries
 
-- No backend/storage/runtime/access-plane/vector/OpenBrain decision.
+- No backend-framework/storage/runtime/full-access-plane/vector/OpenBrain decision, beyond the accepted app/backend-mediated, private/internal clinical-truth-service access boundary.
 - No adapter implementation or `pi-ledger` kernel expansion.
 - No hidden `pi-sim` coupling or oracle truth.
 - No direct Pi accepted-writes, charting, verification, completion, or final handoff authority.

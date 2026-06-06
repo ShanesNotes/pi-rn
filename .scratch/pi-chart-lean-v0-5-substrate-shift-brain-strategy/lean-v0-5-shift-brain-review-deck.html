@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pi-chart lean v0.5 shift-brain strategy — review deck</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: #0f1d33;
+      --panel-2: #132942;
+      --ink: #edf6ff;
+      --muted: #a9bdd2;
+      --accent: #73e0d1;
+      --accent-2: #f7c948;
+      --warn: #ff8a7a;
+      --ok: #92e6a7;
+      --line: rgba(255,255,255,.16);
+      --shadow: 0 24px 70px rgba(0,0,0,.35);
+      --radius: 24px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at 20% 10%, #15395a 0, transparent 34%), radial-gradient(circle at 80% 90%, #12443f 0, transparent 30%), var(--bg); color: var(--ink); }
+    body { overflow: hidden; }
+    .deck { height: 100vh; display: grid; place-items: center; padding: 28px; }
+    .slide {
+      display: none;
+      width: min(1180px, 94vw);
+      aspect-ratio: 16 / 9;
+      max-height: calc(100vh - 96px);
+      background: linear-gradient(145deg, rgba(15,29,51,.98), rgba(8,17,31,.96));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 54px 62px;
+      position: relative;
+      overflow: hidden;
+    }
+    .slide.active { display: block; }
+    .slide::before { content: ""; position: absolute; inset: -160px -120px auto auto; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(115,224,209,.20), transparent 68%); }
+    .kicker { color: var(--accent); text-transform: uppercase; letter-spacing: .16em; font-size: 14px; font-weight: 800; margin-bottom: 18px; }
+    h1, h2, h3 { margin: 0; line-height: 1.02; }
+    h1 { font-size: clamp(46px, 7vw, 84px); letter-spacing: -.06em; max-width: 900px; }
+    h2 { font-size: clamp(36px, 5vw, 60px); letter-spacing: -.045em; max-width: 960px; }
+    h3 { font-size: 22px; color: var(--ink); margin-bottom: 10px; }
+    p { color: var(--muted); font-size: 21px; line-height: 1.45; max-width: 900px; }
+    .lead { font-size: 25px; color: #d7e6f4; margin-top: 24px; }
+    .grid { display: grid; gap: 18px; margin-top: 34px; }
+    .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .card { background: rgba(255,255,255,.055); border: 1px solid var(--line); border-radius: 18px; padding: 20px; min-height: 118px; }
+    .card strong { color: var(--ink); display: block; font-size: 20px; margin-bottom: 8px; }
+    .card span, li { color: var(--muted); font-size: 17px; line-height: 1.38; }
+    .metric { font-size: 54px; font-weight: 900; letter-spacing: -.06em; color: var(--accent-2); }
+    .tagrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .tag { border: 1px solid rgba(115,224,209,.38); color: #bff8ef; background: rgba(115,224,209,.08); border-radius: 999px; padding: 9px 13px; font-size: 14px; font-weight: 700; }
+    ul { margin: 22px 0 0; padding-left: 22px; max-width: 960px; }
+    li { margin: 9px 0; }
+    .split { display: grid; grid-template-columns: .95fr 1.05fr; gap: 32px; align-items: start; margin-top: 30px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 26px; overflow: hidden; border-radius: 16px; font-size: 15px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 11px 12px; text-align: left; vertical-align: top; }
+    th { color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+    td { color: var(--muted); }
+    .ok { color: var(--ok); font-weight: 800; }
+    .warn { color: var(--warn); font-weight: 800; }
+    .footer { position: absolute; left: 62px; right: 62px; bottom: 28px; display: flex; justify-content: space-between; color: rgba(237,246,255,.62); font-size: 13px; }
+    .nav { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 999px; background: rgba(3,9,18,.76); border: 1px solid var(--line); backdrop-filter: blur(10px); }
+    button { background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; font-weight: 800; cursor: pointer; }
+    button:hover { background: rgba(115,224,209,.15); border-color: rgba(115,224,209,.45); }
+    #counter { min-width: 72px; text-align: center; color: var(--muted); font-size: 13px; font-weight: 800; }
+    .timeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 34px; }
+    .step { border-top: 3px solid var(--accent); background: rgba(255,255,255,.05); border-radius: 12px; padding: 14px; min-height: 112px; }
+    .step b { color: var(--ink); display: block; margin-bottom: 7px; }
+    .step span { color: var(--muted); font-size: 14px; }
+    .small { font-size: 15px; }
+    .quote { margin-top: 30px; padding: 22px 26px; border-left: 4px solid var(--accent); background: rgba(115,224,209,.08); border-radius: 16px; color: #dffaf6; font-size: 24px; max-width: 940px; }
+    @media print {
+      body { overflow: visible; background: #fff; color: #000; }
+      .deck { height: auto; display: block; padding: 0; }
+      .slide { display: block !important; width: 100%; max-height: none; page-break-after: always; border-radius: 0; box-shadow: none; background: #fff; color: #111; border: 0; }
+      .nav { display: none; }
+      p, li, td, .card span { color: #333; }
+      .card { border-color: #ddd; background: #f7f7f7; }
+      .footer { color: #666; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-live="polite">
+    <section class="slide active">
+      <div class="kicker">Review deck · pi-chart lean v0.5</div>
+      <h1>Shift-brain substrate strategy</h1>
+      <p class="lead">Docs-only product/domain foundation for a bounded clinical agent inside the chart: source-linked, human-owned, nonpunitive, and adapter-safe.</p>
+      <div class="tagrow">
+        <span class="tag">15 issues closed</span><span class="tag">canonical vs derived</span><span class="tag">human authority</span><span class="tag">shift-start workflow</span><span class="tag">adapter deferred</span>
+      </div>
+      <div class="footer"><span>Created for review · single-file HTML</span><span>Use ← → or buttons</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Outcome</div>
+      <h2>What got done</h2>
+      <div class="grid cols-4">
+        <div class="card"><div class="metric">15</div><strong>Issue slices</strong><span>Issues 01–15 moved to <b>ready-for-human</b> with closeout evidence.</span></div>
+        <div class="card"><div class="metric">15</div><strong>Durable docs</strong><span>One product/domain artifact per slice, plus a final boundary closeout.</span></div>
+        <div class="card"><div class="metric">0</div><strong>Runtime scope</strong><span>No backend, storage, adapter, retrieval, UI, or simulator implementation selected.</span></div>
+        <div class="card"><div class="metric">✓</div><strong>Verified</strong><span>Structural checks, diff hygiene, architect review, deslop pass, and commits per slice.</span></div>
+      </div>
+      <div class="footer"><span>Commit range: issue 05 through issue 15 landed in reviewed docs commits</span><span>2 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Design center</div>
+      <h2>The core product contract</h2>
+      <div class="quote">The chart is canonical. Current state is a query. Derived summaries are disposable.</div>
+      <div class="grid cols-3">
+        <div class="card"><strong>Canonical memory</strong><span>Facts, actions, notes, refs, provenance, lifecycle, review, and attestation.</span></div>
+        <div class="card"><strong>Derived projections</strong><span>Report sheet, packet, trends, evidence chains, tasks, handoff, care clusters, and shift brain.</span></div>
+        <div class="card"><strong>Bounded assistant</strong><span>May cite, summarize, compare, suggest, and prompt review. It does not own truth or completion.</span></div>
+      </div>
+      <div class="footer"><span>Foundation: issues 01–07</span><span>3 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Workflow spine</div>
+      <h2>Real ICU nurse sequence captured</h2>
+      <div class="timeline">
+        <div class="step"><b>1 · Assignment</b><span>Select patient/encounter/as-of frame before any context display.</span></div>
+        <div class="step"><b>2 · Report</b><span>Use one-page handoff visual as attention scaffold, not chart truth.</span></div>
+        <div class="step"><b>3 · Chart digging</b><span>H&P, ICU note, vitals, drips, I&O, labs, task list with source links.</span></div>
+        <div class="step"><b>4 · Bedside verify</b><span>Report/chart/bedside mismatch becomes review prompt, not agent truth.</span></div>
+        <div class="step"><b>5 · Work plan</b><span>Med timing, assessment clustering, carry-forward, and human handoff.</span></div>
+      </div>
+      <div class="footer"><span>Per-patient first; assignment-level nurse brain deferred</span><span>4 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Clinical usefulness</div>
+      <h2>Shift-brain capabilities defined</h2>
+      <div class="grid cols-2">
+        <div class="card"><strong>Source-linked report projection</strong><span>Report categories map to chart facts/actions/notes/refs or explicit source-needed/report-only caveats.</span></div>
+        <div class="card"><strong>Chart-digging packet</strong><span>Hot/warm/cold posture for H&P, ICU note, vitals, drips, I&O, labs, and task list.</span></div>
+        <div class="card"><strong>Workflow item grammar</strong><span>Why it exists, source/authority, due window, completion criteria, defer/block/carry-forward state.</span></div>
+        <div class="card"><strong>Mismatch prompts</strong><span>Report, chart, and bedside discrepancies ask for human review instead of declaring truth.</span></div>
+      </div>
+      <div class="footer"><span>Issues 03–06</span><span>5 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Human authority</div>
+      <h2>Agent boundaries made explicit</h2>
+      <div class="split">
+        <div>
+          <h3>The assistant may</h3>
+          <ul>
+            <li>Summarize source-linked chart context.</li>
+            <li>Cite evidence, uncertainty, source age, and provenance.</li>
+            <li>Suggest tasks, clusters, handoff/watch items, and next sources to review.</li>
+            <li>Explain priority in supportive, nonpunitive language.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>The assistant may not</h3>
+          <ul>
+            <li>Write accepted chart truth directly.</li>
+            <li>Promote suggestions into active workflow without a human.</li>
+            <li>Complete, defer, block, or carry forward tasks autonomously.</li>
+            <li>Finalize handoff or resolve source conflicts.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer"><span>Issues 07–08, reinforced through 09–15</span><span>6 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Nursing workflow detail</div>
+      <h2>Medication, orders, policy, and handoff</h2>
+      <table>
+        <thead><tr><th>Area</th><th>Defined behavior</th><th>Safety boundary</th></tr></thead>
+        <tbody>
+          <tr><td>Medication timing</td><td>Med-pass planning, retiming, holds/refusals/omissions, drips/rates, first assessment clustering.</td><td>Human charts actions; no silent due-time mutation.</td></tr>
+          <tr><td>Verbal/telephone orders</td><td>Minimal semantics: actor, readback, pending co-sign, derived downstream work.</td><td>No full CPOE or legal compliance platform.</td></tr>
+          <tr><td>Policy/order-set cadence</td><td>Source/version/applicability and generated obligations as derived work.</td><td>No invented order-set template or policy engine.</td></tr>
+          <tr><td>Care clustering & handoff</td><td>Advisory grouping and proposed carry-forward of unresolved meaningful work.</td><td>Final handoff is human-owned.</td></tr>
+        </tbody>
+      </table>
+      <div class="footer"><span>Issues 09–12</span><span>7 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Boundary work</div>
+      <h2>Cold history + visual authority contained</h2>
+      <div class="grid cols-2">
+        <div class="card"><strong>Cold-history retrieval eligibility</strong><span>H&P, old consults, prior encounters, discharge summaries, and narrative context stay source-linked/citable. Retrieval output does not become hot truth.</span></div>
+        <div class="card"><strong>Rendered/prototype/report visuals</strong><span>Visuals provide clinical questions and attention categories. They do not define storage, API, layout, schema, component names, or `_derived` truth.</span></div>
+      </div>
+      <ul>
+        <li>Hot/warm/cold stays an access behavior, not retrieval architecture.</li>
+        <li>Design/prototype assets remain evidence, not chart authority.</li>
+        <li>Assignment-level nurse brain remains future aggregation over per-patient items.</li>
+      </ul>
+      <div class="footer"><span>Issues 13–14</span><span>8 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Closeout</div>
+      <h2>What was deliberately not built</h2>
+      <div class="grid cols-3">
+        <div class="card"><strong class="warn">No architecture choice</strong><span>Backend, storage, runtime, graph/index, semantic search, vector, OpenBrain, access-plane, and adapter are deferred.</span></div>
+        <div class="card"><strong class="warn">No hidden simulator truth</strong><span>No `pi-sim` internals, oracle labels, validation internals, or hidden patient state as chart source.</span></div>
+        <div class="card"><strong class="warn">No ledger expansion</strong><span>`pi-ledger` remains a reusable kernel; any chart mapping is future adapter-only.</span></div>
+        <div class="card"><strong class="warn">No agent authority jump</strong><span>No direct accepted-writes, autonomous completion, final handoff, or conflict resolution.</span></div>
+        <div class="card"><strong class="warn">No UI capture</strong><span>No generated UI, screenshots, tab names, API shapes, or `_derived` output as substrate authority.</span></div>
+        <div class="card"><strong class="warn">No full EHR clone</strong><span>No full CPOE, pharmacy, barcode MAR, legal/compliance, raw audit, ADT, billing, or external EHR integration.</span></div>
+      </div>
+      <div class="footer"><span>Issue 15 boundary closeout</span><span>9 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Next work</div>
+      <h2>Recommended next PRD / issue lanes</h2>
+      <table>
+        <thead><tr><th>Priority</th><th>Next work</th><th>Precondition / guardrail</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Per-patient substrate field/interface PRD</td><td>Map canonical facts/actions/notes/refs, provenance, timing, lifecycle, review, and workflow semantics without choosing storage.</td></tr>
+          <tr><td>2</td><td>Projection behavior tests</td><td>Lock clinician-visible contracts for report, packet, mismatch, workflow item, care cluster, handoff, and cold-history summaries.</td></tr>
+          <tr><td>3</td><td>Bounded assistant suggestion tests</td><td>Prove suggested/accepted/rejected states, disable-able suggestions, evidence links, and human acceptance transitions.</td></tr>
+          <tr><td>4</td><td>Narrow report / shift-brain UI prototype PRD</td><td>Use categories/source states, not component names, layout, or API shape as authority.</td></tr>
+          <tr><td>5</td><td>Future `pi-chart` → `pi-ledger` adapter PRD</td><td>Only after substrate fields are explicit enough to map; keep `pi-ledger` kernel untouched.</td></tr>
+        </tbody>
+      </table>
+      <div class="footer"><span>Next should be one narrow PRD at a time</span><span>10 / 11</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Review checklist</div>
+      <h2>Questions for your review</h2>
+      <div class="grid cols-2">
+        <div class="card"><strong>Clinical fit</strong><span>Does the shift-start sequence match how you expect an ICU nurse to use report, chart digging, bedside verification, meds, and handoff?</span></div>
+        <div class="card"><strong>Authority fit</strong><span>Are the human/agent boundaries conservative enough, or too conservative for your intended demo?</span></div>
+        <div class="card"><strong>Next implementation target</strong><span>Should the next PRD focus on substrate fields, behavior tests, assistant suggestions, or UI prototype?</span></div>
+        <div class="card"><strong>Adapter timing</strong><span>What minimum chart substrate fields must exist before considering a `pi-ledger` adapter?</span></div>
+      </div>
+      <div class="tagrow">
+        <span class="tag">ready-for-human</span><span class="tag">docs-only</span><span class="tag">source-linked</span><span class="tag">bounded assistant</span><span class="tag">adapter-safe</span>
+      </div>
+      <div class="footer"><span>End</span><span>11 / 11</span></div>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="Slide navigation">
+    <button id="prev" type="button">← Prev</button>
+    <span id="counter">1 / 11</span>
+    <button id="next" type="button">Next →</button>
+  </nav>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const counter = document.getElementById('counter');
+    let index = 0;
+    function show(nextIndex) {
+      index = (nextIndex + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+      counter.textContent = `${index + 1} / ${slides.length}`;
+    }
+    document.getElementById('prev').addEventListener('click', () => show(index - 1));
+    document.getElementById('next').addEventListener('click', () => show(index + 1));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') show(index + 1);
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') show(index - 1);
+      if (event.key === 'Home') show(0);
+      if (event.key === 'End') show(slides.length - 1);
+    });
+    show(0);
+  </script>
+</body>
+</html>

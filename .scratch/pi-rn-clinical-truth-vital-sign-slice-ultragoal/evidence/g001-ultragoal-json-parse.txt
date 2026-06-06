@@ -1,0 +1,1 @@
+ok goals.json and ledger.jsonl parse; ledger lines=2

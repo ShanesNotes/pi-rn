@@ -14,7 +14,7 @@ PRD user stories covered: 13, 14, 24
 - `pi-chart/src/types.ts` — current `Author{id,role,run_id?}`, `Source{kind,ref?}`, `TransformBlock` field model.
 - `pi-ledger/docs/ledger-core-public-interface.md` — frozen Claim target (`actor` presence-checked; fixtures use `{kind,id}`).
 - `pi-chart/CONTEXT.md` / `clinician-facing-terminology-map.md` — *Care item source label*, *Authority label*, *Suggested by Pi*, source-≠-authority rule.
-- `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` **(proposed, not accepted)** — the shared clinical-truth service that would host multi-agent authorship at scale.
+- `.scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md` **(accepted north star, ADR-promoted)** — the shared clinical-truth service that would host multi-agent authorship at scale.
 
 ## Scope at scale (architect mandate, 2026-05-29)
 
@@ -84,7 +84,7 @@ Replace the free-string `source.kind` with a **controlled provenance vocabulary*
 
 - `actor` → kernel **`actor`**. The frozen kernel (`ledger-core-public-interface.md`) checks **presence only**; fixtures use `{kind, id}` (see `canonical.rs` minimal claim: `"actor": { "kind": "clinician", "id": "rn-1" }`). Contract maps `actor.{kind,id}` directly; `actor.role` and `actor.run_id` are **chart-internal provenance carried through** — they are part of the canonicalized Claim body (so they affect the Record hash) but the kernel does not interpret them. **Do not widen the kernel** to validate them.
 - `source` has **no kernel field**. It is chart/provenance substrate carried in the fixture/export and, where it must persist into the Claim, lives under a chart-namespaced provenance block (cf. `provenance` in `canonical.rs` tests) — never a new kernel-validated field. Mapping bends the chart to the frozen target.
-- **Scale dependency:** routing/sharding many concurrent agent authors through one shared ledger assumes the **proposed** clinical-truth service (`clinical-truth-service-decision-proposal.md`, *proposed — not accepted*). This issue's field shapes are transport-agnostic and do not depend on that proposal being accepted; only the at-scale concurrent-write routing does.
+- **Scale dependency:** routing/sharding many concurrent agent authors through one shared ledger assumes the **accepted** clinical-truth service north star (`clinical-truth-service-decision-proposal.md`, accepted north star; ADR-promoted). This issue's field shapes are transport-agnostic and do not depend on ADR file placement; only the at-scale concurrent-write routing does.
 
 ## Acceptance criteria
 
@@ -93,7 +93,7 @@ Replace the free-string `source.kind` with a **controlled provenance vocabulary*
 - [ ] Doc renames `author` → `actor`, gives the `actor.kind` enum, and names `run_id` as **consumed** for "Suggested by Pi" provenance (with the `kind=="agent" ⇒ run_id required` rule).
 - [ ] Doc states the multi-provider / multi-agent scale posture: many distinct providers and many distinct agent runs are each distinct asserters; `actor.id` is the human-authorship key, `(actor.id, actor.run_id)` the agent-run key.
 - [ ] Kernel-mapping note: `actor` → kernel `actor` (presence-only); `source` has no kernel field; no kernel widening.
-- [ ] Any concurrency/at-scale routing claim is marked as assuming the **proposed** clinical-truth service and cites `clinical-truth-service-decision-proposal.md`.
+- [ ] Any concurrency/at-scale routing claim is marked as assuming the **accepted** clinical-truth service north star and cites `clinical-truth-service-decision-proposal.md`.
 - [ ] No connector is hardcoded to a patient; connectors over this substrate stay `(patientId, encounterId, asOf)`-parameterized (demo `patient_002`/`enc_p002_001`; regression `patient_001`).
 
 ## Blocked by

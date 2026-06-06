@@ -1,0 +1,3 @@
+$ cargo clippy -p clinical-truth-service --all-targets -- -D warnings
+    Checking clinical-truth-service v0.1.0 (/home/ark/pi-rn/pi-ledger/crates/clinical-truth-service)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.53s

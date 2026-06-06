@@ -121,6 +121,17 @@ await appendEvent(event, { chartRoot, patientId: "patient_001" });
 await currentState({ scope, axis: "all" });
 ```
 
+## Clinical-truth service adapter slice
+
+The first `pi-ledger` integration slice is `clinical_truth.v1alpha1` `vital.sign`. `src/clinical-truth-contract.ts` maps `VitalSample` and `observation/vital_sign` `EventEnvelope` inputs to Rust-vector-backed Claim candidates. `src/clinical-truth-adapter.ts` builds backend-mediated append requests through an injected `ClinicalTruthBackendClient` and projects accepted vital fields from backend-returned accepted entries. Pi-chart does not compute ledger canonical JSON or hashes.
+
+Targeted verification:
+
+```bash
+npm run typecheck
+node --test --import tsx src/clinical-truth-contract.test.ts src/clinical-truth-adapter.test.ts
+```
+
 ## View primitives
 
 The read surface is six functions (DESIGN §4). UI panels, agent context

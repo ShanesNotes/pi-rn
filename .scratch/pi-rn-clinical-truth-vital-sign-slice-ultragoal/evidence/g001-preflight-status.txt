@@ -1,0 +1,186 @@
+# git status --short
+ M .scratch/pi-chart-per-patient-substrate-field-interface/PRD.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/clinician-facing-terminology-map.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/01-charted-clinical-fact-identity-and-scope-fields.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/02-fact-shape-and-the-six-to-four-collapse.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/03-predicate-id-projection-and-production-registry.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/04-typed-object-per-predicate-replacing-magic-key-data.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/05-bitemporal-time-fields-and-canonical-utc-contract.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/06-source-authorship-and-provenance-vocabulary.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/07-unified-evidence-edge-and-dead-field-closure.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/08-integrity-field-and-agreed-canonicalization-id.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/09-lifecycle-vocabulary-and-correction-record-hash.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/10-certainty-reconnection-and-review-attestation-as-separate-facts.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/12-human-agent-suggestion-state-on-the-substrate.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/13-eventenvelope-ndjson-markdown-fixture-export-round-trip.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/14-clinician-surface-derivation-guarantee.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/15-kernel-mappability-closeout-and-boundary-register.md
+ M .scratch/pi-chart-per-patient-substrate-field-interface/issues/RECONCILIATION.md
+ M .scratch/pi-chart-pi-ledger-adapter-strategy/clinical-truth-service-decision-proposal.md
+?? .scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/lean-v0-5-shift-brain-review-deck.html
+?? .scratch/pi-rn-clinical-truth-service-seam-planning/
+?? .scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/
+?? .scratch/pi-rn-next-ultragoal-zoom-out/
+?? .scratch/pi-rn-reentry-audit-28052026/AI-SLOP-CLEANUP-REPORT.md
+?? .scratch/pi-rn-reentry-audit-28052026/CLAUDE-VALIDATOR-BLOCKER.md
+?? .scratch/pi-rn-reentry-audit-28052026/FINAL-REVIEW-GATE.md
+?? .scratch/pi-rn-reentry-audit-28052026/GRILL-WITH-DOCS-HUMAN-DECISIONS.md
+?? .scratch/pi-rn-reentry-audit-28052026/IMPLEMENTATION-READY-PLAN.md
+?? .scratch/pi-rn-reentry-audit-28052026/ULTRAGOAL-BRIEF.md
+?? .scratch/pi-rn-reentry-audit-28052026/ULTRAGOAL-CURRENT-STATE.md
+?? pi-chart/docs/adr/021-clinical-truth-service-client-boundary.md
+?? "pi-chart/docs/design/Pi-chart Design System.zip"
+?? pi-chart/docs/design/pi-chart-logo.png
+?? pi-ledger/docs/adr/009-clinical-truth-service.md
+?? showcase/
+
+# ultragoal status
+{
+  "plan": {
+    "version": 1,
+    "createdAt": "2026-05-31T23:42:02.893Z",
+    "updatedAt": "2026-05-31T23:42:07.663Z",
+    "briefPath": ".omx/ultragoal/brief.md",
+    "goalsPath": ".omx/ultragoal/goals.json",
+    "ledgerPath": ".omx/ultragoal/ledger.jsonl",
+    "codexGoalMode": "aggregate",
+    "goals": [
+      {
+        "id": "G001-baseline-archive-and-afk-preflight-a",
+        "title": "Baseline, archive, and AFK preflight: archive the completed prior ult...",
+        "objective": "Baseline, archive, and AFK preflight: archive the completed prior ultragoal, capture dirty/untracked state and baseline verification, decide the first fact family as `vital.sign` observation, and write a run-state/unblocker artifact under `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/`.",
+        "status": "in_progress",
+        "attempt": 1,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:07.663Z",
+        "startedAt": "2026-05-31T23:42:07.663Z"
+      },
+      {
+        "id": "G002-versioned-registry-support-in-rust-a",
+        "title": "Versioned registry support in Rust: add executable `ledger-core` supp...",
+        "objective": "Versioned registry support in Rust: add executable `ledger-core` support for a first-slice registry fixture/version/hash/content summary around `vital.sign` observation without making fixture policy a production ontology; prove duplicate/shape/object-field behavior and stable registry metadata.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G003-rust-owned-conformance-vectors-add-a",
+        "title": "Rust-owned conformance vectors: add a generator and committed JSON ve...",
+        "objective": "Rust-owned conformance vectors: add a generator and committed JSON vector suite for the `vital.sign` slice covering canonical bytes, Record hash, base append, revision append, point read, and required negative errors including patient mismatch, shape mismatch, non-canonical timestamps, caller-supplied K3 metadata, revision-not-allowed-for-append, stale/missing revision target, and idempotency conflict expectations.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G004-clinical-truth-service-core-crate-sc",
+        "title": "Clinical-truth service-core crate scaffold: add a private/transport-a...",
+        "objective": "Clinical-truth service-core crate scaffold: add a private/transport-agnostic `pi-ledger` service-core crate around `ledger-core` with semantic request/response/error types for GetServiceInfo, GetRegistryInfo, ValidateClaim, and PreviewAppendAdmission, mapping kernel errors to the v1alpha1 vocabulary.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G005-append-idempotency-service-behavior",
+        "title": "Append/idempotency service behavior: implement AppendClaim, AppendRev...",
+        "objective": "Append/idempotency service behavior: implement AppendClaim, AppendRevisionClaim, and GetEntry in service-core with per-patient ordering, returned AcceptedEntryView data, deterministic `client_request_id` replay for the same payload, deterministic conflict for the same idempotency key with a different payload, and tests for retry/concurrency semantics without production transport.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G006-point-read-and-snapshot-admin-bounda",
+        "title": "Point-read and snapshot/admin boundaries: implement PointRead, Snapsh...",
+        "objective": "Point-read and snapshot/admin boundaries: implement PointRead, SnapshotLedger, and ValidateLedgerSnapshot service-core semantics with patient-scoped admin/maintenance context, cross-patient rejection, trusted rebuild behavior, and tests proving snapshot/rebuild is diagnostic only and not a write bypass.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G007-per-patient-wal-log-storage-prototyp",
+        "title": "Per-patient WAL/log storage prototype: add a service-core storage sea...",
+        "objective": "Per-patient WAL/log storage prototype: add a service-core storage seam and first file/WAL implementation for accepted entries with append record shape, fsync or explicit test-mode durability boundary, replay/head validation, corruption fail-closed behavior, and migration notes for later embedded stores behind the same contract.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G008-pi-chart-adapter-contract-tests-befo",
+        "title": "Pi-chart adapter contract tests before runtime adapter: add `pi-chart...",
+        "objective": "Pi-chart adapter contract tests before runtime adapter: add `pi-chart` tests/fixtures for VitalSample and EventEnvelope-to-Claim candidate mapping against the Rust-generated vector suite; assert patient/encounter/source/evidence/quality/time mapping, no hidden `pi-sim`, no direct service access, and no TypeScript canonicalization/hash computation.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G009-pi-chart-backend-mediated-adapter-sl",
+        "title": "Pi-chart backend-mediated adapter slice: implement the minimal `pi-ch...",
+        "objective": "Pi-chart backend-mediated adapter slice: implement the minimal `pi-chart` clinical-truth adapter functions for the `vital.sign` vertical slice behind a backend/client seam and fake contract implementation; preserve chart write boundaries, suggestion/review boundaries, and clinician-surface projection from accepted fields rather than stored view truth.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G010-cross-project-conformance-and-bounda",
+        "title": "Cross-project conformance and boundary verification: wire a reproduci...",
+        "objective": "Cross-project conformance and boundary verification: wire a reproducible verification harness that regenerates/validates Rust vectors, runs service-core tests, runs `pi-chart` adapter tests, runs boundary scans for hidden sim/direct service imports, and records outputs in the run evidence directory.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G011-documentation-adr-and-handoff-update",
+        "title": "Documentation, ADR, and handoff updates: update relevant context/ADR/...",
+        "objective": "Documentation, ADR, and handoff updates: update relevant context/ADR/readme/scratch artifacts so the next agent knows what is implemented, what remains non-production, how to run verification, and which production transport/auth/registry decisions remain out of scope.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      },
+      {
+        "id": "G012-final-quality-gate-run-full-targeted",
+        "title": "Final quality gate: run full targeted verification, ai-slop-cleaner o...",
+        "objective": "Final quality gate: run full targeted verification, ai-slop-cleaner on changed files, rerun verification, run independent code-reviewer and architect review to APPROVE/CLEAR, fix non-clean findings, checkpoint with quality-gate JSON, and leave the next ultragoal unblocked.",
+        "status": "pending",
+        "attempt": 0,
+        "createdAt": "2026-05-31T23:42:02.893Z",
+        "updatedAt": "2026-05-31T23:42:02.893Z"
+      }
+    ],
+    "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
+    "activeGoalId": "G001-baseline-archive-and-afk-preflight-a"
+  },
+  "summary": {
+    "total": 12,
+    "pending": 11,
+    "inProgress": 1,
+    "complete": 0,
+    "failed": 0,
+    "reviewBlocked": 0,
+    "needsUserDecision": 0,
+    "superseded": 0,
+    "steeringBlocked": 0,
+    "aggregateComplete": false,
+    "artifactComplete": false,
+    "activeGoalId": "G001-baseline-archive-and-afk-preflight-a"
+  },
+  "reconciliation": {
+    "ok": true,
+    "snapshot": {
+      "available": false,
+      "raw": null
+    },
+    "warnings": [
+      "Codex goal snapshot is absent or reports no active goal; call get_goal and pass its JSON with --codex-goal-json."
+    ],
+    "errors": []
+  }
+}

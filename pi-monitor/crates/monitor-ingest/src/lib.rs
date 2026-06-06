@@ -1398,6 +1398,36 @@ mod tests {
     }
 
     #[test]
+    fn parses_producer_owned_public_lane_manifest_without_runtime_imports() {
+        let producer_manifest = fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../pi-sim/vitals/.lanes.json"),
+        )
+        .unwrap();
+        let fixture_manifest = fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../fixtures/public-contract/.lanes.json"),
+        )
+        .unwrap();
+        let producer = parse_lane_manifest(&producer_manifest).unwrap();
+        let fixture = parse_lane_manifest(&fixture_manifest).unwrap();
+        assert_eq!(producer, fixture);
+        let producer_paths = producer
+            .lanes
+            .iter()
+            .map(|lane| lane.path.as_str())
+            .collect::<Vec<_>>();
+        let fixture_paths = fixture
+            .lanes
+            .iter()
+            .map(|lane| lane.path.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(producer_paths, fixture_paths);
+        assert!(producer_paths.contains(&"current.json"));
+        assert!(producer_paths.contains(&"events.jsonl"));
+        assert!(producer_paths.contains(&"waveforms/current.json"));
+    }
+
+    #[test]
     fn reads_scripted_demo_public_dir() {
         let manifest = fs::read_to_string(
             Path::new(env!("CARGO_MANIFEST_DIR"))

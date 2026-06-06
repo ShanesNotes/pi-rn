@@ -1,0 +1,5 @@
+$ npm --prefix pi-chart run typecheck
+
+> pi-chart@0.1.0 typecheck
+> tsc --noEmit
+
