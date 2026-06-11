@@ -1,6 +1,6 @@
 # Inventory public telemetry contract authority
 
-Status: ready-for-agent
+Status: completed
 Type: AFK
 
 ## Parent

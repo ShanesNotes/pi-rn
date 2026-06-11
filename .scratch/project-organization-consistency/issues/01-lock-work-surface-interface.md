@@ -1,6 +1,6 @@
 # Lock project work-surface interface
 
-Status: ready-for-agent
+Status: completed
 Type: AFK
 
 ## Parent

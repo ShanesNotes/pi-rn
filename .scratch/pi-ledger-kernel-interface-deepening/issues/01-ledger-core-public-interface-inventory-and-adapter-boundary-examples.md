@@ -1,8 +1,8 @@
 # ledger-core public Interface inventory and Adapter boundary examples
 
-Status: ready-for-human
+Status: completed
 Type: AFK
-Resolution: implemented; merge/admin close pending human confirmation.
+Resolution: implemented in `pi-ledger/docs/ledger-core-public-interface.md` and integration tests.
 
 ## Parent
 

@@ -1,6 +1,6 @@
 # Document Matt Pocock + OMX interoperability
 
-Status: ready-for-agent
+Status: completed
 
 ## Parent
 
@@ -20,11 +20,11 @@ Document package ownership and invocation precedence:
 
 ## Acceptance criteria
 
-- [ ] `docs/agents/skill-interoperability.md` explains the ownership matrix.
-- [ ] `docs/agents/skill-interoperability.md` explains invocation rules.
-- [ ] `docs/agents/skill-interoperability.md` documents the `tdd` overlap.
-- [ ] `docs/agents/skill-interoperability.md` documents the `caveman` one-real-directory rule.
-- [ ] `docs/agents/skill-interoperability.md` documents discovery hygiene.
+- [x] `docs/agents/skill-interoperability.md` explains the ownership matrix.
+- [x] `docs/agents/skill-interoperability.md` explains invocation rules.
+- [x] `docs/agents/skill-interoperability.md` documents the `tdd` overlap.
+- [x] `docs/agents/skill-interoperability.md` documents the `caveman` one-real-directory rule.
+- [x] `docs/agents/skill-interoperability.md` documents discovery hygiene.
 
 ## Blocked by
 
