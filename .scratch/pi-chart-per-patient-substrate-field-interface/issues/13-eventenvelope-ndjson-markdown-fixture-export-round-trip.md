@@ -1,6 +1,6 @@
 # EventEnvelope/NDJSON/Markdown as fixture + export round-trip
 
-Status: ready-for-agent
+Status: completed
 Type: AFK (spec artifact — field-definition / crosswalk doc, not a source edit)
 Reconciliation posture: `adopt` (ADR 018 point 4 already names the brownfield layout the fixture/export/archive format; this slice writes the crosswalk and the round-trip assertion)
 PRD user stories covered: 1, 4, 26

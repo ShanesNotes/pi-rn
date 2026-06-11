@@ -1,6 +1,6 @@
 # Charted-clinical-fact identity & scope fields
 
-Status: ready-for-agent
+Status: completed
 Type: AFK (spec artifact — field-definition doc, not a source edit)
 Reconciliation posture: `adopt` (identity & scope fields already exist and map cleanly; one defect to close)
 PRD user stories covered: 1, 3, 25, 26
@@ -87,13 +87,15 @@ This runs in a hugely data-rich, multi-provider setting with many concurrent aut
 
 ## Acceptance criteria
 
-- [ ] Doc names all three fields (`id`, `subject.patientId`, `encounterId`) with canonical-memory role, clinician label, current pi-chart source, and kernel target.
-- [ ] Kernel mapping stated: `id`→`id`, `subject.patientId`→`subject.patientId`, `encounterId`→`object.encounterId` (encounter is object, patient is subject) — with the rationale.
-- [ ] `subject` declared the single anchor; `PatientScope.patientId` named a read-path concern, not a second source.
-- [ ] Wildcard-leak defect named at `currentState.ts:230-235` with a contract-level fix: explicit per-encounter scope, explicit cross-encounter declaration, absence-is-not-a-match.
-- [ ] Connector signature shown as `(patientId, encounterId, asOf)`; demo `patient_002`/`enc_p002_001` and regression `patient_001` named; no hardcoded patient.
-- [ ] Scaling note: `subject.patientId` as shard/route key, `encounterId` as per-encounter partition, citing the accepted clinical-truth service north star (ADR-promoted).
-- [ ] States no source edit, no adapter, no Rust↔TS mechanism, no kernel widening.
+- [x] Doc names all three fields (`id`, `subject.patientId`, `encounterId`) with canonical-memory role, clinician label, current pi-chart source, and kernel target.
+- [x] Kernel mapping stated: `id`→`id`, `subject.patientId`→`subject.patientId`, `encounterId`→`object.encounterId` (encounter is object, patient is subject) — with the rationale.
+- [x] `subject` declared the single anchor; `PatientScope.patientId` named a read-path concern, not a second source.
+- [x] Wildcard-leak defect named at `active.ts:195-200` with a contract-level fix: explicit per-encounter scope, explicit cross-encounter declaration, absence-is-not-a-match.
+- [x] Connector signature shown as `(patientId, encounterId, asOf)`; demo `patient_002`/`enc_p002_001` and regression `patient_001` named; no hardcoded patient.
+- [x] Scaling note: `subject.patientId` as shard/route key, `encounterId` as per-encounter partition, citing the accepted clinical-truth service north star (ADR-promoted).
+- [x] States no source edit, no adapter, no Rust↔TS mechanism, no kernel widening.
+
+Deliverable: `field-specs/01-identity-and-scope.md`
 
 ## Blocked by
 

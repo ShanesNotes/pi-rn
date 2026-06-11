@@ -1,7 +1,7 @@
 # PRD: pi-chart per-patient charted-clinical-fact substrate field interface
 
-Status: needs-triage
-Sliced: 2026-05-29 → `issues/01–15` (+ `issues/RECONCILIATION.md`); per-issue triage statuses apply (6 ready-for-agent, 9 ready-for-human).
+Status: active
+Sliced: 2026-05-29 → `issues/01–15` (+ `issues/RECONCILIATION.md`). AFK spec deliverables: `field-specs/01,05,11–14` completed 2026-06-11; remaining issues are `ready-for-human` or pending agent slices 02–04,06–10,15.
 Source handoff: `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md`
 Primary companion inputs:
 - `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md` (canonical-vs-derived framing, shift-brain strategy, deferrals)

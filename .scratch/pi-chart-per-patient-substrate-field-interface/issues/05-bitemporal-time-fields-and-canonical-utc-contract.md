@@ -1,6 +1,6 @@
 # Bitemporal time fields + canonical-UTC contract
 
-Status: ready-for-agent
+Status: completed
 Type: AFK (spec artifact — field-definition doc, not a source edit)
 Reconciliation posture: `adopt` (bitemporal backbone is the model's strongest part — keep it; impose only canonical-UTC + store-owned marking)
 PRD user stories covered: 1, 10, 11, 12

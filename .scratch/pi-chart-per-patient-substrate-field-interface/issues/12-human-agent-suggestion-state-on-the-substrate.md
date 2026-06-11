@@ -1,6 +1,6 @@
 # Human-agent suggestion state on the substrate
 
-Status: ready-for-agent
+Status: completed
 Type: AFK / SPEC artifact (field-definition doc, not a source edit)
 Reconciliation posture: adopt
 PRD user stories covered: 24 (and supports 14, 22)

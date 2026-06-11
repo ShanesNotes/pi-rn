@@ -59,7 +59,7 @@ Use this matrix to preserve Locality before crossing subproject Interfaces. It s
 | Clinical-truth vital-sign slice | Implemented — verify before extending | `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/HANDOFF.md`; run `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/verify-vital-sign-slice.sh` |
 | Claim-ledger kernel | Active PRD | `.scratch/pi-ledger-claim-ledger-kernel/PRD.md` |
 | Chart substrate / shift-brain | Planning (`needs-triage`) | `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md` |
-| Per-patient substrate field spec | Planning | `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md` |
+| Per-patient substrate field spec | Active — 6/15 spec slices done | `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md`; deliverables in `field-specs/` |
 
 OMX ultragoal lanes may use `HANDOFF.md`, `RUN-STATE.md`, and story docs instead of `PRD.md`; durable outcomes still live under `.scratch/<feature>/`.
 

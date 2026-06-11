@@ -1,6 +1,6 @@
 # Clinician-surface derivation guarantee
 
-Status: ready-for-agent
+Status: completed
 Type: AFK / SPEC artifact (field-definition doc, not a source edit)
 Reconciliation posture: adopt
 PRD user stories covered: 5 (and supports 21, 22, 24)

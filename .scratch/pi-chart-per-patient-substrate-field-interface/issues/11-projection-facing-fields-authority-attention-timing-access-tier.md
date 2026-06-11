@@ -1,6 +1,6 @@
 # Projection-facing fields: authority, attention/risk, timing, access tier
 
-Status: ready-for-agent
+Status: completed
 Type: AFK / SPEC artifact (field-definition doc, not a source edit)
 Reconciliation posture: adopt
 PRD user stories covered: 22, 23 (and supports 5)
