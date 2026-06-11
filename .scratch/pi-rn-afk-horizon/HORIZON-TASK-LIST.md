@@ -106,7 +106,7 @@ Spec lane **15/15 complete**. Reentry audit Phase 1 spec cleanup **completed**.
 
 | # | Task | Entry | Notes |
 | --- | --- | --- | --- |
-| H1 | Adapter brownfield reconciliation | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/03-...` | docs-only |
+| H1 | Adapter brownfield reconciliation | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/03-...` | **completed** |
 | H2 | Adapter integration mechanism decision | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/04-...` | ready-for-human |
 | H3 | pi-monitor ingest depth issues 02–06 | `.scratch/pi-monitor-public-lane-ingest-depth/` | needs-triage |
 | H4 | Ledger K11 revision admission | `.scratch/pi-ledger-claim-ledger-kernel/issues/11-...` | ready-for-human |

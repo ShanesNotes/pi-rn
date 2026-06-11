@@ -42,7 +42,7 @@ This inventory classifies chart-local claim-ledger and claim-ledger-adjacent art
 
 ## Follow-up recommendations
 
-- After K0-K6 complete, run issue 02 to inventory the real `pi-ledger` consumer contract before implementing adapter code.
+- Issue 02 consumer contract inventory completed 2026-06-11 (`kernel-consumer-contract-inventory.md`). Adapter implementation remains gated on PredicateRegistry, canonicalization-id agreement, and issue 04 mechanism decision.
 - After the integration mechanism decision, create a cleanup issue for `pi-chart/src/claim-ledger/` that either archives it as golden-vector lineage or deletes it after equivalent `pi-ledger` evidence is stable.
 - Add a later source-authority/prototype cleanup slice to update stale prototype references from `src/claim-ledger/` to `pi-ledger` plus chart adapter/projection wording.
 - Do not start current-patient migration until a separate migration PRD/issue defines accepted behavior and verification.
