@@ -30,7 +30,7 @@ If an OMX plan, review, or interview becomes project-relevant, summarize it into
 Example:
 
 ```text
-$ralph implement the issues in .scratch/chart-ingest/issues using Matt $tdd discipline
+$ralph implement the issues in .scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/issues using Matt $tdd discipline
 ```
 
 Expected behavior:

@@ -25,7 +25,7 @@ Primary:
 - `clinical-reference/phase-a/a0a-*` through `a9b-*`
 - `.omx/plans/doc-sprawl-source-map.md`
 - `.omx/plans/workstream-a-memory-proof-acceptance-report.md`
-- `decisions/016-broad-ehr-skeleton-clinical-memory.md`
+- `docs/adr/016-broad-ehr-skeleton-clinical-memory.md`
 
 Secondary/evidence:
 
@@ -173,7 +173,7 @@ Owned files:
 - `docs/plans/prd-phase-a-completion-to-implementation-bridge.md`
 - `docs/plans/test-spec-phase-a-completion-to-implementation-bridge.md`
 - `clinical-reference/phase-a/OPEN-SCHEMA-QUESTIONS.md` (merge target for `accepted` / `accepted-direction` anchors only).
-- Optional future ADR draft under `decisions/` only if HITL explicitly asks for policy promotion.
+- Optional future ADR draft under `docs/adr/` only if HITL explicitly asks for policy promotion.
 
 First failing/characterization test:
 
@@ -191,7 +191,7 @@ Implementation boundary:
 - Classify every anchor; do not silently drop any.
 - Promote to canonical register only `accepted` / `accepted-direction`. `proposed`, `deferred`, `HITL-needed` stay in delta files.
 - Do not use proposed ADR 017 as accepted authority.
-- No edits to `decisions/` unless HITL selects a docs-maintenance/ADR action.
+- No edits to `docs/adr/` unless HITL selects a docs-maintenance/ADR action.
 - No product-root edits in this card.
 
 Verification command:
@@ -450,7 +450,7 @@ Edit-scope guard rails (this is the boundary that other TBs delegate to):
   - Enforce `specimen_collection` / `finding_state` in validator code only unless a narrow existing schema hook is already present.
   - Escalate to HITL if schema enforcement requires refactoring the schema model, adding conditional subtype-specific data shapes, or changing the open `subtype` / `data` posture.
   - No new top-level event types, no new top-level schema properties, no source-kind expansion.
-- No edits to `src/views/*`, `patients/*`, `decisions/*`, `clinical-reference/*`.
+- No edits to `src/views/*`, `patients/*`, `docs/adr/*`, `clinical-reference/*`.
 
 First failing/characterization test:
 

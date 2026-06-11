@@ -5,7 +5,7 @@
 - Date: 2026-04-28.
 - Lane: one-day `patient_002` golden seed review packet from `.omx/plans/ralplan-one-day-after-adr018-019.md`.
 - Purpose: make the existing `patient_002` depth reviewable as the strongest current seed for CORP-019 and ADR018 spike baseline work.
-- Boundary: this packet is **not ADR 019**, does not create `decisions/019-*`, does not pass CORP-019, and does not authorize clean-slate rewrite, storage-port migration, schema work, fixture edits, generated-artifact edits, importer work, validator work, or hidden simulator-state use.
+- Boundary: this packet is **not ADR 019**, does not create `docs/adr/019-*`, does not pass CORP-019, and does not authorize clean-slate rewrite, storage-port migration, schema work, fixture edits, generated-artifact edits, importer work, validator work, or hidden simulator-state use.
 - Current packet outcome: `patient_002` is a **signed-off golden seed / strongest seed**, but **not sufficient** for ADR 019 corpus readiness because the CORP-019 gate still requires `>=5` reviewed patients plus ADR018 spike input.
 
 ## Dirty-tree triage before this lane
@@ -33,7 +33,7 @@ Owned files for this lane:
 |---|---|---|
 | ADR018 | Accepted architecture rebase: clinical truth/provenance substrate; hybrid path now; clean-slate only after bounded spike and later ADR. | Use as guardrail. Do not start rewrite. |
 | CORP-019 | Corpus-readiness gate for future ADR019. | This packet contributes seed evidence only; CORP-019 remains fail / incomplete. |
-| Future ADR019 | Pending decision after ADR018 spike input plus corpus readiness packet. | No `decisions/019-*` is created today. |
+| Future ADR019 | Pending decision after ADR018 spike input plus corpus readiness packet. | No `docs/adr/019-*` is created today. |
 | `patient_002` | Golden seed / strongest current projection stress scenario. | Use for evidence review and later spike baseline; do not treat as product ontology or sufficient corpus. |
 
 ## Why `patient_002` is the golden seed

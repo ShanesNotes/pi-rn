@@ -10,14 +10,17 @@ Reusable cryptographic claim-ledger kernel for the `pi-rn` workspace.
 pi-ledger/
 ├── Cargo.toml
 ├── CONTEXT.md
-├── conformance/clinical_truth/v1alpha1/
+├── conformance/clinical_truth/v1alpha1/vital_sign_vectors.json
 ├── docs/adr/
+│   ├── 009-clinical-truth-service.md
+│   └── 010-vital-sign-service-core-slice.md
 ├── docs/admission-proof-lifecycle.md
 ├── docs/ledger-core-public-interface.md
 ├── docs/trusted-history-rebuild-seam.md
 └── crates/
     ├── ledger-core/
     │   ├── Cargo.toml
+    │   ├── examples/generate_clinical_truth_vectors.rs
     │   ├── src/
     │   └── tests/
     └── clinical-truth-service/
@@ -38,18 +41,21 @@ For safe-use guidance, read:
 - `docs/ledger-core-public-interface.md` for the adapter-facing Interface map.
 - `docs/admission-proof-lifecycle.md` for the clinician-readable proof lifecycle.
 - `docs/trusted-history-rebuild-seam.md` for snapshot/from_snapshot rebuild boundaries.
+- `docs/adr/009-clinical-truth-service.md` and `docs/adr/010-vital-sign-service-core-slice.md` for the first service-core slice.
 
 ## Commands
 
-Run from the repository root:
+From the `pi-rn` monorepo root:
 
 ```bash
 cd pi-ledger && cargo fmt --all -- --check
 cd pi-ledger && cargo test --workspace
-cd pi-ledger && cargo test -p clinical-truth-service
-cd pi-ledger && cargo run --example generate_clinical_truth_vectors --quiet
+cd pi-ledger && cargo run -p ledger-core --example generate_clinical_truth_vectors --quiet \
+  > conformance/clinical_truth/v1alpha1/vital_sign_vectors.json
 cd pi-ledger && cargo clippy --workspace --all-targets -- -D warnings
 ```
+
+From inside `pi-ledger/`, omit the `cd pi-ledger &&` prefix.
 
 ## Boundaries
 

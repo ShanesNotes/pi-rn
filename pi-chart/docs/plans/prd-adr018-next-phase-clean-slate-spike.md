@@ -4,7 +4,7 @@
 
 - Status: planned next ADR 018 phase; planning/contract lane only.
 - Source plan: `.omx/plans/plan-adr018-next-phase-clean-slate-spike.md`.
-- Source decision: `decisions/018-architecture-rebase-clinical-truth-substrate.md`.
+- Source decision: `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`.
 - Paired test spec: `docs/plans/test-spec-adr018-next-phase-clean-slate-spike.md`.
 - Scope: define and verify the ADR 019 clean-slate spike charter and golden projection comparison contract.
 - Non-goal: no product-source, schema, patient fixture, script, UI, generated-artifact, ADR 018, or source-authority implementation changes in this lane.
@@ -74,7 +74,7 @@ Optional later file, only if a separate execution prompt authorizes board indexi
 - `scripts/**`
 - generated `_derived/**`
 - generated prototype output
-- `decisions/018-*`
+- `docs/adr/018-*`
 - `docs/architecture/source-authority.md`
 - QBN-bannered prototype/historical files
 - package/dependency files

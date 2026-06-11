@@ -2,11 +2,14 @@
 
 clinical agent system.
 
+Agents and humans: read [`CONTEXT-MAP.md`](./CONTEXT-MAP.md) first, then [`AGENTS.md`](./AGENTS.md) and the subproject `CONTEXT.md` for your lane.
+
 ## Intent
 
 - `pi-agent/` agent harness
 - `pi-chart/` agent-native clinical memory substrate and chart adapters
 - `pi-ledger/` reusable cryptographic claim-ledger kernel
+- `pi-monitor/` display-only monitor for public telemetry
 - `pi-sim/` clinical monitor simulation
 
 ## Strategic direction

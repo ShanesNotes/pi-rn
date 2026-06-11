@@ -9,7 +9,7 @@ Structural verification for the ADR 018 next-phase planning/contract lane. This 
 - `.omx/plans/plan-adr018-next-phase-clean-slate-spike.md`
 - `docs/plans/prd-adr018-next-phase-clean-slate-spike.md`
 - `docs/plans/test-spec-adr018-next-phase-clean-slate-spike.md`
-- `decisions/018-architecture-rebase-clinical-truth-substrate.md`
+- `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`
 - `docs/architecture/source-authority.md`
 
 ## Structural checks
@@ -84,7 +84,7 @@ PY
 ```bash
 python3 - <<'PY'
 from pathlib import Path
-adr = Path('decisions/018-architecture-rebase-clinical-truth-substrate.md').read_text()
+adr = Path('docs/adr/018-architecture-rebase-clinical-truth-substrate.md').read_text()
 auth = Path('docs/architecture/source-authority.md').read_text()
 for phrase in ['clean-slate', 'spike', 'ADR 019', 'hidden simulator']:
     if phrase not in adr and phrase not in auth:

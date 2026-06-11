@@ -46,4 +46,4 @@ Embedded stores such as `redb`, `sled`, or SQLite remain later implementation op
 - `pi-ledger` may add a service crate/runtime, but it must not import `pi-chart`, brownfield chart schemas, generated UI artifacts, patient directories, or hidden `pi-sim` internals.
 - `pi-chart` and future consumers integrate as clients of the versioned service contract, not by depending on private Rust internals.
 - Golden vectors and ledger-core public-interface tests should become transport-agnostic conformance evidence for the service contract.
-- Implementation remains future work; this ADR selects the service boundary and first transport and storage posture.
+- The service boundary and first transport/storage posture are accepted here; the first `vital.sign` slice landed in ADR 010 (`010-vital-sign-service-core-slice.md`).

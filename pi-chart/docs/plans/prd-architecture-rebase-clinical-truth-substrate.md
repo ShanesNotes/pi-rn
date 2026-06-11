@@ -4,7 +4,7 @@
 
 - Status: active docs/source-authority lane.
 - Source plan: `.omx/plans/plan-architecture-rebase-clinical-truth-substrate.md`.
-- Durable decision: `decisions/018-architecture-rebase-clinical-truth-substrate.md`.
+- Durable decision: `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`.
 - Scope: architecture-source authority and context-hygiene work before implementation.
 - First execution lane: docs/source-authority only.
 - Non-goal for first lane: no product-code, schema, patient fixture, script, or UI implementation changes.
@@ -50,7 +50,7 @@ The repository has a strong clinical truth substrate but has accumulated UI prot
 
 ## Acceptance criteria
 
-- `decisions/018-architecture-rebase-clinical-truth-substrate.md` exists and passes structural content checks.
+- `docs/adr/018-architecture-rebase-clinical-truth-substrate.md` exists and passes structural content checks.
 - `docs/architecture/source-authority.md` exists and classifies the required surfaces.
 - `docs/plans/prd-architecture-rebase-clinical-truth-substrate.md` and paired test spec exist.
 - Optional `docs/plans/kanban-prd-board.md` update is narrow and only records this lane.

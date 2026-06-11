@@ -8,7 +8,7 @@
 - Predecessor planning surface: `docs/plans/prd-s5-read-side-context-bundle.md` (`S5-001`). That PRD remains docs-only and explicitly forbids `src/views/bundle.ts`. CB-001 inherits its boundary phrasing but grants the implementation authority that S5-001 withholds.
 - Successor authority for implementation: this PRD.
 - Acceptance evidence: `docs/plans/s5-read-side-context-bundle-acceptance-report.md` (header rewritten in this lane to point at CB-001 as authority).
-- Brownfield baseline authority remains `decisions/015-adr-009-011-implementation.md` and `schema_version: 0.3.0-partial`.
+- Brownfield baseline authority remains `docs/adr/015-adr-009-011-implementation.md` and `schema_version: 0.3.0-partial`.
 
 ## Why this lane exists
 

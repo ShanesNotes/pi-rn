@@ -72,7 +72,7 @@ git status | grep -E "prd-a9b-product-implementation|test-spec-a9b-product-imple
 
 ## Deferred items
 
-- ADR-018 (`decisions/018-orderset-invocation.md`) not yet authored; authorized by HITL #6 but out of this round's scope.
+- ADR-018 (`docs/adr/018-orderset-invocation.md`) not yet authored; authorized by HITL #6 but out of this round's scope.
 - PRD-A67 round-2 (Pass B): V-NOTES-04+ tracer bullets deferred until HITL approves gap matrix and `nursing_note` migration-vs-exception decision.
 - WF-TB1.5 `HITL-needed` anchors (`a4b-medication-current-state-axes`, `a5-io-lda-addressability-and-axes`) require a unified cross-artifact currentState/URI-grammar ADR; not resolvable by research alone.
 - `nursing_note` subtype sites (5 sites across 4 files) remain at council-direction mismatch; HITL must choose migrate vs ADR-exception before any round-2 rule depends on subtype.
@@ -82,6 +82,6 @@ git status | grep -E "prd-a9b-product-implementation|test-spec-a9b-product-imple
 The following are **not** executed by this team; they require user or HITL action:
 
 - [ ] Update `docs/plans/kanban-prd-board.md`: mark PRD-A67-audit, WF-TB1.5, A9B-disp, LANE-0c rows as accepted/complete.
-- [ ] Author `decisions/018-orderset-invocation.md` (ADR-018) per HITL decision #6.
+- [ ] Author `docs/adr/018-orderset-invocation.md` (ADR-018) per HITL decision #6.
 - [ ] HITL gate for PRD-A67 round-2: approve (a) gap matrix, (b) V-NOTES-04+ rule slots, (c) `nursing_note` migration-vs-exception before Pass B begins.
 - [ ] Schedule unified cross-artifact currentState/URI-grammar ADR lane for `a4b-medication-current-state-axes` + `a5-io-lda-addressability-and-axes`.

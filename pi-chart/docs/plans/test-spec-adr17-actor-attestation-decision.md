@@ -30,7 +30,7 @@ required_prd = [
     status,
     '## RALPLAN-DR summary',
     '## Source inputs and brownfield authority',
-    'decisions/017-actor-attestation-review-taxonomy.md',
+    'docs/adr/017-actor-attestation-review-taxonomy.md',
     'memos/Actor-attestation-taxonomy.md',
     '.omx/plans/workstream-a-memory-proof-acceptance-report.md',
     '.omx/plans/prd-kanban-backlog-expansion.md',

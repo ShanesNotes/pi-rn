@@ -5,7 +5,7 @@ Date: 2026-04-26
 Source board: `docs/plans/kanban-prd-board.md`
 PRD: `docs/plans/prd-v03-foundation-reconciliation.md`
 Test spec: `docs/plans/test-spec-v03-foundation-reconciliation.md`
-Brownfield authority: `decisions/015-adr-009-011-implementation.md`
+Brownfield authority: `docs/adr/015-adr-009-011-implementation.md`
 Memo input: `memos/pi-chart-v03-memo.md`
 
 ## Tests run
@@ -36,12 +36,12 @@ required = [
   'docs/plans/kanban-prd-board.md',
   'ROADMAP.md',
   'memos/pi-chart-v03-memo.md',
-  'decisions/009-contradicts-link-and-resolves.md',
-  'decisions/010-evidence-ref-roles.md',
-  'decisions/011-transform-activity-provenance.md',
-  'decisions/015-adr-009-011-implementation.md',
-  'decisions/016-broad-ehr-skeleton-clinical-memory.md',
-  'decisions/017-actor-attestation-review-taxonomy.md',
+  'docs/adr/009-contradicts-link-and-resolves.md',
+  'docs/adr/010-evidence-ref-roles.md',
+  'docs/adr/011-transform-activity-provenance.md',
+  'docs/adr/015-adr-009-011-implementation.md',
+  'docs/adr/016-broad-ehr-skeleton-clinical-memory.md',
+  'docs/adr/017-actor-attestation-review-taxonomy.md',
   'accepted/current', 'stale/superseded', 'deferred/backlog',
   'needs-ADR/HITL', 'rejected/out-of-scope',
   'proposed/non-canonical', '0.3.0-partial',
@@ -155,12 +155,12 @@ That baseline records pre-existing product-root churn only. The product-root com
 - FHIR/openEHR internal model — bucket `rejected/out-of-scope`. Current repo truth: pi-chart remains a claim-stream internal model with boundary adapters only. Future authority required: explicit boundary-policy change; otherwise keep rejected for core and route adapter work through BND-001.
 - Hidden simulator physiology in chart/agent context — bucket `rejected/out-of-scope`. Current repo truth: pi-chart, pi-agent, and pi-sim remain separated; only public observations/artifacts cross the boundary. Future authority required: explicit boundary-policy change; otherwise preserve hidden-sim opacity.
 
-`decisions/015-adr-009-011-implementation.md` remains the accepted implementation authority for the current `schema_version: 0.3.0-partial` reality. It does not authorize the deferred profile, identity/hash, invalidation, or context-bundle proposals from `memos/pi-chart-v03-memo.md`.
+`docs/adr/015-adr-009-011-implementation.md` remains the accepted implementation authority for the current `schema_version: 0.3.0-partial` reality. It does not authorize the deferred profile, identity/hash, invalidation, or context-bundle proposals from `memos/pi-chart-v03-memo.md`.
 
 ## Boundary confirmation
 
 - This V03-001 execution created only `docs/plans/v03-foundation-reconciliation-acceptance-report.md` as a tracked lane artifact.
-- No V03 edits were made to `src/`, `schemas/`, `patients/`, `scripts/`, `profiles/`, `decisions/`, `ROADMAP.md`, or `memos/`.
+- No V03 edits were made to `src/`, `schemas/`, `patients/`, `scripts/`, `profiles/`, `docs/adr/`, `ROADMAP.md`, or `memos/`.
 - `.omx/tmp/v03-product-root-preflight.txt` exists as an untracked local baseline artifact and is intentionally not a tracked deliverable.
 - Product-root diff after report authoring matched `.omx/tmp/v03-product-root-preflight.txt` exactly.
 - Expected-absent V03 surfaces remain absent:

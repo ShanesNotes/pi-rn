@@ -17,7 +17,7 @@ being discovered. This folder is where that discovery lives.
   notes, orders/meds/interventions, labs/diagnostics, and care
   plan/handoff.
 - `phase-a/` — active artifact research for the broad EHR skeleton.
-  Current local state: A0a-A4b are present; A5-A9b remain unproduced;
+  Current local state: A0a-A9b research artifacts are present under `phase-a/`;
   `OPEN-SCHEMA-QUESTIONS.md` is the compilation surface for unresolved
   schema questions. `patients/patient_001` is still a narrow respiratory
   seed, not the completed broad EHR fixture.
@@ -46,7 +46,7 @@ yet committing pi-chart to expressing it.
 
 - Code, schemas, or API contracts — those live in `src/` and `schemas/`.
 - Committed design decisions — those live in `DESIGN.md`.
-- Pivots / choice rationale — those live in `decisions/`.
+- Pivots / choice rationale — those live in `docs/adr/`.
 - Synthea or MIMIC import mechanics — Phase 3 importer concern.
 
 ## Flow into the project
@@ -55,7 +55,7 @@ yet committing pi-chart to expressing it.
 clinical-reference/   (noisy, discovery)
     │
     ▼  something durable emerges
-decisions/NNN-*.md    (ADR — we chose this)
+docs/adr/NNN-*.md     (ADR — we chose this)
     │
     ▼  spec update required
 DESIGN.md             (spec — this is now load-bearing)

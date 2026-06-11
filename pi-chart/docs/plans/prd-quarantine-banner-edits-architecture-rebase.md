@@ -4,7 +4,7 @@
 
 - Status: proposed execution-ready, docs-only.
 - Source plan: [`.omx/plans/plan-quarantine-banner-edits-architecture-rebase.md`](../../.omx/plans/plan-quarantine-banner-edits-architecture-rebase.md), narrowed by consensus review from an 8-file slice to a 6-file tracked slice.
-- Source authority: [`decisions/018-architecture-rebase-clinical-truth-substrate.md`](../../decisions/018-architecture-rebase-clinical-truth-substrate.md) and [`docs/architecture/source-authority.md`](../architecture/source-authority.md).
+- Source authority: [`docs/adr/018-architecture-rebase-clinical-truth-substrate.md`](../../docs/adr/018-architecture-rebase-clinical-truth-substrate.md) and [`docs/architecture/source-authority.md`](../architecture/source-authority.md).
 - This PRD authorizes only banner insertion in the exact tracked first-slice files listed below. It does not authorize product-code, schema, fixture, script, UI, generated-output, adapter, ingest, ignored-draft, or clean-slate implementation work.
 
 ## Problem

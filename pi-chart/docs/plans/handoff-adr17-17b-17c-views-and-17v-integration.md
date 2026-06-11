@@ -33,7 +33,7 @@ The pattern mirrors PHA-001 exactly. PHA-TB-2/PHA-TB-3 are view-layer characteri
 | `src/validate.ts` | NOT touched | NOT touched | OWNS (add `V-REVIEW-01..07`, `V-ATTEST-01..04`, optional STATUS_RULES extension) |
 | `src/validate.test.ts` | NOT touched | NOT touched | OWNS |
 | `src/views/projection.ts` (existing) | NOT touched | NOT touched | NOT touched |
-| `decisions/` | NOT touched | NOT touched | NOT touched |
+| `docs/adr/` | NOT touched | NOT touched | NOT touched |
 | `docs/plans/` | NOT touched | NOT touched | NOT touched |
 | `patients/**` fixtures | append-only with `adr17b-` prefix | append-only with `adr17c-` prefix | append-only with `adr17v-` prefix if test fixtures needed |
 
@@ -70,7 +70,7 @@ Hard-gate semantics: 17V-INTEGRATION may NOT run before at least one view lane h
 
 - `memos/Actor-attestation-taxonomy.md` lines 217-261 (`ReviewState` and `MemoryProofEventMeta` shapes; projection rules 1-5).
 - `memos/Actor-attestation-taxonomy.md` lines 619-629 (8-rule deterministic accountable-actor priority).
-- `decisions/017-actor-attestation-review-taxonomy.md` lines 75-111 (proposed-not-canonical: `action.claim_review.v1` profile shape + decision semantics).
+- `docs/adr/017-actor-attestation-review-taxonomy.md` lines 75-111 (proposed-not-canonical: `action.claim_review.v1` profile shape + decision semantics).
 - ADR17-001 PRD taxonomy ledger rows T03 (`accepted`), T04 (`verified`), T05 (`rejected`).
 - `src/views/projection.ts` (already-landed; reuse `deriveAuthorshipClass` if helpful, do NOT reimplement).
 
@@ -293,7 +293,7 @@ git diff --name-only -- schemas/ src/validate.ts src/validate.test.ts src/views/
 - DO NOT extend `STATUS_RULES["action:claim_review"]`. 17V owns that.
 - DO NOT touch `src/views/projection.ts` (17a's owned file).
 - DO NOT touch `src/views/attestationState.ts` (17c's owned file).
-- DO NOT touch `decisions/`, `docs/plans/`, `package.json`, lockfiles.
+- DO NOT touch `docs/adr/`, `docs/plans/`, `package.json`, lockfiles.
 
 ---
 
@@ -302,7 +302,7 @@ git diff --name-only -- schemas/ src/validate.ts src/validate.test.ts src/views/
 ### Source authority
 
 - `memos/Actor-attestation-taxonomy.md` lines 503-547 (co-signed note/result review fixture, scope of cosign accountability).
-- `decisions/017-actor-attestation-review-taxonomy.md` lines 113-153 (proposed-not-canonical: `communication.attestation.v1` profile shape + 5 attestation roles `verify` / `cosign` / `countersign` / `witness` / `scribe`).
+- `docs/adr/017-actor-attestation-review-taxonomy.md` lines 113-153 (proposed-not-canonical: `communication.attestation.v1` profile shape + 5 attestation roles `verify` / `cosign` / `countersign` / `witness` / `scribe`).
 - ADR17-001 PRD taxonomy ledger row T06 (`co-signed`).
 - `src/views/projection.ts` (use `deriveAuthorshipClass` if helpful; do NOT reimplement).
 
@@ -329,7 +329,7 @@ export type AttestationState =
   | { kind: "chain"; roles: ReadonlyArray<{ role: AttestationRole; by: string; eventId: string }> };
 ```
 
-Derivation rules (decisions/017 lines 143-152 + memo lines 503-547):
+Derivation rules (docs/adr/017 lines 143-152 + memo lines 503-547):
 
 1. Find all `communication.attestation.v1` events (subtype `attestation`) whose `data.attests_to` OR `data.attestation_target` OR `links.supports[*].ref` matches `targetEventId`.
 2. If none → `{ kind: "none" }`.
@@ -487,7 +487,7 @@ git diff --name-only -- schemas/ src/validate.ts src/validate.test.ts src/views/
 - DO NOT add `V-ATTEST-*` validator rules. 17V owns those.
 - DO NOT register `communication.attestation.v1` in the profile registry. 17V owns that.
 - DO NOT touch `src/views/projection.ts`, `src/views/reviewState.ts`. Other lanes' files.
-- DO NOT touch `decisions/`, `docs/plans/`, `package.json`, lockfiles.
+- DO NOT touch `docs/adr/`, `docs/plans/`, `package.json`, lockfiles.
 
 ---
 
@@ -511,7 +511,7 @@ If neither view lane has committed, STOP and surface. 17V cannot run without at 
 ### Source authority
 
 - `memos/Actor-attestation-taxonomy.md` lines 555-585 (proposed `V-REVIEW-01..07`).
-- `decisions/017-actor-attestation-review-taxonomy.md` lines 188+ (proposed-not-canonical `V-REVIEW-*` and `V-ATTEST-*` rule names; current lane reserves the prefix).
+- `docs/adr/017-actor-attestation-review-taxonomy.md` lines 188+ (proposed-not-canonical `V-REVIEW-*` and `V-ATTEST-*` rule names; current lane reserves the prefix).
 - ADR17-001 PRD taxonomy ledger rows T03–T06 (the rules' triggers).
 
 ### Goal
@@ -574,7 +574,7 @@ npm run typecheck && npm run check
 
 # Disjoint check
 git diff --name-only | sort
-git diff --name-only -- src/views/ docs/plans/ decisions/ patients/ package.json | head -1 | grep -q . && echo "FAIL: 17V-INTEGRATION touched another lane's territory" || echo "OK: 17V disjoint"
+git diff --name-only -- src/views/ docs/plans/ docs/adr/ patients/ package.json | head -1 | grep -q . && echo "FAIL: 17V-INTEGRATION touched another lane's territory" || echo "OK: 17V disjoint"
 
 # Profile registry shape
 cat schemas/profiles/index.json | python3 -m json.tool
@@ -584,7 +584,7 @@ cat schemas/profiles/index.json | python3 -m json.tool
 
 - DO NOT modify `src/views/projection.ts`, `src/views/reviewState.ts`, `src/views/attestationState.ts`. Lanes' owned files.
 - DO NOT change `event.schema.json` (V03-S4 already added the `profile` field; no further schema change).
-- DO NOT touch `decisions/017-actor-attestation-review-taxonomy.md` — canonical ADR boundary.
+- DO NOT touch `docs/adr/017-actor-attestation-review-taxonomy.md` — canonical ADR boundary.
 - DO NOT batch all rules into one commit. Per-rule commits.
 - DO NOT skip the RED test step. Each rule must be observed as RED before implementation.
 
@@ -592,7 +592,7 @@ cat schemas/profiles/index.json | python3 -m json.tool
 
 ## Cross-lane invariants
 
-1. No edits under `decisions/`. Canonical ADR boundary.
+1. No edits under `docs/adr/`. Canonical ADR boundary.
 2. No edits under `docs/plans/`. Acceptance lane will update kanban after all three lanes land.
 3. No edits to `package.json`, `package-lock.json`, lockfiles, or any dependency surface.
 4. No new top-level event fields beyond `profile` (already added by V03-S4).
@@ -632,7 +632,7 @@ grep -E "V-REVIEW-0[1-7]|V-ATTEST-0[1-4]" src/validate.ts | wc -l
 # Expected: ≥ 11
 
 # Stage 6: no unrelated edits
-git diff --name-only HEAD~3..HEAD -- docs/plans/ decisions/ patients/ package.json | head -1 | grep -q . && echo "FAIL: planning/canonical surfaces touched" || echo "OK: planning/canonical surfaces untouched"
+git diff --name-only HEAD~3..HEAD -- docs/plans/ docs/adr/ patients/ package.json | head -1 | grep -q . && echo "FAIL: planning/canonical surfaces touched" || echo "OK: planning/canonical surfaces untouched"
 ```
 
 Pass criteria: all six stages green.

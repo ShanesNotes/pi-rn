@@ -10,7 +10,7 @@ Two lanes execute in parallel. Disjoint owned files. Zero shared writes.
 - **Lane 1 (V03-S4)** lands the `profile` field + profiles registry + `V-PROFILE-01` validator rule. This is foundation for ADR17-17b (claim_review.v1) and ADR17-17c (attestation.v1) which depend on `profile` being a recognized envelope field.
 - **Lane 2 (ADR17-17a)** lands the projection-only `AuthorshipClass` derivation in the view layer. Memo recommendation C1 (no JSON schema change) + C3 (`source.kind` is provenance) + C4 (review events do not mutate original status) are load-bearing.
 
-Neither lane edits `decisions/017-actor-attestation-review-taxonomy.md`, the canonical ADR; both stay within accepted-ADR boundaries.
+Neither lane edits `docs/adr/017-actor-attestation-review-taxonomy.md`, the canonical ADR; both stay within accepted-ADR boundaries.
 
 ## Disjoint ownership matrix
 
@@ -36,7 +36,7 @@ Verification of disjoint-ownership: `git diff --name-only` after each lane commi
 ### Source authority
 
 - `memos/pi-chart-v03-memo.md` §profiles section (cited by V03-001 PRD).
-- `decisions/017-actor-attestation-review-taxonomy.md` lines 75-141 (proposed, not canonical) — references `profile: "action.claim_review.v1"` and `profile: "communication.attestation.v1"` as expected envelope shape. Lane 1 lands the foundation those references depend on, but does NOT promote ADR17 by implication; the `profile` field is type-agnostic.
+- `docs/adr/017-actor-attestation-review-taxonomy.md` lines 75-141 (proposed, not canonical) — references `profile: "action.claim_review.v1"` and `profile: "communication.attestation.v1"` as expected envelope shape. Lane 1 lands the foundation those references depend on, but does NOT promote ADR17 by implication; the `profile` field is type-agnostic.
 - `schemas/event.schema.json` current shape — closed `type` enum, open `subtype` string, no `profile` field today.
 
 ### Brownfield evidence (read before editing)
@@ -134,7 +134,7 @@ test("V-PROFILE-01: event with unregistered profile emits a warning, not an erro
 4. `src/validate.test.ts` contains all three new tests with the literal test names above.
 5. `npm test` passes (no regressions). `npm run typecheck` passes. `npm run check` passes.
 6. `git diff --name-only` shows ONLY: `schemas/event.schema.json`, `schemas/profiles/index.json`, `src/validate.ts`, `src/validate.test.ts`.
-7. NO file under `src/views/`, `decisions/`, `docs/plans/`, `patients/`, `package.json`, lockfiles is modified.
+7. NO file under `src/views/`, `docs/adr/`, `docs/plans/`, `patients/`, `package.json`, lockfiles is modified.
 
 ### Verification command
 
@@ -155,7 +155,7 @@ git diff --name-only -- src/views/ | head -1 | grep -q . && echo "FAIL: Lane 1 t
 - DO NOT add any profile id to the registry beyond `[]`. The registry is intentionally empty.
 - DO NOT add `V-PROFILE-02` or other profile rules. Only V-PROFILE-01.
 - DO NOT touch `src/views/`. ADR17-17a owns that.
-- DO NOT touch `decisions/`. Canonical ADR boundary.
+- DO NOT touch `docs/adr/`. Canonical ADR boundary.
 - DO NOT touch `docs/plans/`. Acceptance lane will update kanban after both lanes land.
 - DO NOT modify any existing validator rule or event subtype handling. Additive only.
 
@@ -363,7 +363,7 @@ test("ADR17-17a: deriveAuthorshipClass does not mutate event (memo C4)", () => {
 3. All 11 tests pass under `node --test --import tsx src/views/projection.test.ts` (or whichever runner the repo uses; check `package.json` test script).
 4. `npm test` passes (no regressions). `npm run typecheck` passes.
 5. `git diff --name-only` for this lane shows ONLY: `src/views/projection.ts`, `src/views/projection.test.ts`.
-6. NO file under `schemas/`, `src/validate.ts`, `src/validate.test.ts`, `decisions/`, `docs/plans/`, `patients/` is modified.
+6. NO file under `schemas/`, `src/validate.ts`, `src/validate.test.ts`, `docs/adr/`, `docs/plans/`, `patients/` is modified.
 7. `deriveAuthorshipClass` MUST NOT read `event.profile` (Lane 1 owns that field; Lane 2 stays decoupled).
 8. `deriveAuthorshipClass` MUST NOT mutate the input event.
 
@@ -388,7 +388,7 @@ git diff --name-only -- schemas/ src/validate.ts src/validate.test.ts | head -1 
 - DO NOT add `ReviewState`, `accountable_actor`, or `MemoryProofEventMeta` derivation. Those are 17b/17c follow-on lanes.
 - DO NOT read `event.profile`. Lane 1 owns the profile field; Lane 2 must stay decoupled so the lanes can land in either order.
 - DO NOT touch `schemas/`, `src/validate.ts`, `src/validate.test.ts`. Lane 1 owns those.
-- DO NOT touch `decisions/`. Canonical ADR boundary.
+- DO NOT touch `docs/adr/`. Canonical ADR boundary.
 - DO NOT touch `docs/plans/`. Acceptance lane will update kanban after both lanes land.
 - DO NOT add a top-level `attestation`, `review_status`, or `attested_by` field anywhere. Memo C1 forbids schema changes for review state.
 
@@ -398,7 +398,7 @@ git diff --name-only -- schemas/ src/validate.ts src/validate.test.ts | head -1 
 
 Both lanes MUST satisfy:
 
-1. No edit under `decisions/`.
+1. No edit under `docs/adr/`.
 2. No edit under `docs/plans/`.
 3. No edit under `patients/` except append-only fixture additions with prefixed event IDs (`v03s4-` for Lane 1, `adr17a-` for Lane 2). Most likely no fixture edits are needed at all.
 4. No edit to `package.json`, `package-lock.json`, or any lockfile.
@@ -441,7 +441,7 @@ cat schemas/profiles/index.json
 echo "---"
 
 # Stage 6: disjoint-from-PHA + disjoint-from-ADR17-decision-lane
-git diff --name-only HEAD~2..HEAD -- docs/plans/ decisions/ | head -1 | grep -q . && echo "FAIL: planning surfaces edited" || echo "OK: planning surfaces untouched"
+git diff --name-only HEAD~2..HEAD -- docs/plans/ docs/adr/ | head -1 | grep -q . && echo "FAIL: planning surfaces edited" || echo "OK: planning surfaces untouched"
 ```
 
 Pass criteria:
@@ -451,7 +451,7 @@ Pass criteria:
 3. Exactly six files changed across the two commits.
 4. Brownfield invariant grep is empty (or only shows test fixtures / docs references, not product code).
 5. `schemas/profiles/index.json` contains `"profiles": []`.
-6. No edits under `docs/plans/` or `decisions/`.
+6. No edits under `docs/plans/` or `docs/adr/`.
 
 ## What unlocks after both lanes land
 

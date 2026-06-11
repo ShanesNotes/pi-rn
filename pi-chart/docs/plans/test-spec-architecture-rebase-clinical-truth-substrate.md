@@ -9,7 +9,7 @@ Structural verification for the architecture rebase planning lane. First executi
 - `.omx/plans/plan-architecture-rebase-clinical-truth-substrate.md`
 - `docs/plans/prd-architecture-rebase-clinical-truth-substrate.md`
 - `docs/plans/test-spec-architecture-rebase-clinical-truth-substrate.md`
-- `decisions/018-architecture-rebase-clinical-truth-substrate.md`
+- `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`
 - `docs/architecture/source-authority.md`
 
 ## Structural checks
@@ -53,7 +53,7 @@ test -f docs/plans/test-spec-architecture-rebase-clinical-truth-substrate.md
 ```bash
 python3 - <<'PY'
 from pathlib import Path
-p = Path('decisions/018-architecture-rebase-clinical-truth-substrate.md')
+p = Path('docs/adr/018-architecture-rebase-clinical-truth-substrate.md')
 t = p.read_text()
 required = [
   'Context', 'Decision', 'Drivers', 'Alternatives considered',
@@ -83,7 +83,7 @@ required = [
   'Deprecated / do-not-use-for-implementation',
   'Runtime/transient artifacts',
   'README.md', 'DESIGN.md', 'ARCHITECTURE.md', 'ROADMAP.md',
-  'decisions/', 'docs/design/', 'docs/prototypes/', 'memos/', '.omx/plans/'
+  'docs/adr/', 'docs/design/', 'docs/prototypes/', 'memos/', '.omx/plans/'
 ]
 missing = [x for x in required if x not in t]
 if missing:

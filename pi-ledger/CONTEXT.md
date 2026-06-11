@@ -11,7 +11,7 @@
 ## Core language
 
 - **Claim ledger kernel**: reusable substrate for tamper-evident clinical claims, not a chart UI or EHR clone.
-- **Claim**: minimal clinical fact/action/context/interpretion record with stable id, predicate, subject, object, time, actor/provenance, and integrity fields.
+- **Claim**: minimal clinical fact/action/context/interpretation record with stable id, predicate, subject, object, time, actor/provenance, and integrity fields.
 - **Ledger-acceptable Claim**: a Claim that satisfies the kernel's structural rules and is canonicalizable under the active canonicalization; a validated Claim must be hashable.
 - **Validated Claim**: Ledger-acceptable Claim view that is the kernel authority for extracting Claim fields after structural and canonicalizability checks pass.
 - **Append-admissible Claim**: Validated Claim that is eligible to enter a specific patient-scoped ledger after patient-scope and predicate-registry checks pass.
@@ -52,11 +52,11 @@
 - Revision admission proves target identity by validating the target entry record as a Ledger-acceptable Claim, parsing and recomputing its Record hash, then matching the correction target by Claim id plus Record hash.
 - Revision admission does not own whole-chain/head validation; it assumes target entries come from the current ledger/snapshot surface supplied by the caller.
 - Revision admission proves correction target existence only; conflict policy, replacement policy, clinical visibility requirements, and graph-wide correction semantics remain separate.
-- Admission bypasses are not part of the public adapter-facing append Interface; post-K11 architecture-deepening should remove lower-level bypass append methods from public crate consumers and keep bypass append support only as `#[cfg(test)] pub(crate)` Append ledger support before chart adapter work depends on the kernel Interface.
+- Admission bypasses are not part of the public adapter-facing append Interface; K12 removed lower-level bypass append methods from public crate consumers and keeps bypass append support only as `#[cfg(test)] pub(crate)` Append ledger support.
 - Lower-level test/trusted-entry bypasses may exist only with loud names that state omitted predicate and/or revision admission checks, and normal fixtures/examples should not teach those bypasses.
 - The deterministic fixture is a happy-path kernel example: base Claims should append through Append admission, and correction Claims should append through Revision admission against current ledger entries.
 - Query remains a trusted-entry projection and should not become the owner of revision-target admission; query tests may use loud bypass helpers only to construct point-read fixtures or corrupt snapshots.
-- K11 should land as one vertical issue because Revision admission, normal correction append API, fixture happy path, and bypass inventory must change together to avoid an unsafe intermediate append surface.
+- K11 landed as one vertical slice: Revision admission, normal correction append API, fixture happy path, and bypass inventory changed together to avoid an unsafe intermediate append surface.
 - Record hash and Entry hash are distinct identity values: correction links target claim id plus Record hash, while append-chain links and ledger head validation use Entry hash.
 - Kernel hash strings use `sha256:<64 lowercase hex>` form, and hash parsing/formatting should be owned by a shared kernel hash rule rather than duplicated in Claim, Ledger, or Query code.
 - Canonicalization and hash output must be deterministic across implementations.
@@ -73,9 +73,16 @@
 
 ## Current service-core slice
 
-As of 2026-05-31, `pi-ledger` also contains a private, transport-agnostic service-core crate at `crates/clinical-truth-service/` for the first `clinical_truth.v1alpha1` `vital.sign` slice. It wraps the safe `ledger-core` paths with versioned request/response/error semantics, per-patient append/idempotency behavior, point reads, snapshot/admin validation, and a file/WAL storage prototype. This crate is still internal service-core behavior, not a public clinical API or production transport/auth implementation.
+As of 2026-06-11, `pi-ledger` also contains a private, transport-agnostic service-core crate at `crates/clinical-truth-service/` for the first `clinical_truth.v1alpha1` `vital.sign` slice. It wraps the safe `ledger-core` paths with versioned request/response/error semantics, per-patient append/idempotency behavior, point reads, snapshot/admin validation, and a file/WAL storage prototype. This crate is still internal service-core behavior, not a public clinical API or production transport/auth implementation.
 
-Rust-owned conformance vectors live under `conformance/clinical_truth/v1alpha1/` and should be regenerated with `cargo run --example generate_clinical_truth_vectors --quiet`, not hand-edited.
+Rust-owned conformance vectors live under `conformance/clinical_truth/v1alpha1/` and should be regenerated with:
+
+```bash
+cargo run -p ledger-core --example generate_clinical_truth_vectors --quiet \
+  > conformance/clinical_truth/v1alpha1/vital_sign_vectors.json
+```
+
+Do not hand-edit the committed vector file.
 
 ## Boundary with pi-chart
 

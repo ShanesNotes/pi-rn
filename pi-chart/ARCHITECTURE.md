@@ -182,7 +182,7 @@ JSON-serializable view payload  →  agent context / UI / derived render
 
 ### 2.3 Ingest path (pi-sim monitor → chart)
 
-Target shape (not yet implemented; see ROADMAP + `_imports/pi-monitor-ingest-spec.md`):
+Target shape (not yet implemented; see `ROADMAP.md` seam #1 and `.scratch/observable-charting-adapter-readiness/PRD.md`):
 
 ```
 pi-sim/vitals/current.json   (ground-truth physiology output)

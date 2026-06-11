@@ -33,7 +33,7 @@ Status: proposed / non-canonical; requires HITL/ADR approval before implementati
 Primary inputs:
 
 - `docs/plans/kanban-prd-board.md`
-- `decisions/017-actor-attestation-review-taxonomy.md`
+- `docs/adr/017-actor-attestation-review-taxonomy.md`
 - `memos/Actor-attestation-taxonomy.md`
 - `.omx/plans/workstream-a-memory-proof-acceptance-report.md`
 - `.omx/plans/prd-kanban-backlog-expansion.md` consensus review addendum
@@ -44,7 +44,7 @@ Brownfield reality to preserve:
 - `schemas/event.schema.json` has a closed event `type`, open `subtype`, existing `author`, `source`, `transform`, `certainty`, `status`, `data`, and `links`; no top-level `attestation`, `review_status`, or `attested_by` policy exists.
 - `src/validate.ts` recognizes human/agent/import source-kind families and status-detail rules for existing review-like subtypes (`action:result_review`, `action:constraint_review`, `action:problem_review`) but has no `V-REVIEW-*`, `V-ATTEST-*`, `action.claim_review.v1`, or `communication.attestation.v1` implementation.
 - Proposed ADR17 remains evidence/proposal only. It cannot authorize product changes until HITL records the disposition.
-- This lane must not edit `decisions/017-actor-attestation-review-taxonomy.md`, change canonical ADR status, alter package manifests/lockfiles, or create successor ADR files unless HITL explicitly approves that decision branch.
+- This lane must not edit `docs/adr/017-actor-attestation-review-taxonomy.md`, change canonical ADR status, alter package manifests/lockfiles, or create successor ADR files unless HITL explicitly approves that decision branch.
 - `pi-chart` remains a bounded chart/EHR subsystem; this lane must not add `pi-agent` to `pi-sim` coupling or depend on hidden simulator state.
 
 ## Problem
@@ -70,7 +70,7 @@ Workstream A deliberately deferred actor, review, rejection, and professional at
 | ADR17-TB-1 HITL disposition packet | Present accept/revise/split/defer/reject choices and required follow-up answers. | Same PRD/test-spec; possible future HITL note or successor ADR only after approval. | Completeness check proves all options, required answers, and consequences are present. | Embedded Python validation plus human review of `## HITL checkpoint`. | Stop until human records one disposition. |
 | ADR17-TB-2 Brownfield schema/validator characterization | Prove current behavior has no accepted ADR17 policy and identify safe future test seams. | Planning docs only; read-only references to `schemas/event.schema.json`, `src/validate.ts`, `src/validate.test.ts`. | Read-only grep characterizes absence/presence of ADR17 policy markers without editing code. | `grep -RIn "V-REVIEW\|V-ATTEST\|claim_review\|attestation\|review_status\|attested_by" schemas src patients || true` | If HITL wants implementation, create tests in a later lane first. |
 | ADR17-TB-3 Split/revision design card | Decide whether review events and professional attestations must be separate ADRs/cards. | PRD decision tables; future successor PRDs only after HITL. | Validation requires separate downstream branches for `action.claim_review.v1` and `communication.attestation.v1`. | Embedded Python validation checks both concepts are present and still deferred. | No successor ADR file unless HITL chooses revise/split. |
-| ADR17-TB-4 Post-approval implementation handoff | Define implementation that would follow only after approval. | PRD/test-spec only now; future owned files would include `decisions/**`, `schemas/event.schema.json`, `src/validate.ts`, view helpers/tests, and selected fixtures. | First future failing tests must be characterization tests: one validator acceptance/rejection test and one projection/backlink test for a minimal review event. | Future lane runs `npm test`, `npm run typecheck`, and `npm run check` after HITL-approved edits. Current guard: `git status --short -- decisions src schemas patients scripts package.json package-lock.json pnpm-lock.yaml yarn.lock`. | Explicitly blocked in this lane. |
+| ADR17-TB-4 Post-approval implementation handoff | Define implementation that would follow only after approval. | PRD/test-spec only now; future owned files would include `docs/adr/**`, `schemas/event.schema.json`, `src/validate.ts`, view helpers/tests, and selected fixtures. | First future failing tests must be characterization tests: one validator acceptance/rejection test and one projection/backlink test for a minimal review event. | Future lane runs `npm test`, `npm run typecheck`, and `npm run check` after HITL-approved edits. Current guard: `git status --short -- decisions src schemas patients scripts package.json package-lock.json pnpm-lock.yaml yarn.lock`. | Explicitly blocked in this lane. |
 
 ## HITL checkpoint
 
@@ -107,7 +107,7 @@ If HITL approves an implementation branch, execution should start with character
 
 ## Explicit deferrals
 
-- Accepting ADR17 or changing `decisions/017-actor-attestation-review-taxonomy.md` status.
+- Accepting ADR17 or changing `docs/adr/017-actor-attestation-review-taxonomy.md` status.
 - Editing canonical ADR files or creating successor ADRs without HITL disposition.
 - Implementing `action.claim_review.v1` or `communication.attestation.v1`.
 - Adding top-level `attestation`, `review_status`, or `attested_by` fields.
@@ -121,7 +121,7 @@ If HITL approves an implementation branch, execution should start with character
 
 ## Intended board row snippet
 
-Status: proposed / non-canonical; requires HITL/ADR approval before implementation policy. `ADR17-001` — refined decision lane with tracer bullets ADR17-TB-0 through ADR17-TB-4. Decide accept, revise, split, defer, or reject ADR17 before any schema, validator, projection, fixture, write-path, canonical ADR, package, or product behavior change. Sources: `decisions/017-actor-attestation-review-taxonomy.md`, `memos/Actor-attestation-taxonomy.md`, `.omx/plans/workstream-a-memory-proof-acceptance-report.md`, `.omx/plans/prd-kanban-backlog-expansion.md`. Owned artifacts: `docs/plans/prd-adr17-actor-attestation-decision.md`, `docs/plans/test-spec-adr17-actor-attestation-decision.md`. Next gate: HITL disposition.
+Status: proposed / non-canonical; requires HITL/ADR approval before implementation policy. `ADR17-001` — refined decision lane with tracer bullets ADR17-TB-0 through ADR17-TB-4. Decide accept, revise, split, defer, or reject ADR17 before any schema, validator, projection, fixture, write-path, canonical ADR, package, or product behavior change. Sources: `docs/adr/017-actor-attestation-review-taxonomy.md`, `memos/Actor-attestation-taxonomy.md`, `.omx/plans/workstream-a-memory-proof-acceptance-report.md`, `.omx/plans/prd-kanban-backlog-expansion.md`. Owned artifacts: `docs/plans/prd-adr17-actor-attestation-decision.md`, `docs/plans/test-spec-adr17-actor-attestation-decision.md`. Next gate: HITL disposition.
 
 ## Available-agent-types roster and staffing guidance for future handoff
 

@@ -10,7 +10,7 @@
 
 `prd-a9b-product-implementation.md` was authored as a planning surface for A9b orderset
 invocation. After HITL review (decision #6, 2026-04-26), the operator disposition for A9b
-is **plan-only ADR lane**: write `decisions/018-orderset-invocation.md` capturing direction
+is **plan-only ADR lane**: write `docs/adr/018-orderset-invocation.md` capturing direction
 without authorizing implementation. No PRD or test-spec ships until a separate HITL go-ahead.
 
 The PRD was moved to `docs/plans/.draft/` by LANE-0c pending this disposition.
@@ -42,7 +42,7 @@ Retire the PRD draft; ADR-018 is the correct and sufficient surface.
 
 2. **ADRs are the canonical policy surface for direction without code authorization.** The
    `.gitignore` rule for `/memos/` and the existing ADR pattern (ADR012, ADR013, ADR017)
-   confirm that direction capture belongs in `decisions/`, not `docs/plans/`.
+   confirm that direction capture belongs in `docs/adr/`, not `docs/plans/`.
 
 3. **All six accepted-direction anchors are already merged into OPEN-SCHEMA-QUESTIONS.md.**
    The anchors (`a9b-invocation-as-event-vs-derived`, `a9b-parent-child-link-convention`,
@@ -68,6 +68,6 @@ Retire the PRD draft; ADR-018 is the correct and sufficient surface.
 
 ## Follow-up actions (user-action items)
 
-- [ ] Author `decisions/018-orderset-invocation.md` referencing all six anchors and HITL #6.
+- [ ] Author `docs/adr/018-orderset-invocation.md` referencing all six anchors and HITL #6.
 - [ ] Update kanban A9B-001 row to reflect "ADR-018 pending; PRD retired to .draft/".
 - [ ] Delete `.draft/` contents after ADR-018 lands (or keep gitignored indefinitely — low risk).

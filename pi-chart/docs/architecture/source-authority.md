@@ -21,7 +21,7 @@ When a lower-authority artifact has useful details, promote the specific decisio
 
 ## Canonical architecture
 
-These files define the current brownfield architecture unless superseded by a later accepted ADR. For V0.5 K0-K6 claim-ledger kernel implementation, ADR 019 plus `.scratch/pi-chart-v0-5-claim-ledger-kernel/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patients/`, `patient_001`, and legacy `decisions/` wording in these canonical docs.
+These files define the current brownfield architecture unless superseded by a later accepted ADR. For V0.5 claim-ledger kernel work, ADR 020 and `pi-ledger/` supersede older `EventEnvelope`, `schemas/event.schema.json`, `patients/`, `patient_001`, and legacy `decisions/` wording in these canonical docs.
 
 | Surface | Authority | Notes |
 |---|---|---|
@@ -40,6 +40,8 @@ These files define the current brownfield architecture unless superseded by a la
 | `docs/adr/018-architecture-rebase-clinical-truth-substrate.md` | Current architecture rebase decision | Establishes clinical truth substrate over prototype cockpit, hybrid immediate path, clean-slate spike gate, and context-hygiene requirement. |
 | `docs/adr/019-v0-5-clean-canvas-claim-ledger-kernel.md` | Superseded implementation home; still valid clean-canvas guardrails | ADR 020 supersedes the `src/claim-ledger/` implementation-home detail. ADR 019 remains useful for clean-canvas posture and guardrails. |
 | `docs/adr/020-claim-ledger-kernel-owned-by-pi-ledger.md` | Current kernel ownership decision | Moves the reusable cryptographic claim-ledger kernel to sibling subproject `pi-ledger/`; `pi-chart` becomes consumer/adapter. |
+| `docs/adr/021-clinical-truth-service-client-boundary.md` | Accepted service client boundary | Defines how `pi-chart` consumes the clinical-truth service contract. |
+| `docs/adr/022-vital-sign-clinical-truth-adapter-slice.md` | Accepted adapter slice | First vital-sign adapter seam over the service contract. |
 
 ## Active planning
 

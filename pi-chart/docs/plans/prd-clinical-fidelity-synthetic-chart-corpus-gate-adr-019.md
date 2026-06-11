@@ -7,9 +7,9 @@
 - Prior context: `.omx/context/clinical-fidelity-synthetic-chart-corpus-gate-adr-019-20260427T144845Z.md`.
 - Paired test spec: `docs/plans/test-spec-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`.
 - Source decisions and references:
-  - `decisions/001-mimic-to-synthea.md`
-  - `decisions/016-broad-ehr-skeleton-clinical-memory.md`
-  - `decisions/018-architecture-rebase-clinical-truth-substrate.md`
+  - `docs/adr/001-mimic-to-synthea.md`
+  - `docs/adr/016-broad-ehr-skeleton-clinical-memory.md`
+  - `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`
   - `docs/architecture/source-authority.md`
   - `clinical-reference/broad-ehr-skeleton.md`
   - `ROADMAP.md`
@@ -42,7 +42,7 @@ This PRD defines a **prerequisite gate** for ADR 019. It is **not ADR 019**, doe
 
 ## Non-goals for this first slice
 
-- No ADR 019 creation and no `decisions/019-*` file.
+- No ADR 019 creation and no `docs/adr/019-*` file.
 - No clean-slate rewrite.
 - No production storage-port migration.
 - No `src/**` edits.

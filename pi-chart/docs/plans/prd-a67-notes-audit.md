@@ -97,7 +97,7 @@ Count: 5 sites across 4 files (one fixture pair `events.ndjson` + `notes/`, one 
 ### HITL options to surface
 
 - **Option (i) — migrate fixtures+tests to council subtypes.** Rewrite the patient_002 nursing-note pair to one of the council nursing-applicable subtypes — likely `progress_note` (shift narrative) or `focused_note` (concern-centered respiratory note, given the existing fixture mentions "focused respiratory note" in `data.summary`) — and update `src/views/memoryProof.test.ts:63` to assert against the chosen subtype with `author.role === "rn"`. Re-derive `_derived/memory-proof.md`.
-- **Option (ii) — author exception ADR.** Write `decisions/0NN-nursing-note-subtype-exception.md` documenting why `nursing_note` is retained as a pi-chart-specific extension to the council subtype list, what guarantees it preserves, and how validators/views must treat it.
+- **Option (ii) — author exception ADR.** Write `docs/adr/0NN-nursing-note-subtype-exception.md` documenting why `nursing_note` is retained as a pi-chart-specific extension to the council subtype list, what guarantees it preserves, and how validators/views must treat it.
 
 ### Block on round-2
 

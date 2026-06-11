@@ -28,6 +28,8 @@ Use root `.scratch/` for durable project work that should be readable by any age
 - Triage status: `Status:` line using `docs/agents/triage-labels.md`
 - Handoffs or summaries that are meant to survive a specific runtime
 
+OMX ultragoal lanes may persist as `HANDOFF.md`, `RUN-STATE.md`, and story docs (for example `G00x-*.md`) instead of `PRD.md`. Durable handoffs should still live under `.scratch/<feature>/`.
+
 This is the shared working plane for Matt Pocock skills and for human review.
 
 ## OMX runtime work

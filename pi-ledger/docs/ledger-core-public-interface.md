@@ -114,6 +114,10 @@ trusted entries from AppendLedger::entries or AppendLedger::from_snapshot(...).e
 
 Query remains a trusted-entry projection. It does not prove Admission, run Predicate policy, validate the whole chain, or decide clinical correction conflict policy.
 
+## Service-core layer
+
+The first transport-agnostic service wrapper lives in `crates/clinical-truth-service/` under the `clinical_truth.v1alpha1` contract. Read `docs/adr/009-clinical-truth-service.md` and `docs/adr/010-vital-sign-service-core-slice.md` for the versioned request/response boundary. Adapters should target the service contract and conformance vectors under `conformance/clinical_truth/v1alpha1/`, not private `ledger-core` internals.
+
 ## Boundary reminders
 
 - `pi-ledger` does not import `pi-chart` source, brownfield schemas, patient directories, generated UI artifacts, or `EventEnvelope` assumptions.

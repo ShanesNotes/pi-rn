@@ -41,7 +41,7 @@ Use this matrix to preserve Locality before crossing subproject Interfaces. It s
 | `pi-monitor/` | Display-only monitor modeling, freshness/alarm/numeric/waveform rendering, native kiosk/CLI behavior | Public JSON/JSONL telemetry from `pi-sim/vitals/` | Does not write chart truth, `vitals.jsonl`, simulator state, patient truth, or import `pi-chart`/hidden `pi-sim` internals | `pi-monitor/CONTEXT.md`; `pi-monitor/docs/adr/`; producer contract `pi-sim/vitals/README.md` plus `.lanes.json` | `pi-monitor/README.md`; `cargo fmt --all -- --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace` |
 | `pi-ledger/` | Reusable cryptographic claim-ledger kernel: canonicalization, stable id+hash identity, append order, ledger integrity, minimal bitemporal reads | `pi-chart` adapters; future access/runtime/orchestrator surfaces through explicit kernel interfaces | Must not import `pi-chart` brownfield schemas, patient directories, UI prototypes, hidden `pi-sim`, or runtime transcripts as patient memory | `pi-ledger/CONTEXT.md`; `pi-ledger/docs/adr/`; root `CONTEXT-MAP.md` | `cd pi-ledger && cargo test`, Rust-generated clinical-truth conformance vectors, and `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/verify-vital-sign-slice.sh` |
 | `pi-chart/` | Agent-native clinical chart truth, clinical memory semantics, chart views/workflows, clinical adapters, disposable derived views | Explicit adapters may ingest public simulator telemetry through the Observable charting seam; agents/tests may use sanctioned chart APIs; consumes `pi-ledger` through adapters after kernel proof | Must not depend on hidden `pi-sim` internals or `pi-monitor`; raw file writes are outside the write boundary; no longer owns the cryptographic claim-ledger kernel | `pi-chart/CONTEXT.md`; `pi-chart/docs/adr/`; `pi-chart/DESIGN.md`; `pi-chart/ARCHITECTURE.md`; `pi-chart/docs/adr/020-claim-ledger-kernel-owned-by-pi-ledger.md` | `pi-chart/README.md`; package test/build scripts; whole-chart validation; clinical-truth adapter tests; `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/verify-vital-sign-slice.sh` |
-| `pi-agent/` | Bounded clinician-agent workspace and future containerized runtime policy | Mounted/exposed chart/EHR and public telemetry surfaces intentionally made visible to the agent | Must not import, inspect, or design around hidden `pi-sim` source, provider state, latent findings, scenario secrets, or validation internals | `pi-agent/CONTEXT.md`; create `pi-agent/docs/adr/` only for durable agent-specific decisions; root `docs/agents/` for workflow | `pi-agent/AGENTS.md`; future container/public-read smoke checks; boundary scans for hidden simulator coupling |
+| `pi-agent/` | Bounded clinician-agent workspace and future containerized runtime policy | Mounted/exposed chart/EHR and public telemetry surfaces intentionally made visible to the agent | Must not import, inspect, or design around hidden `pi-sim` source, provider state, latent findings, scenario secrets, or validation internals | `pi-agent/CONTEXT.md`; create `pi-agent/docs/adr/` only for durable agent-specific decisions; root `docs/agents/` for workflow | `pi-agent/CONTEXT.md`; `pi-agent/AGENTS.md` for Pi-runtime scaffold only; future container/public-read smoke checks; boundary scans for hidden simulator coupling |
 
 ## Which context to read
 
@@ -51,6 +51,17 @@ Use this matrix to preserve Locality before crossing subproject Interfaces. It s
 - **Monitor/display work:** read `pi-monitor/CONTEXT.md`, relevant `pi-monitor/docs/adr/*`, and `pi-sim/vitals/README.md`.
 - **Simulator/provider/scenario work:** read `pi-sim/CONTEXT.md`, relevant `pi-sim/docs/adr/*`, and public contract fixture docs when changes affect consumers.
 - **Cross-subproject changes:** read each touched subproject context and the producer/consumer boundary docs before editing.
+
+## Active work lanes (2026-06)
+
+| Lane | Status | Entry |
+| --- | --- | --- |
+| Clinical-truth vital-sign slice | Implemented — verify before extending | `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/HANDOFF.md`; run `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/verify-vital-sign-slice.sh` |
+| Claim-ledger kernel | Active PRD | `.scratch/pi-ledger-claim-ledger-kernel/PRD.md` |
+| Chart substrate / shift-brain | Planning (`needs-triage`) | `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md` |
+| Per-patient substrate field spec | Planning | `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md` |
+
+OMX ultragoal lanes may use `HANDOFF.md`, `RUN-STATE.md`, and story docs instead of `PRD.md`; durable outcomes still live under `.scratch/<feature>/`.
 
 ## Issue workflow
 

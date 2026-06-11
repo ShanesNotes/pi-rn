@@ -15,12 +15,12 @@
 | `docs/plans/kanban-prd-board.md` | Canonical backlog entrypoint | Board card and HITL state only. |
 | `ROADMAP.md` | Current roadmap | Brownfield status and deferred primitive register. |
 | `memos/pi-chart-v03-memo.md` | Evidence/proposal | Bucket every relevant section before use. |
-| `decisions/009-contradicts-link-and-resolves.md` | Accepted | Canonical for `contradicts`, `resolves`, contested views. |
-| `decisions/010-evidence-ref-roles.md` | Accepted | Canonical for typed `EvidenceRef` and role rules. |
-| `decisions/011-transform-activity-provenance.md` | Accepted | Canonical for optional `transform`. |
-| `decisions/015-adr-009-011-implementation.md` | Accepted implementation contract | Canonical `0.3.0-partial` execution reality for ADRs 009/010/011. |
-| `decisions/016-broad-ehr-skeleton-clinical-memory.md` | Accepted | Current broad-EHR skeleton driver and hidden-sim boundary. |
-| `decisions/017-actor-attestation-review-taxonomy.md` | Proposed/non-canonical | Decision input only; no implementation authority. |
+| `docs/adr/009-contradicts-link-and-resolves.md` | Accepted | Canonical for `contradicts`, `resolves`, contested views. |
+| `docs/adr/010-evidence-ref-roles.md` | Accepted | Canonical for typed `EvidenceRef` and role rules. |
+| `docs/adr/011-transform-activity-provenance.md` | Accepted | Canonical for optional `transform`. |
+| `docs/adr/015-adr-009-011-implementation.md` | Accepted implementation contract | Canonical `0.3.0-partial` execution reality for ADRs 009/010/011. |
+| `docs/adr/016-broad-ehr-skeleton-clinical-memory.md` | Accepted | Current broad-EHR skeleton driver and hidden-sim boundary. |
+| `docs/adr/017-actor-attestation-review-taxonomy.md` | Proposed/non-canonical | Decision input only; no implementation authority. |
 
 ## Refined acceptance criteria
 
@@ -66,7 +66,7 @@
 Before any implementation handoff, the operator must choose exactly one:
 
 1. **Keep V03 deferred** and return to Phase A broad-EHR skeleton execution using accepted ADR 009/010/011/016 only.
-2. **Promote ADR17 decision work**: accept, revise, split, defer, or reject `decisions/017-actor-attestation-review-taxonomy.md`; still no product code until accepted.
+2. **Promote ADR17 decision work**: accept, revise, split, defer, or reject `docs/adr/017-actor-attestation-review-taxonomy.md`; still no product code until accepted.
 3. **Open ADR012/ADR013 lane** for identity/hash or `invalidated_at`; create a new PRD/test spec before code.
 4. **Open profile-registry lane** for ADR008/profile work; create a new PRD/test spec before code.
 5. **Open read-side context-bundle lane** if agent-context export becomes the selected need; create a new PRD/test spec before code.

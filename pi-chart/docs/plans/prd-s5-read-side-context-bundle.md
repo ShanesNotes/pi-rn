@@ -10,7 +10,7 @@
 - Source interview/spec: `.omx/specs/deep-interview-v03-hitl-successor.md`.
 - Source acceptance report: `docs/plans/v03-foundation-reconciliation-acceptance-report.md`.
 - Source reconciliation PRD: `docs/plans/prd-v03-foundation-reconciliation.md`.
-- Brownfield implementation authority remains `decisions/015-adr-009-011-implementation.md` and the current `schema_version: 0.3.0-partial` posture.
+- Brownfield implementation authority remains `docs/adr/015-adr-009-011-implementation.md` and the current `schema_version: 0.3.0-partial` posture.
 
 This lane exists because V03-001 reconciled the v0.3 memo and HITL selected S5 as the next successor scaffold. The operator then constrained S5 to a narrow read-only planning lane: use existing IDs and existing projections, do not add fingerprint, identity/hash-chain, profile-registry expansion, schema/validator work, or product code in this lane.
 

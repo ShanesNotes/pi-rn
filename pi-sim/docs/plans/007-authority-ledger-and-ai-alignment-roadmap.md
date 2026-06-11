@@ -127,7 +127,7 @@ Completed by this pass when root `CONTEXT-MAP.md`, root `docs/agents/*`, `.scrat
 
 ### Phase B — Public ABI lock
 
-Create a `.scratch/pi-sim-public-abi-lock/PRD.md` plus issue slices, then add lane manifest schema/changelog and conformance tests proving `publisher.ts` writes match `vitals/.lanes.json`. Treat provider contracts as provider-author API, not sibling-consumer ABI.
+Create or extend `.scratch/pi-sim-public-telemetry-contract-lock/PRD.md` plus issue slices, then add lane manifest schema/changelog and conformance tests proving `publisher.ts` writes match `vitals/.lanes.json`. Treat provider contracts as provider-author API, not sibling-consumer ABI.
 
 ### Phase C — `pi-rn/ingest/` contract stub
 

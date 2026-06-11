@@ -183,7 +183,7 @@ use real time) so replayed simulations stay internally coherent.
 npm install
 npm run check       # rebuild _derived/ + validate every patient
 npm test            # unit suites
-npm run migrate .   # v0.1 → v0.2 layout (idempotent)
+npm run migrate     # v0.1 → v0.2 layout (idempotent)
 npm run validate -- --patient patient_001   # scope to one patient
 ```
 

@@ -5,7 +5,7 @@
 - Status: CORP-019 corpus review packet with two frozen accepted anchors and three revised-for-review candidates.
 - Gate: ADR 019 Corpus Readiness Gate from `docs/plans/prd-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`.
 - Paired gate test contract: `docs/plans/test-spec-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`.
-- Decision boundary: this packet is **not ADR 019** and does not authorize clean-slate rewrite, hybrid migration, storage-port migration, importer work, validator work, hidden simulator-state use, replacement patients, or `decisions/019-*` creation. The current amended fixture work is limited to in-place deepening of `patient_001`, `patient_003`, and `patient_005` as revised-for-review candidates.
+- Decision boundary: this packet is **not ADR 019** and does not authorize clean-slate rewrite, hybrid migration, storage-port migration, importer work, validator work, hidden simulator-state use, replacement patients, or `docs/adr/019-*` creation. The current amended fixture work is limited to in-place deepening of `patient_001`, `patient_003`, and `patient_005` as revised-for-review candidates.
 - Current outcome: **fail / incomplete for ADR 019 readiness**. `patient_002` and `patient_004` are frozen as accepted anchors; `patient_001`, `patient_003`, and `patient_005` are revised-for-review candidates that still require operator signoff before counting as reviewed evidence.
 - Accepted-anchor handoff: `patient_002` and `patient_004` are the only accepted anchors for this review cycle. This does not change the packet's fail / incomplete readiness outcome because three rows remain pending operator review and ADR018 input is not complete here.
 
@@ -63,7 +63,7 @@
 4. No operator has signed this packet as pass / conditional pass / fail.
 5. ADR018 spike input is not summarized here yet, so this packet cannot be paired with the projection comparison for ADR 019.
 6. Current machine checks cover generated-row memory-proof sections, hidden-state exclusion, and proof-fact reuse; matrix completeness, operator waiver policy, and clinical realism signoff remain pending.
-7. This packet still does not authorize validators, importers, schemas, package files, hidden simulator use, or `decisions/019-*`; generated fixture rows are separate machine-verified evidence, not ADR readiness.
+7. This packet still does not authorize validators, importers, schemas, package files, hidden simulator use, or `docs/adr/019-*`; generated fixture rows are separate machine-verified evidence, not ADR readiness.
 
 ## Minimum target scenario set
 

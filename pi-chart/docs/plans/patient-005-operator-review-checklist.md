@@ -2,7 +2,7 @@
 
 ## Boundary
 
-This checklist is for human/operator clinical realism review of generated `patient_005`. It is **not** ADR 019, does not claim ADR019 readiness, and does not permit hidden simulator-state use or `decisions/019-*` creation.
+This checklist is for human/operator clinical realism review of generated `patient_005`. It is **not** ADR 019, does not claim ADR019 readiness, and does not permit hidden simulator-state use or `docs/adr/019-*` creation.
 
 ## Review identity
 

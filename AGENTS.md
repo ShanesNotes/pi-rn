@@ -2,11 +2,14 @@
 
 Parent workspace for a bounded clinical-agent harness.
 
+Read `CONTEXT-MAP.md` first, then this file and the subproject `CONTEXT.md` relevant to your task.
+
 ## Subprojects
 
 - `pi-agent/` — Pi-based agent workspace
 - `pi-chart/` — chart/EHR subsystem
 - `pi-ledger/` — reusable cryptographic claim-ledger kernel
+- `pi-monitor/` — display-only monitor for public telemetry
 - `pi-sim/` — hidden patient simulation subsystem
 
 ## Boundary intent
@@ -14,6 +17,8 @@ Parent workspace for a bounded clinical-agent harness.
 The long-term goal is to run `pi-agent/` in a container so it only sees its own mounted context plus explicitly exposed interfaces.
 
 Do not couple `pi-agent/` directly to `pi-sim/` source code. Do not couple `pi-ledger/` to `pi-chart` brownfield source, patient directories, generated UI artifacts, or hidden `pi-sim`; `pi-chart` should consume `pi-ledger` through explicit adapters after the kernel Interface is proven.
+
+`pi-monitor/` is a display-only consumer of `pi-sim` public telemetry. `pi-chart` must not depend on `pi-monitor`; ingest public lanes through explicit chart adapters instead.
 
 ## Agent skills
 

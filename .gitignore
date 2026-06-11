@@ -82,3 +82,4 @@ pi-sim/session-log/
 
 # Rust build outputs
 pi-monitor/target/
+pi-ledger/target/

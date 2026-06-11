@@ -9,9 +9,9 @@ Structural verification for the first docs/test-contract slice of the ADR 019 Co
 - `.omx/plans/plan-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`
 - `docs/plans/prd-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`
 - `docs/plans/test-spec-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md`
-- `decisions/001-mimic-to-synthea.md`
-- `decisions/016-broad-ehr-skeleton-clinical-memory.md`
-- `decisions/018-architecture-rebase-clinical-truth-substrate.md`
+- `docs/adr/001-mimic-to-synthea.md`
+- `docs/adr/016-broad-ehr-skeleton-clinical-memory.md`
+- `docs/adr/018-architecture-rebase-clinical-truth-substrate.md`
 - `docs/architecture/source-authority.md`
 - `clinical-reference/broad-ehr-skeleton.md`
 
@@ -48,9 +48,9 @@ required_files = [
     plan_path,
     prd_path,
     spec_path,
-    Path('decisions/001-mimic-to-synthea.md'),
-    Path('decisions/016-broad-ehr-skeleton-clinical-memory.md'),
-    Path('decisions/018-architecture-rebase-clinical-truth-substrate.md'),
+    Path('docs/adr/001-mimic-to-synthea.md'),
+    Path('docs/adr/016-broad-ehr-skeleton-clinical-memory.md'),
+    Path('docs/adr/018-architecture-rebase-clinical-truth-substrate.md'),
     Path('docs/architecture/source-authority.md'),
     Path('clinical-reference/broad-ehr-skeleton.md'),
 ]
@@ -68,7 +68,7 @@ required_plan = [
     'not ADR 019',
     'docs/plans/prd-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md',
     'docs/plans/test-spec-clinical-fidelity-synthetic-chart-corpus-gate-adr-019.md',
-    'No `decisions/019-*` file',
+    'No `docs/adr/019-*` file',
     'No fixture edits under `patients/**`',
     'No validator/source edits under `src/**` or `scripts/**`',
 ]
@@ -200,7 +200,7 @@ Pass condition: rebuild and validation complete successfully with zero errors.
 3. This test spec includes a pass/fail checklist table for six surfaces, memory-proof sections, provenance/timing, source tags, Synthea augmentation, and the no-hidden-state boundary.
 4. Structural validation command passes.
 5. `npm run check` passes.
-6. No `decisions/019-*` file is created.
+6. No `docs/adr/019-*` file is created.
 7. No source/fixture edits occur: `src/**`, `schemas/**`, `patients/**`, `scripts/**`, validators, importers, generated artifacts, package files, and fixture data remain untouched by this slice.
 8. Optional board indexing, if present, links the PRD/test-spec without widening scope.
 
