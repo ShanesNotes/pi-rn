@@ -1,6 +1,6 @@
 # `factShape` and the 6→4 collapse decision
 
-Status: ready-for-human
+Status: completed
 Type: AFK (SPEC artifact — field-definition doc, not source edit)
 Reconciliation posture: `revise`
 PRD user stories covered: 6, 7 (supports 1, 8, 30)

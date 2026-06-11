@@ -1,6 +1,6 @@
 # Lifecycle vocabulary + correction Record-hash
 
-Status: ready-for-human
+Status: completed
 Type: AFK
 Reconciliation posture: revise
 User stories covered: 18, 19 (supports 3, 7-on-correction-lineage)

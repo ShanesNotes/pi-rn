@@ -19,6 +19,7 @@ pub mod admission;
 pub mod canonical;
 pub mod claim;
 pub mod conformance;
+#[cfg(any(test, feature = "test-support"))]
 pub mod fixture;
 pub mod hash;
 pub mod ledger;

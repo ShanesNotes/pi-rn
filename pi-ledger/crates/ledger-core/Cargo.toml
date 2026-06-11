@@ -5,6 +5,20 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+default = []
+# Exposes deterministic sample Claims for integration tests and public Interface
+# examples. Production Adapters must not enable this feature.
+test-support = []
+
 [dependencies]
 serde_json = { version = "1.0", features = ["float_roundtrip"] }
 sha2 = "0.10"
+
+[[test]]
+name = "public_append_interface"
+required-features = ["test-support"]
+
+[[test]]
+name = "trusted_history_rebuild"
+required-features = ["test-support"]

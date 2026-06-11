@@ -1,7 +1,7 @@
 # PRD: pi-chart per-patient charted-clinical-fact substrate field interface
 
-Status: active
-Sliced: 2026-05-29 → `issues/01–15` (+ `issues/RECONCILIATION.md`). AFK spec deliverables: `field-specs/01,05,11–14` completed 2026-06-11; remaining issues are `ready-for-human` or pending agent slices 02–04,06–10,15.
+Status: active — spec complete, implementation gated
+Sliced: 2026-05-29 → `issues/01–15` (+ `issues/RECONCILIATION.md`). All 15 field-spec deliverables completed 2026-06-11 under `field-specs/`. Open prerequisites: production PredicateRegistry (03), canonicalization agreement (08). Implementation slices deferred until authorized.
 Source handoff: `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md`
 Primary companion inputs:
 - `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md` (canonical-vs-derived framing, shift-brain strategy, deferrals)

@@ -1,6 +1,6 @@
 # certainty reconnection + review/attestation as separate facts
 
-Status: ready-for-human
+Status: completed
 Type: AFK
 Reconciliation posture: revise
 User stories covered: 20, 21 (supports 5, 24)

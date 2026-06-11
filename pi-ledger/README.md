@@ -49,7 +49,7 @@ From the `pi-rn` monorepo root:
 
 ```bash
 cd pi-ledger && cargo fmt --all -- --check
-cd pi-ledger && cargo test --workspace
+cd pi-ledger && cargo test --workspace --features ledger-core/test-support
 cd pi-ledger && cargo run -p ledger-core --example generate_clinical_truth_vectors --quiet \
   > conformance/clinical_truth/v1alpha1/vital_sign_vectors.json
 cd pi-ledger && cargo clippy --workspace --all-targets -- -D warnings

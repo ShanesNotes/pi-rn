@@ -196,7 +196,8 @@ export function eventMatchesEncounter(
   ev: EventEnvelope,
   encounterId: string | undefined,
 ): boolean {
-  return !encounterId || typeof ev.encounter_id !== "string" || ev.encounter_id === encounterId;
+  if (!encounterId) return true;
+  return typeof ev.encounter_id === "string" && ev.encounter_id === encounterId;
 }
 
 export function isActiveChartEvent(

@@ -1,6 +1,6 @@
 # integrity field + agreed canonicalization id
 
-Status: ready-for-human
+Status: completed
 Type: SPEC (field-definition doc — not a source edit)
 Reconciliation posture: open-question
 PRD user stories covered: 17

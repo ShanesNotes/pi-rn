@@ -1,6 +1,6 @@
 # K5 minimal bitemporal read
 
-Status: ready-for-agent
+Status: wontfix
 Type: AFK
 
 ## Parent

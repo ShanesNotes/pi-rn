@@ -1,6 +1,6 @@
 # K1 minimal Claim validation
 
-Status: ready-for-agent
+Status: wontfix
 Type: AFK
 
 ## Parent

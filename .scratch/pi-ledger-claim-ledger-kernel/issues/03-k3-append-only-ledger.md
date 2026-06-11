@@ -1,6 +1,6 @@
 # K3 append-only ledger
 
-Status: ready-for-agent
+Status: wontfix
 Type: AFK
 
 ## Parent

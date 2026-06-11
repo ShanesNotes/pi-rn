@@ -1,6 +1,6 @@
 # Unified evidence edge (EvidenceRef) + dead-field closure
 
-Status: ready-for-human
+Status: completed
 Type: SPEC (field-definition doc — not a source edit)
 Reconciliation posture: revise
 PRD user stories covered: 15, 16

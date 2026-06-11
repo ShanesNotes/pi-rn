@@ -1,6 +1,6 @@
 # fixture export quarantine and Adapter API boundary tests
 
-Status: ready-for-agent
+Status: completed
 Type: AFK
 Source: `$code-review` WATCH item after Issue 01 review on 2026-05-06.
 Adapter gate: must close before any `pi-chart` or other Adapter imports `ledger-core` as production-facing API.
@@ -21,16 +21,20 @@ This is a pre-adapter blocker. Do not start production Adapter implementation ag
 
 ## Acceptance criteria
 
-- [ ] Inventories the current public fixture/export surface, including `ledger_core::fixture`, generated IDs, `Phase1Fixture`, `phase1_fixture`, `fixture_observation_claim`, and `fixture_correction_claim`.
-- [ ] Chooses and documents one minimal quarantine strategy before first Adapter work: feature-gated fixtures, a `ledger-core-test-support` crate, `#[doc(hidden)]` plus explicit non-semver wording, or an equivalent stronger boundary.
-- [ ] Preserves deterministic public examples without teaching production Adapters to build clinical Claims through fixture helpers.
-- [ ] Adds a compile/API boundary guard proving default production consumers cannot import fixture helpers as Adapter contract if the chosen strategy makes them non-default.
-- [ ] Adds or preserves a guard proving Admission bypass append remains unavailable to production consumers.
-- [ ] Keeps base Claims on Append admission and correction Claims on Revision admission in any examples that remain.
-- [ ] Does not introduce a production Claim builder unless a failing test proves a public need.
-- [ ] Does not add chart-specific types, chart patient fixtures, generated UI artifacts, hidden simulator details, or `pi-agent` runtime assumptions.
-- [ ] Preserves existing canonicalization, hash, append, admission, revision, fixture, Query, and rebuild behavior.
-- [ ] Records closeout verification commands and evidence.
+- [x] Inventories the current public fixture/export surface, including `ledger_core::fixture`, generated IDs, `Phase1Fixture`, `phase1_fixture`, `fixture_observation_claim`, and `fixture_correction_claim`.
+- [x] Chooses and documents one minimal quarantine strategy before first Adapter work: feature-gated fixtures, a `ledger-core-test-support` crate, `#[doc(hidden)]` plus explicit non-semver wording, or an equivalent stronger boundary.
+- [x] Preserves deterministic public examples without teaching production Adapters to build clinical Claims through fixture helpers.
+- [x] Adds a compile/API boundary guard proving default production consumers cannot import fixture helpers as Adapter contract if the chosen strategy makes them non-default.
+- [x] Adds or preserves a guard proving Admission bypass append remains unavailable to production consumers.
+- [x] Keeps base Claims on Append admission and correction Claims on Revision admission in any examples that remain.
+- [x] Does not introduce a production Claim builder unless a failing test proves a public need.
+- [x] Does not add chart-specific types, chart patient fixtures, generated UI artifacts, hidden simulator details, or `pi-agent` runtime assumptions.
+- [x] Preserves existing canonicalization, hash, append, admission, revision, fixture, Query, and rebuild behavior.
+- [x] Records closeout verification commands and evidence.
+
+**Strategy:** `ledger-core/test-support` Cargo feature + `#[cfg(any(test, feature = "test-support"))]` on `pub mod fixture`. See `docs/ledger-core-public-interface.md` and `tests/adapter_production_boundary.rs`.
+
+**Verify:** `cd pi-ledger && cargo test --workspace --features ledger-core/test-support`
 
 ## Blocked by
 

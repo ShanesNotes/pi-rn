@@ -1,6 +1,6 @@
 # K4 predicate registry minimum
 
-Status: ready-for-agent
+Status: wontfix
 Type: AFK
 
 ## Parent

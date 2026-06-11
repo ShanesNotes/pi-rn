@@ -1,6 +1,6 @@
 # K0+K2 canonicalization and hash helper
 
-Status: ready-for-agent
+Status: wontfix
 Type: AFK
 
 ## Parent

@@ -1,32 +1,25 @@
 # AFK run state — substrate field interface
 
-Status: active
-Started: 2026-06-11
+Status: **spec lane complete** (15/15 field specs delivered)
 Branch: `reentry-substrate-field-spec`
-Last commit slice: 2026-06-11 — issues 01, 05, 11–14
+Updated: 2026-06-11
 
-## Queue (ready-for-agent, ordered)
+## Completed spec deliverables
 
-| # | Issue | Deliverable | State |
-| --- | --- | --- | --- |
-| 01 | identity & scope | `field-specs/01-identity-and-scope.md` | **completed** |
-| 05 | bitemporal time | `field-specs/05-bitemporal-time.md` | **completed** |
-| 11 | projection-facing fields | `field-specs/11-projection-facing-fields.md` | **completed** |
-| 12 | human-agent suggestion | `field-specs/12-human-agent-suggestion-state.md` | **completed** |
-| 13 | fixture export round-trip | `field-specs/13-fixture-export-round-trip.md` | **completed** |
-| 14 | clinician surface derivation | `field-specs/14-clinician-surface-derivation.md` | **completed** |
+All issues `01–15` → `field-specs/*.md` (see `field-specs/` directory).
 
-## Next AFK slices (not yet ready-for-agent)
+## Next lane (implementation — requires explicit issue authorization)
 
-Issues 02–04, 06–10, 15 are `ready-for-human` — triage to `ready-for-agent` before AFK execution.
+| Priority | Work | Entry |
+| --- | --- | --- |
+| 1 | Ledger fixture quarantine (pre-adapter) | `.scratch/pi-ledger-kernel-interface-deepening/issues/07-...` — **in progress in pi-ledger** |
+| 2 | `eventMatchesEncounter` wildcard fix | Issue 01 contract; needs implementation issue |
+| 3 | Production PredicateRegistry | Issue 03 prerequisite (OPEN) |
+| 4 | Canonicalization id agreement | Issue 08 prerequisite (OPEN) |
 
-## Deferred (stale or out of lane)
+## Deferred / stale scratch issues
 
-- `pi-ledger-claim-ledger-kernel/issues/01–05` — K0–K12 already shipped; retriage
+- `pi-ledger-claim-ledger-kernel/issues/01–05` — K0–K12 shipped; retriage to `wontfix`
 - `shared-agent-surface/issues/01–02` — machine-local symlinks
-- `pi-chart-v0-5/issues/01` — blocked on PRD triage
-
-## Rules
-
-- Spec artifacts only unless issue authorizes implementation
-- One issue → one `field-specs/*.md` → update issue status → commit
+- `pi-sim-public-telemetry-contract-lock/issues/01` — already completed
+- `project-organization-consistency/issues/01` — already completed

@@ -1,6 +1,6 @@
 # Kernel-mappability closeout + boundary register
 
-Status: ready-for-human
+Status: completed
 Type: AFK / SPEC artifact (closeout + boundary register, not a source edit)
 Reconciliation posture: open-question
 PRD user stories covered: 1, 11, 12, 17, 19, 27, 28, 29 (closeout of the field set)

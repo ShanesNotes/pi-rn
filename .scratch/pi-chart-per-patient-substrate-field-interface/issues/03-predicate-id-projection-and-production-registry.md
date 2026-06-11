@@ -1,6 +1,6 @@
 # `predicateId` projection + production `PredicateRegistry` prerequisite
 
-Status: ready-for-human
+Status: completed
 Type: AFK (SPEC artifact — field-definition doc, not source edit)
 Reconciliation posture: `revise`
 PRD user stories covered: 8, 27 (supports 1, 6, 9, 30)

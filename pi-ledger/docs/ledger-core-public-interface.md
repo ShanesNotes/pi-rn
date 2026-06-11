@@ -57,10 +57,12 @@ These paths are public because future storage/rebuild work needs them, but they 
 
 ## Test/example utilities, not Adapter contracts
 
+**Quarantine strategy (K12+):** `ledger_core::fixture` is compiled only under `#[cfg(any(test, feature = "test-support"))]`. Default `cargo build -p ledger-core` omits the module. Integration tests that import fixture helpers must enable the `test-support` Cargo feature. Production Adapters must not depend on `test-support`.
+
 | Item | Status | Boundary note |
 | --- | --- | --- |
-| `fixture` module | Kernel fixture/example utility | Useful for deterministic demos and tests; not a production clinical ontology and not a `pi-chart` patient model. |
-| `fixture::fixture_observation_claim` / `fixture::fixture_correction_claim` | Deterministic Claim example helpers | Keep public examples from copying raw Claim JSON shape details. They still require normal validation, Append admission, and Revision admission. |
+| `fixture` module | Kernel fixture/example utility (feature-gated) | Useful for deterministic demos and tests; not a production clinical ontology and not a `pi-chart` patient model. Not part of the default production API surface. |
+| `fixture::fixture_observation_claim` / `fixture::fixture_correction_claim` | Deterministic Claim example helpers (`test-support` only) | Keep public examples from copying raw Claim JSON shape details. They still require normal validation, Append admission, and Revision admission. |
 | `predicates::phase1_registry` | Fixture registry | Covers generated kernel fixtures only. Production Adapters should load their own registry definitions. |
 | `ledger::StoreClock::deterministic` | Deterministic clock seed | Current kernel test/demo clock. Store authority remains inside Append ledger; callers do not set accepted metadata on Claims. |
 | `AppendLedger::append_without_predicate_or_revision_admission` | Test-only, crate-private | Admission bypass support is compiled only for crate tests and is not visible to Adapter crates. |

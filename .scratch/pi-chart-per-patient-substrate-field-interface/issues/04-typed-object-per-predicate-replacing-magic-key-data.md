@@ -1,6 +1,6 @@
 # Typed `object` per predicate (replace magic-key `data`)
 
-Status: ready-for-human
+Status: completed
 Type: AFK (SPEC artifact — field-definition doc, not source edit)
 Reconciliation posture: `revise`
 PRD user stories covered: 9 (supports 1, 8, 16, 30)
