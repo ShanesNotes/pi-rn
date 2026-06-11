@@ -35,7 +35,7 @@ This file is the repo-wide long-horizon AFK queue. Agents should read `CONTEXT-M
 | # | Task | Entry | Status |
 | --- | --- | --- | --- |
 | B1 | Lock README/manifest regression in pi-sim package scripts | `.scratch/pi-sim-public-telemetry-contract-lock/issues/03-...` | **completed** |
-| B2 | pi-monitor public consumer boundary checks | `.scratch/pi-sim-public-telemetry-contract-lock/issues/03-...` | needs-triage |
+| B2 | pi-monitor public consumer boundary checks | `.scratch/pi-sim-public-telemetry-contract-lock/issues/03-...` | **completed** |
 | B3 | Defer ingest adapter readiness stub | `.scratch/pi-sim-public-telemetry-contract-lock/issues/04-...` | needs-triage |
 | B4 | pi-monitor public-lane ingest depth PRD slices | `.scratch/pi-monitor-public-lane-ingest-depth/` | needs-triage |
 
