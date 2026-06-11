@@ -1,8 +1,8 @@
 # deterministic Claim fixture Locality for public examples
 
-Status: ready-for-human
+Status: completed
 Type: AFK
-Resolution: implemented; merge/admin close pending human confirmation.
+Resolution: implemented and verified 2026-06-11; fixture helpers shipped in `ledger-core::fixture`.
 
 ## Parent
 

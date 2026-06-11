@@ -1,6 +1,6 @@
 # Lock README and lane-manifest consistency checks
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent

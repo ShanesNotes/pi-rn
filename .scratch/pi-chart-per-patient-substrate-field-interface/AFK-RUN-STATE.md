@@ -8,18 +8,29 @@ Updated: 2026-06-11
 
 All issues `01–15` → `field-specs/*.md` (see `field-specs/` directory).
 
-## Next lane (implementation — requires explicit issue authorization)
+## Completed implementation prep (2026-06-11)
 
-| Priority | Work | Entry |
-| --- | --- | --- |
-| 1 | Ledger fixture quarantine (pre-adapter) | `.scratch/pi-ledger-kernel-interface-deepening/issues/07-...` — **in progress in pi-ledger** |
-| 2 | `eventMatchesEncounter` wildcard fix | Issue 01 contract; needs implementation issue |
-| 3 | Production PredicateRegistry | Issue 03 prerequisite (OPEN) |
-| 4 | Canonicalization id agreement | Issue 08 prerequisite (OPEN) |
+| Item | Evidence |
+| --- | --- |
+| Ledger fixture quarantine | `.scratch/pi-ledger-kernel-interface-deepening/issues/07-...` → `completed`; `ledger-core` `test-support` feature |
+| `eventMatchesEncounter` wildcard fix | `pi-chart/src/views/active.ts` — no wildcard match on missing `encounter_id`; `npm test` 399/399 |
+| Ledger deepening issue 02 (fixture locality) | `fixture_observation_claim` / `fixture_correction_claim` helpers shipped |
 
-## Deferred / stale scratch issues
+## Next lane (implementation — gated)
 
-- `pi-ledger-claim-ledger-kernel/issues/01–05` — K0–K12 shipped; retriage to `wontfix`
-- `shared-agent-surface/issues/01–02` — machine-local symlinks
-- `pi-sim-public-telemetry-contract-lock/issues/01` — already completed
-- `project-organization-consistency/issues/01` — already completed
+| Priority | Work | Entry | Gate |
+| --- | --- | --- | --- |
+| 1 | Production PredicateRegistry | field-spec 03 / substrate issue 03 | ready-for-human |
+| 2 | Canonicalization id agreement | field-spec 08 / substrate issue 08 | ready-for-human |
+| 3 | Chart→ledger adapter slices | `.scratch/pi-chart-pi-ledger-adapter-strategy/` | blocked on PredicateRegistry + canonicalization id |
+
+## Repo-wide AFK queue
+
+See `.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md`.
+
+## Closed / wontfix scratch issues
+
+- `pi-ledger-claim-ledger-kernel/issues/01–05` → `wontfix` (K0–K12 shipped)
+- `shared-agent-surface/issues/01` — machine-local symlinks (not repo-committable)
+- `pi-sim-public-telemetry-contract-lock/issues/01–02` → completed
+- `project-organization-consistency/issues/01` → completed

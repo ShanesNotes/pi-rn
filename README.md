@@ -4,6 +4,8 @@ clinical agent system.
 
 Agents and humans: read [`CONTEXT-MAP.md`](./CONTEXT-MAP.md) first, then [`AGENTS.md`](./AGENTS.md) and the subproject `CONTEXT.md` for your lane.
 
+Active work lives under [`.scratch/<feature>/PRD.md`](./.scratch/) and [`.scratch/<feature>/issues/*.md`](./docs/agents/issue-tracker.md). Durable decisions belong in each subproject's `docs/adr/`. The AFK horizon queue is [`.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md`](./.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md).
+
 ## Intent
 
 - `pi-agent/` agent harness

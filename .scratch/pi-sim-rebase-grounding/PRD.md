@@ -1,6 +1,6 @@
 # pi-sim Rebase Grounding
 
-Status: ready-for-agent
+Status: completed
 Owner: pi-sim
 Date: 2026-05-03
 

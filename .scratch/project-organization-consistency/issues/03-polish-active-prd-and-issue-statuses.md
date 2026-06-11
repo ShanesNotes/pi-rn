@@ -1,6 +1,6 @@
 # Polish active PRD and issue statuses
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent

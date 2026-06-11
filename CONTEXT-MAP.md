@@ -54,12 +54,16 @@ Use this matrix to preserve Locality before crossing subproject Interfaces. It s
 
 ## Active work lanes (2026-06)
 
+AFK agents: read [`.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md`](.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md) for the phased queue, then pick the next `ready-for-agent` slice.
+
 | Lane | Status | Entry |
 | --- | --- | --- |
+| AFK horizon queue | Active | `.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md` |
 | Clinical-truth vital-sign slice | Implemented — verify before extending | `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/HANDOFF.md`; run `.scratch/pi-rn-clinical-truth-vital-sign-slice-ultragoal/verify-vital-sign-slice.sh` |
 | Claim-ledger kernel | Active PRD | `.scratch/pi-ledger-claim-ledger-kernel/PRD.md` |
 | Chart substrate / shift-brain | Planning (`needs-triage`) | `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md` |
 | Per-patient substrate field spec | Spec complete (15/15) — implementation gated | `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md`; `field-specs/` |
+| pi-sim rebase grounding | Completed | `.scratch/pi-sim-rebase-grounding/PRD.md` |
 
 OMX ultragoal lanes may use `HANDOFF.md`, `RUN-STATE.md`, and story docs instead of `PRD.md`; durable outcomes still live under `.scratch/<feature>/`.
 
