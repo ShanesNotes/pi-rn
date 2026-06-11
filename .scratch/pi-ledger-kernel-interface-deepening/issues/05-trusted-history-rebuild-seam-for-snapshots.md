@@ -1,8 +1,8 @@
 # trusted-history rebuild Seam for snapshots
 
-Status: ready-for-human
+Status: completed
 Type: AFK
-Resolution: implemented; merge/admin close pending human confirmation.
+Resolution: implemented and verified; rebuild seam documented in `pi-ledger/docs/trusted-history-rebuild-seam.md` with integration tests.
 
 ## Parent
 

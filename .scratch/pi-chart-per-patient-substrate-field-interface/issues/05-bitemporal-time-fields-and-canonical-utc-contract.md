@@ -9,6 +9,8 @@ PRD user stories covered: 1, 10, 11, 12
 
 `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md`
 
+Deliverable: `field-specs/05-bitemporal-time.md`
+
 ## Companion / authoritative inputs
 
 - Current field model: `pi-chart/src/types.ts` (`effective_at` XOR `effective_period`, `recorded_at`, `VitalSample.sampled_at`)

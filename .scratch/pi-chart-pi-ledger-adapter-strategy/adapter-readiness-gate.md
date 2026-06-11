@@ -39,7 +39,7 @@ Until then, adapter issues may be used for planning, inventory, and source-autho
 | Adapter issue | Promotion meaning |
 | --- | --- |
 | 01 readiness gate | May be completed as docs-only immediately. It does not authorize product source work. |
-| 02 kernel consumer contract inventory | Waits for K0-K12 so the inventory reflects real kernel interface evidence (and for kernel-deepening issue 07 fixture-export quarantine to close). |
+| 02 kernel consumer contract inventory | **Completed 2026-06-11** — see `kernel-consumer-contract-inventory.md`. Adapter implementation still gated on PredicateRegistry, canonicalization-id agreement, and issue 04 mechanism decision. |
 | 03 brownfield reconciliation | May be completed as docs-only immediately. It must not delete or edit product source. |
 | 04 integration mechanism decision | HITL; waits for kernel contract inventory. This chooses the first boundary mechanism but does not implement it. |
 | 05-09 adapter executable proofs | Stay `needs-triage` until K0-K12, kernel-deepening issue 07 (fixture-export quarantine), issue 02, and issue 04 are complete. Promote one narrow slice at a time. |

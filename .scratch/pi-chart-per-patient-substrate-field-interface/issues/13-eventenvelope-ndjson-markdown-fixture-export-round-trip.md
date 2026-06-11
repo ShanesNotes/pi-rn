@@ -9,6 +9,8 @@ PRD user stories covered: 1, 4, 26
 
 `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md`
 
+Deliverable: `field-specs/13-fixture-export-round-trip.md`
+
 ## Companion / authoritative inputs
 
 - ADR: `pi-chart/docs/adr/018-architecture-rebase-clinical-truth-substrate.md` (point 4 — filesystem/NDJSON/Markdown remains fixture + export/archive format; UI/prototype is evidence not authority; points 5–7 — generated UI/design assets/prototype are not substrate authority)

@@ -9,6 +9,8 @@ PRD user stories covered: 22, 23 (and supports 5)
 
 `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md` (§2.G "Authority, attention, timing & access-tier — projection-facing fields"; Implementation Decisions, the projection-facing field group).
 
+Deliverable: `field-specs/11-projection-facing-fields.md`
+
 ## What to build
 
 A field-definition doc that names the **projection-facing** fields letting clinician surfaces derive the strategy PRD's workflow labels **without storing new truth**: care-item **authority posture**, **attention/clinical-risk** cue, nonpunitive **timing/workflow state**, and the **hot/warm/cold ACCESS/priority tier**. For each clinician label, state its source field(s) and whether the label is **derived** (computed from already-named substrate fields) or **must-be-explicit** (a fact must carry the value because it is not inferable).

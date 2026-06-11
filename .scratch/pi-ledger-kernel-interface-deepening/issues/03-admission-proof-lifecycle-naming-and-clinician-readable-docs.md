@@ -1,8 +1,8 @@
 # Admission proof lifecycle naming and clinician-readable docs
 
-Status: ready-for-human
+Status: completed
 Type: AFK
-Resolution: implemented; merge/admin close pending human confirmation.
+Resolution: implemented and verified; clinician-readable docs shipped in `pi-ledger/docs/admission-proof-lifecycle.md`.
 
 ## Parent
 

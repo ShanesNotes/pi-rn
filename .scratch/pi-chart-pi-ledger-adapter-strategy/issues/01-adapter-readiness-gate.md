@@ -1,6 +1,6 @@
 # Adapter readiness gate
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent

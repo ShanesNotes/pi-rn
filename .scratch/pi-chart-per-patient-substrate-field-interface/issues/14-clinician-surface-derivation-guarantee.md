@@ -9,6 +9,8 @@ PRD user stories covered: 5 (and supports 21, 22, 24)
 
 `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md` (§3 "The clinician-surface derivation guarantee"; Implementation Decisions: "All clinician surfaces ... are rebuildable, non-authoritative projections over the fact substrate.").
 
+Deliverable: `field-specs/14-clinician-surface-derivation.md`
+
 ## What to build
 
 A field-definition doc that states, **per clinician surface**, that every label is a **projection over named charted-clinical-fact fields** (defined in Issues 01-12), that **mismatches surface as review prompts**, and that **no surface stores truth or makes an autonomous truth decision**. The five surfaces: **Current Snapshot, Shift Brain, Report View, Handoff View, Chart Review Packet**. Adopts the PRD posture; does not re-decide cross-cutting choices.

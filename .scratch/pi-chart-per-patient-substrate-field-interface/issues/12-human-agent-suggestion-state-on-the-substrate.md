@@ -9,6 +9,8 @@ PRD user stories covered: 24 (and supports 14, 22)
 
 `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md` (§2.G "Human-agent boundary"; Implementation Decisions: "Pi outputs are `Suggested` provisional facts; promotion ... is a separate human action (Add to Shift Brain); suggestions are disable-able; no autonomous accepted-write or completion authority.").
 
+Deliverable: `field-specs/12-human-agent-suggestion-state.md`
+
 ## What to build
 
 A field-definition doc defining the **Suggested provisional-fact state** on the charted-clinical-fact substrate, the **human-only promotion** action (Add to Shift Brain), suggestion **disable-ability**, and the hard **no-autonomous-write / no-autonomous-completion boundary**. This adopts the PRD posture; it does not re-decide any cross-cutting choice.

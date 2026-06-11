@@ -1527,4 +1527,115 @@ mod tests {
             other => panic!("unexpected event: {other:?}"),
         }
     }
+
+    #[test]
+    fn source_dir_regression_matrix_covers_public_lane_manifest() {
+        let manifest = parse_lane_manifest(
+            &fs::read_to_string(
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../fixtures/public-contract/.lanes.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let required_paths = manifest
+            .lanes
+            .iter()
+            .map(|lane| lane.path.as_str())
+            .collect::<Vec<_>>();
+
+        for case in [
+            "scripted-demo",
+            "scripted-alarm",
+            "provider-unavailable",
+            "available-waveform",
+            "stale-waveform",
+        ] {
+            let snapshot = fixture_snapshot(case);
+            assert!(
+                !snapshot.frame.vitals.is_empty()
+                    || snapshot.frame.run_state.as_deref() == Some("unavailable"),
+                "{case}: scalar/latest frame missing"
+            );
+            assert!(snapshot.status.is_some(), "{case}: status.json missing");
+            assert!(!snapshot.events.is_empty(), "{case}: events.jsonl missing");
+            assert_eq!(
+                snapshot.timeline.len(),
+                snapshot.timeline_jsonl.len(),
+                "{case}: timeline.json/timeline.jsonl mismatch"
+            );
+            if case == "scripted-demo" {
+                assert!(snapshot.encounter.is_some(), "{case}: encounter/current.json");
+                assert!(
+                    snapshot.assessment_status.is_some(),
+                    "{case}: assessments/status.json"
+                );
+                assert!(
+                    snapshot.assessment_current.is_some(),
+                    "{case}: assessments/current.json"
+                );
+            }
+            if matches!(case, "available-waveform" | "stale-waveform") {
+                assert!(
+                    snapshot.waveform_status.is_some(),
+                    "{case}: waveforms/status.json"
+                );
+            }
+            if case == "stale-waveform" {
+                assert!(
+                    snapshot
+                        .lane_warnings
+                        .iter()
+                        .any(|warning| warning.contains("mismatch")),
+                    "{case}: stale waveform warning missing"
+                );
+            }
+            if case == "available-waveform" {
+                assert!(
+                    !snapshot.frame.waveforms.is_empty(),
+                    "{case}: waveform display missing"
+                );
+            }
+        }
+
+        for path in required_paths {
+            assert!(
+                [
+                    "current.json",
+                    "timeline.json",
+                    "timeline.jsonl",
+                    "status.json",
+                    "events.jsonl",
+                    "encounter/current.json",
+                    "assessments/status.json",
+                    "assessments/current.json",
+                    "waveforms/status.json",
+                    "waveforms/current.json",
+                ]
+                .contains(&path),
+                "unexpected manifest path in regression matrix: {path}"
+            );
+        }
+    }
+
+    #[test]
+    fn reads_pi_sim_live_demo_waveform_public_fixture_when_present() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../pi-sim/vitals/fixtures/public-contract/live-demo-waveform");
+        if !root.is_dir() {
+            return;
+        }
+        let snapshot = match read_vitals_dir(root, &FixedClock(42)) {
+            IngestEvent::VitalsSnapshot(ingested) => ingested.snapshot,
+            other => panic!("unexpected event: {other:?}"),
+        };
+        assert!(
+            snapshot.frame.compatibility_notes.iter().any(|note| {
+                note.contains("sourceKind=demo")
+                    && note.contains("fidelity=demo")
+                    && note.contains("synthetic=true")
+            })
+        );
+        assert!(!snapshot.frame.waveforms.is_empty());
+    }
 }

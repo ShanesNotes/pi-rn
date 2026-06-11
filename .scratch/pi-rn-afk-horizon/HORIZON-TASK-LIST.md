@@ -47,8 +47,8 @@ This file is the repo-wide long-horizon AFK queue. Agents should read `CONTEXT-M
 | C2 | Deterministic claim fixture locality | `.scratch/pi-ledger-kernel-interface-deepening/issues/02-...` | **completed** |
 | C3 | Fixture export quarantine | `.scratch/pi-ledger-kernel-interface-deepening/issues/07-...` | **completed** |
 | C4 | Query trusted-entry projection facts | `.scratch/pi-ledger-kernel-interface-deepening/issues/04-...` | **completed** |
-| C5 | Admission proof lifecycle naming/docs | `.scratch/pi-ledger-kernel-interface-deepening/issues/03-...` | ready-for-human |
-| C6 | Trusted history rebuild seam | `.scratch/pi-ledger-kernel-interface-deepening/issues/05-...` | ready-for-human |
+| C5 | Admission proof lifecycle naming/docs | `.scratch/pi-ledger-kernel-interface-deepening/issues/03-...` | **completed** |
+| C6 | Trusted history rebuild seam | `.scratch/pi-ledger-kernel-interface-deepening/issues/05-...` | **completed** |
 | C7 | Adapter-facing error vocabulary | `.scratch/pi-ledger-kernel-interface-deepening/issues/06-...` | **completed** |
 | C8 | K11 revision admission correction target | `.scratch/pi-ledger-claim-ledger-kernel/issues/11-...` | ready-for-human |
 
@@ -66,7 +66,7 @@ Spec lane **15/15 complete**. Reentry audit Phase 1 spec cleanup **completed**.
 | D2 | Production `PredicateRegistry` | field-spec 03 | ready-for-human |
 | D3 | Canonicalization id agreement | field-spec 08 | ready-for-human |
 | D4 | Reentry audit Phase 1 spec cleanup | `.scratch/pi-rn-reentry-audit-28052026/IMPLEMENTATION-READY-PLAN.md` | **completed** |
-| D5 | Chart→ledger adapter strategy slices | `.scratch/pi-chart-pi-ledger-adapter-strategy/` | needs-triage; blocked on D2/D3 |
+| D5 | Chart→ledger adapter strategy slices | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/02-...` | inventory **completed**; implementation blocked on D2/D3 |
 
 ---
 
@@ -85,7 +85,7 @@ Spec lane **15/15 complete**. Reentry audit Phase 1 spec cleanup **completed**.
 | # | Task | Entry | Status |
 | --- | --- | --- | --- |
 | F1 | Shared skill alias plane | `.scratch/shared-agent-surface/issues/01-...` | ready-for-agent — **not repo-committable** |
-| F2 | Cross-subproject seam matrix | `.scratch/project-organization-consistency/issues/06-...` | needs-triage (CONTEXT-MAP matrix may satisfy) |
+| F2 | Cross-subproject seam matrix | `.scratch/project-organization-consistency/issues/06-...` | **completed** (CONTEXT-MAP matrix) |
 | F3 | ADR style normalization follow-up | `.scratch/project-organization-consistency/issues/07-...` | needs-triage |
 | F4 | Architecture deepening placement audit | `.scratch/architecture-deepening-placement/` | needs-triage |
 
@@ -93,14 +93,25 @@ Spec lane **15/15 complete**. Reentry audit Phase 1 spec cleanup **completed**.
 
 ## Phase G — Next autonomous queue (pick one)
 
+| # | Task | Entry | Status |
+| --- | --- | --- | --- |
+| G1 | Ledger deepening issue 03 admission docs | `.scratch/pi-ledger-kernel-interface-deepening/issues/03-...` | **completed** |
+| G2 | Ledger deepening issue 05 rebuild seam | `.scratch/pi-ledger-kernel-interface-deepening/issues/05-...` | **completed** |
+| G3 | Chart→ledger adapter consumer inventory | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/02-...` | **completed** |
+| G4 | pi-monitor source-dir fixture regression | `.scratch/pi-monitor-public-lane-ingest-depth/issues/01-...` | **completed** |
+| G5 | Project org issue 06 seam matrix | `.scratch/project-organization-consistency/issues/06-...` | **completed** |
+| G6 | Substrate field-spec sync issues 05,11–14 | `field-specs/05,11–14` | **completed** |
+
+## Phase H — Next autonomous queue
+
 | # | Task | Entry | Notes |
 | --- | --- | --- | --- |
-| G1 | Ledger deepening issue 03 admission docs | `.scratch/pi-ledger-kernel-interface-deepening/issues/03-...` | ready-for-human — clinician-readable docs |
-| G2 | Ledger deepening issue 05 rebuild seam | `.scratch/pi-ledger-kernel-interface-deepening/issues/05-...` | ready-for-human |
-| G3 | Chart→ledger adapter strategy triage | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/02-...` | needs-triage; inventory only |
-| G4 | pi-monitor ingest depth issue 01 | `.scratch/pi-monitor-public-lane-ingest-depth/issues/01-...` | needs-triage |
-| G5 | Project org issue 06 seam matrix closeout | `.scratch/project-organization-consistency/issues/06-...` | compare to CONTEXT-MAP matrix |
-| G6 | Substrate field-spec doc sync for issues 05,11–14 | `.scratch/pi-chart-per-patient-substrate-field-interface/field-specs/` | ready-for-agent doc cleanup if gaps remain |
+| H1 | Adapter brownfield reconciliation | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/03-...` | docs-only |
+| H2 | Adapter integration mechanism decision | `.scratch/pi-chart-pi-ledger-adapter-strategy/issues/04-...` | ready-for-human |
+| H3 | pi-monitor ingest depth issues 02–06 | `.scratch/pi-monitor-public-lane-ingest-depth/` | needs-triage |
+| H4 | Ledger K11 revision admission | `.scratch/pi-ledger-claim-ledger-kernel/issues/11-...` | ready-for-human |
+| H5 | Project org banner stale surfaces | `.scratch/project-organization-consistency/issues/04-...` | ready-for-human |
+| H6 | Substrate implementation gates D2/D3 | field-specs 03, 08 | ready-for-human — blocks adapter code |
 
 ---
 
@@ -111,7 +122,10 @@ Spec lane **15/15 complete**. Reentry audit Phase 1 spec cleanup **completed**.
 - `pi-sim-public-telemetry-contract-lock/issues/01–04` → completed
 - `pi-sim-public-telemetry-publication-module/issues/01,04,05,06` → completed
 - `observable-charting-adapter-readiness/issues/01–05` → completed
-- `project-organization-consistency/issues/01,03` → completed
+- `project-organization-consistency/issues/01,03,06` → completed
+- `pi-ledger-kernel-interface-deepening/issues/03,04,05,06,07` → completed
+- `pi-chart-pi-ledger-adapter-strategy/issues/01,02` → completed
+- `pi-monitor-public-lane-ingest-depth/issues/01` → completed
 
 ---
 
