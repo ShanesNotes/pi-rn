@@ -64,6 +64,7 @@ AFK agents: read [`.scratch/pi-rn-afk-horizon/HORIZON-TASK-LIST.md`](.scratch/pi
 | Chart substrate / shift-brain | Planning (`needs-triage`) | `.scratch/pi-chart-lean-v0-5-substrate-shift-brain-strategy/PRD.md` |
 | Per-patient substrate field spec | Spec complete (15/15) — implementation gated | `.scratch/pi-chart-per-patient-substrate-field-interface/PRD.md`; `field-specs/` |
 | pi-sim rebase grounding | Completed | `.scratch/pi-sim-rebase-grounding/PRD.md` |
+| Observable charting adapter readiness | Completed (contract-only) | `.scratch/observable-charting-adapter-readiness/PRD.md` |
 
 OMX ultragoal lanes may use `HANDOFF.md`, `RUN-STATE.md`, and story docs instead of `PRD.md`; durable outcomes still live under `.scratch/<feature>/`.
 

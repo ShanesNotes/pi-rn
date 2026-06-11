@@ -58,7 +58,7 @@ Therefore this plan remains a conservative sequencing artifact, but it no longer
 
 Use `ULTRAGOAL-CURRENT-STATE.md` as the baseline. Do not repeat full baseline unless source files change.
 
-### Phase 1 — safe local spec cleanup
+### Phase 1 — safe local spec cleanup (**completed 2026-06-11**)
 
 This was the only implementation slice originally safe before the human-grill decisions were accepted; it remains a safe docs/spec cleanup slice. It is documentation/spec cleanup inside `.scratch/pi-chart-per-patient-substrate-field-interface/issues/`:
 
@@ -68,6 +68,8 @@ This was the only implementation slice originally safe before the human-grill de
 4. Issue 04: cross-reference Issue 01 for the unresolved cross-encounter declaration field name/shape.
 5. Issue 02: add a cross-reference to the review/attestation shape seam owned with Issues 03/10 so Issue 02's generic `act` assumption is not silently authoritative.
 6. Issue 09: add a one-line shared review-axis seam pointer for co-sign/attestation modeling owned with Issues 03/04/10, without renumbering Issue 09's correction-hash OQs.
+
+Closeout 2026-06-11: items 1–6 verified via RECONCILIATION.md and targeted issue cross-refs; Issue 09 review-axis pointer added. Stale `links.supports` promotion wording already resolved in Issue 12/RECONCILIATION.
 
 Expected verification for Phase 1:
 

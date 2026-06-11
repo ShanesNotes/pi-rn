@@ -1,6 +1,6 @@
 # Replay, idempotency, and provenance contract
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent
@@ -15,19 +15,19 @@ test planning, but it must not implement an adapter.
 
 ## Acceptance criteria
 
-- [ ] Contract defines replay questions for `timeline.jsonl` and `events.jsonl`
+- [x] Contract defines replay questions for `timeline.jsonl` and `events.jsonl`
       offsets or keys.
-- [ ] Contract accounts for per-run resets described by `pi-sim/vitals/.lanes.json`.
-- [ ] Contract covers replaced, truncated, or replayed public source files and
+- [x] Contract accounts for per-run resets described by `pi-sim/vitals/.lanes.json`.
+- [x] Contract covers replaced, truncated, or replayed public source files and
       adapter restarts.
-- [ ] Contract defines draft idempotency from explicit patient/encounter
+- [x] Contract defines draft idempotency from explicit patient/encounter
       mapping, metric, effective chart time, selected source sample identity,
       source lane, and adapter version.
-- [ ] Contract states that later replay must not overwrite validated chart truth.
-- [ ] Contract lists device-source provenance and chart-validation provenance
+- [x] Contract states that later replay must not overwrite validated chart truth.
+- [x] Contract lists device-source provenance and chart-validation provenance
       fields from the PRD.
-- [ ] Contract preserves quality/warning flags and missing-value reasons.
-- [ ] No `pi-rn/ingest/` code, chart write, or raw `pi-chart` mutation is added.
+- [x] Contract preserves quality/warning flags and missing-value reasons.
+- [x] No `pi-rn/ingest/` code, chart write, or raw `pi-chart` mutation is added.
 
 ## Blocked by
 
@@ -35,5 +35,4 @@ Maintainer triage of `.scratch/observable-charting-adapter-readiness/PRD.md`.
 
 ## Comments
 
-- 2026-05-03: This issue prepares future replay/idempotency tests without
-  authorizing implementation.
+- 2026-06-11: Delivered `.scratch/observable-charting-adapter-readiness/memos/04-replay-idempotency-and-provenance.md`.

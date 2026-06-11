@@ -1,6 +1,6 @@
 # PRD: Observable charting adapter readiness
 
-Status: needs-triage
+Status: completed
 Owner: workspace
 Date: 2026-05-03
 Source readiness artifact: `.scratch/pi-sim-public-telemetry-contract-lock/ingest-adapter-readiness.md`

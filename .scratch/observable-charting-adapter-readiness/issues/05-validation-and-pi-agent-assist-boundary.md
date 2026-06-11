@@ -1,6 +1,6 @@
 # Validation and pi-agent assist boundary
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent
@@ -15,19 +15,19 @@ and must not create final attestation behavior.
 
 ## Acceptance criteria
 
-- [ ] Contract states that final chart truth requires explicit human
+- [x] Contract states that final chart truth requires explicit human
       clinician/user action.
-- [ ] Contract allows `pi-agent` to summarize, flag gaps/outliers, match drafts
+- [x] Contract allows `pi-agent` to summarize, flag gaps/outliers, match drafts
       to orders, and prepare validation bundles.
-- [ ] Contract forbids `pi-agent` from silently validating, attesting,
+- [x] Contract forbids `pi-agent` from silently validating, attesting,
       overriding clinician corrections, inferring future vitals, or using hidden
       `pi-sim` internals.
-- [ ] Contract records validation decisions as accepted unchanged, corrected, or
+- [x] Contract records validation decisions as accepted unchanged, corrected, or
       rejected.
-- [ ] Contract requires validation provenance to link back to source draft and
+- [x] Contract requires validation provenance to link back to source draft and
       public telemetry provenance.
-- [ ] Contract preserves append-only correction/rejection history.
-- [ ] No chart-write implementation, ingest adapter implementation, or
+- [x] Contract preserves append-only correction/rejection history.
+- [x] No chart-write implementation, ingest adapter implementation, or
       post-rebase `pi-chart` ADR promotion is performed.
 
 ## Blocked by
@@ -36,5 +36,4 @@ Maintainer triage of `.scratch/observable-charting-adapter-readiness/PRD.md`.
 
 ## Comments
 
-- 2026-05-03: Seeded from the readiness artifact clinician validation and
-  `pi-agent` assistant-only policy.
+- 2026-06-11: Delivered `.scratch/observable-charting-adapter-readiness/memos/05-validation-and-pi-agent-assist-boundary.md`.

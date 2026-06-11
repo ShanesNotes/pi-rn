@@ -4,6 +4,65 @@ use crate::hash::RecordHash;
 use crate::ledger::LedgerEntry;
 use crate::time::{CanonicalTimestamp, TimeError, ValidTimeExpression};
 
+/// Trusted-entry projection facts extracted from an already accepted ledger entry.
+///
+/// Query uses these facts for point-read identity and revision hiding. This helper
+/// does not validate Admission, Predicate policy, or append-chain integrity.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrustedEntryFacts {
+    claim_id: String,
+    record_hash: RecordHash,
+    revision_target: Option<(String, RecordHash)>,
+}
+
+impl TrustedEntryFacts {
+    pub fn claim_id(&self) -> &str {
+        &self.claim_id
+    }
+
+    pub fn record_hash(&self) -> &RecordHash {
+        &self.record_hash
+    }
+
+    pub fn revision_target(&self) -> Option<(&str, &RecordHash)> {
+        self.revision_target
+            .as_ref()
+            .map(|(id, hash)| (id.as_str(), hash))
+    }
+
+    pub fn identity_key(&self) -> (&str, &RecordHash) {
+        (self.claim_id(), self.record_hash())
+    }
+}
+
+/// Extracts the trusted-entry facts Query needs for point-read projection.
+pub fn trusted_entry_facts(entry: &LedgerEntry) -> Result<TrustedEntryFacts, QueryError> {
+    let claim_id = claim_id(entry);
+    let record_hash = entry_record_hash(entry)?;
+    let revision_target = revision_target(entry)?;
+    Ok(TrustedEntryFacts {
+        claim_id,
+        record_hash,
+        revision_target,
+    })
+}
+
+/// Parses the Valid time expression from a trusted ledger entry.
+pub fn valid_time_expression(entry: &LedgerEntry) -> Result<ValidTimeExpression, QueryError> {
+    let claim_id = claim_id(entry);
+    let valid =
+        entry
+            .record
+            .pointer("/time/valid")
+            .ok_or_else(|| QueryError::MissingValidTime {
+                claim_id: claim_id.clone(),
+            })?;
+    ValidTimeExpression::parse(valid).map_err(|error| QueryError::InvalidValidTime {
+        claim_id,
+        value: invalid_valid_time_value(error),
+    })
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum QueryError {
     InvalidQueryTime {
@@ -61,13 +120,14 @@ pub fn point_read<'a>(
 
     let mut hidden_targets = BTreeSet::new();
     for entry in &candidates {
-        if let Some(target) = revision_target(entry)? {
+        if let Some(target) = trusted_entry_facts(entry)?.revision_target {
             hidden_targets.insert(target);
         }
     }
     let mut entries = Vec::new();
     for entry in candidates {
-        let key = (claim_id(entry), entry_record_hash(entry)?);
+        let facts = trusted_entry_facts(entry)?;
+        let key = (facts.claim_id.clone(), facts.record_hash.clone());
         if !hidden_targets.contains(&key) {
             entries.push(entry);
         }
@@ -76,20 +136,7 @@ pub fn point_read<'a>(
 }
 
 fn is_valid_at(entry: &LedgerEntry, valid_at: &CanonicalTimestamp) -> Result<bool, QueryError> {
-    let claim_id = claim_id(entry);
-    let valid =
-        entry
-            .record
-            .pointer("/time/valid")
-            .ok_or_else(|| QueryError::MissingValidTime {
-                claim_id: claim_id.clone(),
-            })?;
-    let valid_time =
-        ValidTimeExpression::parse(valid).map_err(|error| QueryError::InvalidValidTime {
-            claim_id,
-            value: invalid_valid_time_value(error),
-        })?;
-    Ok(valid_time.contains(valid_at))
+    Ok(valid_time_expression(entry)?.contains(valid_at))
 }
 
 fn parse_query_time(field: &'static str, value: &str) -> Result<CanonicalTimestamp, QueryError> {

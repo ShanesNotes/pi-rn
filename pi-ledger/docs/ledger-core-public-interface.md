@@ -42,6 +42,8 @@ These are the paths future Adapters may use as the intended `ledger-core` Interf
 | Append correction Claim | `AppendLedger::append_revision_admissible` | Rechecks target proof against current ledger entries before append. |
 | Inspect accepted entries | `AppendLedger::entries`, `ledger::LedgerEntry` | Entries are accepted ledger history; do not mutate them or treat mutated copies as trusted. |
 | Point-in-time view | `query::point_read`, `query::PointReadView` | Query is a trusted-entry projection, not Admission or chain validation. |
+| Trusted-entry facts | `query::trusted_entry_facts`, `query::TrustedEntryFacts`, `query::valid_time_expression` | Projection helpers for claim id, Record hash, revision target, and Valid time on already accepted entries. |
+| Failure classification | `adapter_diagnosis::FailureLayer`, `adapter_diagnosis::*_error_layer` | Adapter-facing diagnosis vocabulary; see `adapter-facing-errors.md`. |
 
 ## Trusted rebuild and integrity paths
 

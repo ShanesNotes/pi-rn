@@ -123,6 +123,7 @@ Co-sign/attestation modeling is resolved by Issues 03/04/10 as separate append-o
 
 ## Related (consistency)
 
+- Issues 03/04/10 (review-axis seam) — co-sign/readback/attestation predicate ids and typed `act` object fields for review facts are owned jointly with those slices; Issue 09 lifecycle labels do not collapse review state into `status` mutations.
 - Issue 10 (`certainty` + review/attestation as separate facts) — **Resolved** appears in BOTH this lifecycle vocabulary and the certainty/uncertainty surface; the two must agree that a resolved *problem* (lifecycle) and a resolved *uncertainty* (certainty) are the same clinical close, projected on two axes, and neither mutates the original.
 - Issue 12 (human-agent suggestion state) — `draft` (this issue) and `Suggested` (Issue 12) are the two provisional, never-kernel-emitted states.
 - Issue 11 (projection-facing fields) — timing/open-loop closure consumes the **Resolved** lifecycle.

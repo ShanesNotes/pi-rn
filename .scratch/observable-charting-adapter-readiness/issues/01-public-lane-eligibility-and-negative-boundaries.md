@@ -1,6 +1,6 @@
 # Public lane eligibility and negative boundaries
 
-Status: needs-triage
+Status: completed
 Type: AFK
 
 ## Parent
@@ -16,20 +16,20 @@ inputs without creating adapter code.
 
 ## Acceptance criteria
 
-- [ ] Memo names `timeline.jsonl` as the primary scalar replay source.
-- [ ] Memo names `events.jsonl` as public trigger/context evidence, with public
+- [x] Memo names `timeline.jsonl` as the primary scalar replay source.
+- [x] Memo names `events.jsonl` as public trigger/context evidence, with public
       alarms as allowed v1 auto-staging triggers.
-- [ ] Memo classifies `status.json`, `encounter/current.json`,
+- [x] Memo classifies `status.json`, `encounter/current.json`,
       `assessments/status.json`, and `assessments/current.json` as context-only
       or mapping-support lanes, not standalone chart truth.
-- [ ] Memo classifies `current.json` as smoke/read-latest only and
+- [x] Memo classifies `current.json` as smoke/read-latest only and
       `timeline.json` as deferred compatibility evidence.
-- [ ] Memo defers waveform chart ingest while preserving a future
+- [x] Memo defers waveform chart ingest while preserving a future
       sub-minute/artifact review path.
-- [ ] Memo explicitly forbids hidden `pi-sim` internals, future scripted data,
+- [x] Memo explicitly forbids hidden `pi-sim` internals, future scripted data,
       `pi-monitor` display internals, raw chart files, and `pi-agent` private
       reasoning as adapter inputs.
-- [ ] No `pi-rn/ingest/` directory, adapter implementation, chart write, or
+- [x] No `pi-rn/ingest/` directory, adapter implementation, chart write, or
       `pi-chart` ADR is created.
 
 ## Blocked by
@@ -38,5 +38,4 @@ Maintainer triage of `.scratch/observable-charting-adapter-readiness/PRD.md`.
 
 ## Comments
 
-- 2026-05-03: Seeded from the HITL-approved readiness artifact under
-  `.scratch/pi-sim-public-telemetry-contract-lock/`.
+- 2026-06-11: Delivered `.scratch/observable-charting-adapter-readiness/memos/01-public-lane-eligibility.md`.

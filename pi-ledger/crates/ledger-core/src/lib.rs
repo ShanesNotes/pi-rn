@@ -15,6 +15,7 @@
 //! the trusted history rebuild Seam lives in
 //! `pi-ledger/docs/trusted-history-rebuild-seam.md`.
 
+pub mod adapter_diagnosis;
 pub mod admission;
 pub mod canonical;
 pub mod claim;

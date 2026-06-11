@@ -1,6 +1,6 @@
 # Defer ingest adapter readiness until ABI lock
 
-Status: needs-triage
+Status: completed
 Type: HITL
 
 ## Parent
