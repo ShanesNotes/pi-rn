@@ -8,8 +8,8 @@ Authority stays in the producer contract: `../pi-sim/vitals/README.md` and `../p
 
 Cases:
 
-- `scripted-demo/` — normal scripted run with encounter and revealed assessment context.
-- `scripted-alarm/` — alarm lane containing `MAP_LOW` and `SPO2_LOW`.
-- `provider-unavailable/` — terminal provider-unavailable run state.
 - `available-waveform/` — positive ECG Lead II + pleth demo waveform-current fixture accepted for display, mirrored from `pi-sim` live demo output.
+- `provider-unavailable/` — terminal provider-unavailable run state.
+- `scripted-alarm/` — alarm lane containing `MAP_LOW` and `SPO2_LOW`.
+- `scripted-demo/` — normal scripted run with encounter and revealed assessment context.
 - `stale-waveform/` — monitor-only invalid waveform-current/status mismatch; current waveform must be ignored with a warning.

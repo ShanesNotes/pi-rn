@@ -4,12 +4,12 @@ Standalone display-only Rust monitor for `pi-sim` public telemetry.
 
 ## Crates
 
-- `pulse-public-frame` — parses target Pulse-style frames, legacy `current.json`, the backward-compatible `current.json.monitor` display extension, and additive public-lane models from `pi-sim/vitals`.
+- `monitor-app` — native Rust kiosk app using eframe/egui.
+- `monitor-cli` — `render`, `watch`, and `replay` commands.
 - `monitor-core` — deterministic freshness/alarm/numeric/waveform display model.
 - `monitor-ingest` — read-only file and public source-directory ingest with native filesystem watching and polling fallback.
 - `monitor-ui` — static terminal/HTML renderers for smoke tests and fixture artifacts.
-- `monitor-cli` — `render`, `watch`, and `replay` commands.
-- `monitor-app` — native Rust kiosk app using eframe/egui.
+- `pulse-public-frame` — parses target Pulse-style frames, legacy `current.json`, the backward-compatible `current.json.monitor` display extension, and additive public-lane models from `pi-sim/vitals`.
 
 ## Boundary
 

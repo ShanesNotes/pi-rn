@@ -11,12 +11,24 @@ pi-ledger/
 ├── Cargo.toml
 ├── CONTEXT.md
 ├── conformance/clinical_truth/v1alpha1/vital_sign_vectors.json
-├── docs/adr/
-│   ├── 009-clinical-truth-service.md
-│   └── 010-vital-sign-service-core-slice.md
-├── docs/admission-proof-lifecycle.md
-├── docs/ledger-core-public-interface.md
-├── docs/trusted-history-rebuild-seam.md
+├── docs/
+│   ├── adapter-facing-errors.md
+│   ├── admission-proof-lifecycle.md
+│   ├── k0-overview.html
+│   ├── k2-overview.html
+│   ├── ledger-core-public-interface.md
+│   ├── trusted-history-rebuild-seam.md
+│   └── adr/
+│       ├── 001-reusable-claim-ledger-kernel.md
+│       ├── 002-canonical-utc-time-input-invariant.md
+│       ├── 003-typed-hash-value-module.md
+│       ├── 004-validated-claim-field-authority.md
+│       ├── 005-append-admission-separates-predicate-policy.md
+│       ├── 006-revision-admission-proves-correction-target-existence.md
+│       ├── 007-admission-bypass-is-test-only.md
+│       ├── 008-kernel-public-interface-inventory-before-adapters.md
+│       ├── 009-clinical-truth-service.md
+│       └── 010-vital-sign-service-core-slice.md
 └── crates/
     ├── ledger-core/
     │   ├── Cargo.toml
